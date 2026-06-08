@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Acceso Alumno - EvaLiA</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="../../assets/Logo.ico" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../../css/styles.css" />
+    <!-- Librería del Escáner QR -->
+    <script
+      src="https://unpkg.com/html5-qrcode"
+      type="text/javascript"
+    ></script>
+    <style>
+      .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .login-box {
+        background: rgba(30, 27, 75, 0.4);
+        backdrop-filter: blur(10px);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        text-align: center;
+        max-width: 420px;
+        width: 100%;
+        animation: fadeInUp 0.8s ease-out;
+      }
+      .login-box h2 {
+        margin-bottom: 10px;
+        font-size: 2rem;
+        color: var(--text-light);
+      }
+      .divider {
+        display: flex;
+        align-items: center;
+        margin: 25px 0;
+        color: var(--text-muted);
+      }
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .divider span {
+        padding: 0 15px;
+        font-size: 0.9rem;
+      }
+      #reader {
+        width: 100%;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        display: none;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-box">
+        <img
+          src="../../assets/Logo.png"
+          alt="Logo EvaLiA"
+          style="
+            width: 80px;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.2));
+          "
+        />
+        <h2>Portal del Alumno</h2>
+        <p style="color: var(--text-muted); margin-bottom: 25px">
+          Ingresa con tus datos o escanea tu credencial
+        </p>
+
+        <!-- Contenedor de la cámara -->
+        <div id="reader"></div>
+
+        <button
+          id="btn-scan-qr"
+          class="btn btn-alumno"
+          style="width: 100%; justify-content: center; margin-bottom: 10px"
+        >
+          <i class="fas fa-qrcode"></i> Escanear Código QR
+        </button>
+        <button
+          id="btn-stop-scan"
+          class="btn btn-cancel"
+          style="width: 100%; justify-content: center; display: none"
+        >
+          Detener Cámara
+        </button>
+
+        <div class="divider"><span>O ingresa tus datos</span></div>
+
+        <form id="form-login-alumno">
+          <div class="form-group">
+            <input
+              type="text"
+              id="identificador"
+              class="form-control"
+              placeholder="Matrícula o Nombre Completo"
+              required
+              autocomplete="off"
+            />
+          </div>
+          <div class="form-group" style="margin-bottom: 25px">
+            <input
+              type="password"
+              id="pin"
+              class="form-control"
+              placeholder="PIN de 6 dígitos"
+              required
+              autocomplete="off"
+            />
+          </div>
+          <button
+            type="submit"
+            class="btn btn-maestro"
+            style="
+              width: 100%;
+              justify-content: center;
+              background: var(--primary);
+            "
+          >
+            Entrar a mis Calificaciones
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal de Alerta -->
+    <div id="modal-alerta" class="modal-overlay">
+      <div class="modal-content" style="max-width: 400px; text-align: center">
+        <i
+          class="fas fa-exclamation-circle"
+          style="font-size: 4rem; color: #ef4444; margin-bottom: 20px"
+        ></i>
+        <h2 style="color: var(--text-light); margin-bottom: 10px">Atención</h2>
+        <p
+          id="alerta-mensaje"
+          style="color: var(--text-muted); line-height: 1.5"
+        ></p>
+        <button
+          onclick="
+            document.getElementById('modal-alerta').classList.remove('active')
+          "
+          class="btn btn-maestro"
+          style="margin-top: 25px; width: 100%; justify-content: center"
+        >
+          Aceptar
+        </button>
+      </div>
+    </div>
+
+    <script type="module" src="../../js/auth_alumno.js"></script>
+  </body>
+</html>

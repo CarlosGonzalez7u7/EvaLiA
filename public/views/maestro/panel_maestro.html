@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel del Maestro - EvaLiA</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="../../assets/Logo.ico" />
+
+    <!-- Fuentes e Íconos -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Estilos globales heredados -->
+    <link rel="stylesheet" href="../../css/styles.css" />
+
+    <style>
+      .panel-container {
+        padding: 40px 5%;
+        max-width: 1200px;
+        margin: 0 auto;
+        animation: fadeInUp 0.8s ease-out;
+      }
+      .header-panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+      }
+      .welcome-text h1 {
+        font-size: 2.5rem;
+        color: var(--text-light);
+      }
+      .welcome-text p {
+        color: var(--text-muted);
+        font-size: 1.1rem;
+        margin-top: 5px;
+      }
+      .btn-logout {
+        background: rgba(236, 72, 153, 0.1);
+        color: var(--secondary);
+        border: 1px solid var(--secondary);
+        padding: 10px 20px;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+      }
+      .btn-logout:hover {
+        background: var(--secondary);
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Barra de Navegación -->
+    <nav>
+      <div class="logo-container">
+        <img src="../../assets/Logo.png" alt="Logo EvaLiA" class="nav-logo" />
+        EvaLiA
+      </div>
+      <a href="#" id="btn-logout" class="btn-logout"
+        ><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a
+      >
+    </nav>
+
+    <!-- Contenido Principal -->
+    <div class="panel-container">
+      <div class="header-panel">
+        <div class="welcome-text">
+          <h1>Bienvenido, <span id="nombre-maestro">Cargando...</span></h1>
+          <p>Tus grupos y herramientas de evaluación están listos.</p>
+        </div>
+
+        <div style="display: flex; gap: 15px">
+          <button
+            id="btn-ayuda-panel"
+            class="btn"
+            style="
+              background: rgba(255, 255, 255, 0.1);
+              border: 1px solid rgba(255, 255, 255, 0.2);
+            "
+          >
+            <i class="fas fa-question-circle"></i> Tutorial
+          </button>
+          <button id="btn-abrir-modal" class="btn btn-maestro">
+            <i class="fas fa-plus"></i> Crear Grupo
+          </button>
+        </div>
+      </div>
+
+      <div id="grupos-container" class="grid">
+        <!-- Las tarjetas se inyectarán mágicamente aquí por JS -->
+      </div>
+    </div>
+
+    <!-- Modal para Crear Nuevo Grupo -->
+    <div id="modal-grupo" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modal-title">Configurar Nuevo Grupo</h2>
+          <button id="btn-cerrar-modal" type="button" class="btn-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="form-grupo">
+          <input type="hidden" id="id_grupo" value="" />
+
+          <div class="form-group">
+            <label>Nivel Educativo</label>
+            <select id="nivel_educativo" class="form-control" required>
+              <option value="Primaria">Primaria</option>
+              <option value="Secundaria" selected>Secundaria</option>
+              <option value="Preparatoria">Preparatoria / Bachillerato</option>
+              <option value="Universidad">Universidad / Superior</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 15px">
+            <div class="form-group" style="flex: 1">
+              <label
+                >Nombre del Grupo
+                <small
+                  style="
+                    display: block;
+                    color: var(--text-muted);
+                    font-weight: normal;
+                    margin-top: 3px;
+                  "
+                  >Ej. 1ro A Matemáticas</small
+                ></label
+              >
+              <input
+                type="text"
+                id="nombre_grupo"
+                class="form-control"
+                placeholder="Ej. 1ro A"
+                required
+                autocomplete="off"
+              />
+            </div>
+            <div class="form-group" style="flex: 1">
+              <label
+                >Ciclo Escolar
+                <small
+                  style="
+                    display: block;
+                    color: var(--text-muted);
+                    font-weight: normal;
+                    margin-top: 3px;
+                  "
+                  >Ej. 2026-2</small
+                ></label
+              >
+              <input
+                type="text"
+                id="ciclo_escolar"
+                class="form-control"
+                placeholder="Ej. 2026-2"
+                required
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 15px">
+            <div class="form-group" style="flex: 1">
+              <label
+                >¿Cómo se divide?
+                <small
+                  style="
+                    display: block;
+                    color: var(--text-muted);
+                    font-weight: normal;
+                    margin-top: 3px;
+                  "
+                  >Nombre de los periodos</small
+                ></label
+              >
+              <select id="tipo_periodo" class="form-control" required>
+                <option value="Bimestre">Bimestre</option>
+                <option value="Trimestre">Trimestre</option>
+                <option value="Parcial">Parcial</option>
+                <option value="Unidad">Unidad / Tema</option>
+                <option value="Semestre">Semestre</option>
+              </select>
+            </div>
+            <div class="form-group" style="max-width: 130px">
+              <label
+                >Cantidad
+                <small
+                  style="
+                    display: block;
+                    color: var(--text-muted);
+                    font-weight: normal;
+                    margin-top: 3px;
+                  "
+                  >Ej. 4 temas</small
+                ></label
+              >
+              <input
+                type="number"
+                id="num_periodos"
+                class="form-control"
+                min="1"
+                max="20"
+                value="5"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label
+              >Horario y Tolerancia de Clase
+              <small
+                style="
+                  display: block;
+                  color: var(--text-muted);
+                  font-weight: normal;
+                  margin-top: 3px;
+                "
+                >Se usará para calcular retardos y lanzar la alarma de fin de
+                clase.</small
+              ></label
+            >
+            <div style="display: flex; gap: 10px; flex-wrap: wrap">
+              <input
+                type="text"
+                id="dias_clase"
+                class="form-control"
+                placeholder="Ej. Lu, Mi, Vi"
+                value="Lunes a Viernes"
+                required
+                style="flex: 2; min-width: 150px"
+              />
+              <div style="display: flex; flex-direction: column; flex: 1">
+                <small
+                  style="
+                    color: var(--text-muted);
+                    font-size: 0.8rem;
+                    margin-bottom: 3px;
+                  "
+                  >Inicio</small
+                >
+                <input
+                  type="time"
+                  id="hora_inicio"
+                  class="form-control"
+                  value="08:00"
+                  required
+                />
+              </div>
+              <div style="display: flex; flex-direction: column; flex: 1">
+                <small
+                  style="
+                    color: var(--text-muted);
+                    font-size: 0.8rem;
+                    margin-bottom: 3px;
+                  "
+                  >Fin</small
+                >
+                <input
+                  type="time"
+                  id="hora_fin"
+                  class="form-control"
+                  value="09:00"
+                  required
+                />
+              </div>
+              <div style="display: flex; flex-direction: column; flex: 1">
+                <small
+                  style="
+                    color: var(--text-muted);
+                    font-size: 0.8rem;
+                    margin-bottom: 3px;
+                  "
+                  >Retardo a los (Mins)</small
+                >
+                <input
+                  type="number"
+                  id="tolerancia_minutos"
+                  class="form-control"
+                  value="15"
+                  min="0"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Modo de Calificación</label>
+            <select id="modo_calificacion" class="form-control" required>
+              <option value="Promedio">Promedio Normal (Suma y divide)</option>
+              <option value="Competencias">
+                Por Competencias (Debe pasar todos para aprobar)
+              </option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label
+              >Calificación Mínima
+              <small
+                style="
+                  display: block;
+                  color: var(--text-muted);
+                  font-weight: normal;
+                  margin-top: 3px;
+                "
+                >Puntaje necesario para pasar (De 0 a 10)</small
+              ></label
+            >
+            <input
+              type="number"
+              id="calificacion_minima"
+              class="form-control"
+              step="0.1"
+              min="0"
+              max="10"
+              value="6.0"
+              required
+            />
+          </div>
+          <button type="submit" id="btn-submit-grupo" class="btn-submit">
+            Crear Grupo y Periodos
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal de Tutorial -->
+    <div id="modal-ayuda-panel" class="modal-overlay">
+      <div class="modal-content" style="max-width: 600px">
+        <div class="modal-header">
+          <h2 style="color: var(--secondary)">
+            <i class="fas fa-lightbulb"></i> ¿Cómo funciona el Panel?
+          </h2>
+          <button id="btn-cerrar-ayuda" type="button" class="btn-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div style="color: var(--text-light); line-height: 1.6">
+          <p style="margin-bottom: 15px">
+            Este es tu Centro de Control. Aquí administrarás todas tus clases.
+          </p>
+          <ul
+            style="
+              margin-left: 20px;
+              color: var(--text-muted);
+              margin-bottom: 20px;
+            "
+          >
+            <li style="margin-bottom: 10px">
+              <strong
+                ><i class="fas fa-plus" style="color: var(--primary)"></i> Crear
+                Grupo:</strong
+              >
+              Usa este botón para registrar una nueva materia o salón.
+            </li>
+            <li style="margin-bottom: 10px">
+              <strong
+                ><i class="fas fa-cog" style="color: var(--primary)"></i>
+                Configurar:</strong
+              >
+              Entra aquí para definir cuánto valen las tareas o exámenes.
+            </li>
+            <li style="margin-bottom: 10px">
+              <strong
+                ><i class="fas fa-eye-slash" style="color: #ef4444"></i>
+                Ocultar:</strong
+              >
+              Si ya terminó el año, oculta el grupo para que no estorbe (sin
+              borrar alumnos).
+            </li>
+          </ul>
+          <button
+            id="btn-entendido-panel"
+            class="btn btn-maestro"
+            style="width: 100%; justify-content: center"
+          >
+            ¡Entendido!
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Alerta Personalizada -->
+    <div id="modal-alerta" class="modal-overlay">
+      <div class="modal-content" style="max-width: 400px; text-align: center">
+        <i
+          class="fas fa-exclamation-circle"
+          style="font-size: 4rem; color: #ef4444; margin-bottom: 20px"
+        ></i>
+        <h2 style="color: var(--text-light); margin-bottom: 10px">Atención</h2>
+        <p
+          id="alerta-mensaje"
+          style="color: var(--text-muted); line-height: 1.5"
+        ></p>
+        <button
+          onclick="
+            document.getElementById('modal-alerta').classList.remove('active')
+          "
+          class="btn btn-maestro"
+          style="margin-top: 25px; width: 100%; justify-content: center"
+        >
+          Aceptar
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal de Confirmación Personalizada -->
+    <div id="modal-confirmacion" class="modal-overlay">
+      <div class="modal-content" style="max-width: 450px; text-align: center">
+        <i
+          class="fas fa-question-circle"
+          style="font-size: 4rem; color: var(--primary); margin-bottom: 20px"
+        ></i>
+        <h2 style="color: var(--text-light); margin-bottom: 10px">
+          ¿Estás seguro?
+        </h2>
+        <p
+          id="confirmacion-mensaje"
+          style="color: var(--text-muted); line-height: 1.5"
+        ></p>
+        <div class="modal-actions">
+          <button
+            onclick="
+              document
+                .getElementById('modal-confirmacion')
+                .classList.remove('active')
+            "
+            class="btn btn-cancel"
+            style="flex: 1; justify-content: center"
+          >
+            Cancelar
+          </button>
+          <button
+            id="btn-confirmar-accion"
+            class="btn btn-danger"
+            style="flex: 1; justify-content: center"
+          >
+            Sí, continuar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lógica de la Interfaz -->
+    <script type="module" src="../../js/panel_maestro.js"></script>
+  </body>
+</html>

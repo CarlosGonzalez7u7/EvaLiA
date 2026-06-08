@@ -1,0 +1,567 @@
+:root {
+  --primary: #8b5cf6; /* Púrpura principal */
+  --primary-dark: #6d28d9;
+  --secondary: #ec4899; /* Rosa para contraste (botones alumnos) */
+  --secondary-dark: #db2777;
+  --dark: #0f172a; /* Azul pizarra oscuro */
+  --text-light: #f8fafc; /* Texto claro */
+  --text-muted: #94a3b8; /* Texto secundario */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  /* Fondo oscuro con degradado dinámico que no lastima la vista */
+  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #170f2e, #020617);
+  background-size: 400% 400%;
+  color: var(--text-light);
+  overflow-x: hidden;
+  animation: mainBg 15s ease infinite;
+}
+
+@keyframes mainBg {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Bloquear scroll mientras está el telón */
+body.no-scroll {
+  overflow: hidden;
+}
+
+/* --- Pantalla de Carga (Telón) --- */
+#splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(-45deg, #4c1d95, #7c3aed, #9333ea, #3b0764);
+  background-size: 400% 400%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1);
+  animation: gradientBG 6s ease infinite;
+}
+
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.splash-logo {
+  width: 180px;
+  height: auto;
+  filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.4));
+  opacity: 0;
+  transform: scale(0.5) translateY(50px);
+  /* Animación: Aparece de la nada (escala) y luego flota eternamente */
+  animation:
+    logoAppear 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards,
+    floatLogo 4s ease-in-out infinite 1.2s;
+}
+
+@keyframes logoAppear {
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes floatLogo {
+  0% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-15px) scale(1.02);
+  }
+  100% {
+    transform: translateY(0px) scale(1);
+  }
+}
+
+.splash-text {
+  color: white;
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-top: 20px;
+  letter-spacing: 3px;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: textAppear 1s forwards 0.5s;
+}
+
+@keyframes textAppear {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Clase que oculta el telón deslizándolo hacia arriba */
+.curtain-up {
+  transform: translateY(-100%);
+}
+
+/* --- Animaciones Generales --- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* --- Navbar --- */
+nav {
+  background: rgba(15, 23, 42, 0.8); /* Oscuro translúcido */
+  backdrop-filter: blur(10px); /* Efecto cristal */
+  padding: 20px 5%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: var(--primary);
+}
+
+.nav-logo {
+  height: 40px;
+  width: auto;
+}
+
+/* --- Hero Section --- */
+.hero {
+  padding: 80px 5%;
+  text-align: center;
+  background: transparent;
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  animation: fadeInUp 1s ease-out 0.8s backwards; /* Se retrasa por el telón */
+}
+
+.hero h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  line-height: 1.2;
+  background: -webkit-linear-gradient(45deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero p.subtitle {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  max-width: 800px;
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+/* --- Botones de Acción --- */
+.buttons-container {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn {
+  padding: 15px 35px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 50px;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: white;
+}
+
+.btn-maestro {
+  background: var(--primary);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+
+.btn-maestro:hover {
+  background: var(--primary-dark);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+
+.btn-alumno {
+  background: var(--secondary);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-alumno:hover {
+  background: var(--secondary-dark);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+/* --- Sección de Características --- */
+.features {
+  padding: 80px 5%;
+  background: transparent;
+  text-align: center;
+}
+
+.features h2 {
+  font-size: 2.5rem;
+  margin-bottom: 50px;
+  color: var(--text-light);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.card {
+  background: rgba(30, 27, 75, 0.4); /* Fondo oscuro estilo glassmorphism */
+  backdrop-filter: blur(10px);
+  padding: 40px 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+}
+
+.card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 40px rgba(139, 92, 246, 0.2); /* Brillo púrpura sutil al hacer hover */
+}
+
+.card-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  color: var(--primary); /* Añadimos color para los íconos de FontAwesome */
+  animation: float 4s ease-in-out infinite;
+}
+
+.card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  color: var(--primary);
+}
+
+.card p {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+footer {
+  background: rgba(0, 0, 0, 0.3); /* Fondo oscuro profundo */
+  color: var(--text-muted);
+  text-align: center;
+  padding: 30px;
+  margin-top: 40px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* --- Modales y Formularios --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 2000;
+}
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.modal-content {
+  background: rgba(30, 27, 75, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh; /* Permite que el modal no se salga de la pantalla */
+  overflow-y: auto; /* Agrega scroll interno si el contenido es muy largo */
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  transform: translateY(20px);
+  transition: transform 0.3s ease;
+}
+.modal-overlay.active .modal-content {
+  transform: translateY(0);
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+.modal-header h2 {
+  color: var(--text-light);
+  font-size: 1.5rem;
+}
+.btn-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.btn-close:hover {
+  color: var(--secondary);
+}
+
+.form-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+.form-group label {
+  display: block;
+  color: var(--text-light);
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.form-control {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-family: "Inter", sans-serif;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+textarea.form-control {
+  resize: vertical;
+  min-height: 100px;
+}
+.form-control option {
+  background: var(--dark);
+  color: white;
+}
+
+/* Corrección para los menús desplegables del Editor de Texto (TinyMCE) */
+.tox-tinymce-aux {
+  z-index: 9999 !important;
+}
+
+.btn-danger {
+  background: #ef4444;
+}
+.btn-danger:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+.btn-cancel {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.modal-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+.btn-submit {
+  width: 100%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 10px;
+}
+.btn-submit:hover {
+  background: var(--primary-dark);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: color 0.3s;
+}
+.btn-icon:hover {
+  color: var(--text-light);
+}
+
+/* --- Tablas (Estilo Excel) --- */
+.table-container {
+  overflow-x: auto;
+  width: 100%;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text-light);
+  text-align: left;
+}
+.table th,
+.table td {
+  padding: 15px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.table th {
+  background: rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.table tr:last-child td {
+  border-bottom: none;
+}
+.table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* --- Inputs de Calificaciones estilo Excel --- */
+.grade-input {
+  width: 60px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  text-align: center;
+  border-radius: 5px;
+  padding: 8px 5px;
+  font-family: "Inter", monospace;
+  transition: 0.2s;
+}
+.grade-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: rgba(139, 92, 246, 0.15);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+}
+.text-danger {
+  color: #ef4444 !important;
+  font-weight: bold;
+}
+.text-success {
+  color: var(--secondary) !important;
+  font-weight: bold;
+}
+.cell-promedio {
+  background: rgba(0, 0, 0, 0.2);
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: 2.5rem;
+  }
+  .buttons-container {
+    flex-direction: column;
+  }
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* --- Animaciones al hacer Scroll --- */
+.scroll-hidden {
+  opacity: 0;
+  filter: blur(5px);
+  transform: translateY(80px); /* Los elementos empiezan abajo */
+  transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+}
+
+.scroll-show {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0); /* Aparecen subiendo a su lugar original */
+}
+
+/* Para dar un efecto en cascada a las tarjetas */
+.card:nth-child(1) {
+  transition-delay: 0.1s;
+}
+.card:nth-child(2) {
+  transition-delay: 0.2s;
+}
+.card:nth-child(3) {
+  transition-delay: 0.3s;
+}
+.card:nth-child(4) {
+  transition-delay: 0.4s;
+}

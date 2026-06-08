@@ -1,0 +1,17 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 1. Proteger archivos sensibles (.env, credenciales JSON de Firebase, .htaccess)
+    <FilesMatch "\.(env|json|htaccess)$">
+        Require all denied
+    </FilesMatch>
+
+    # 2. Permitir el tráfico directo a la carpeta /api (Backend)
+    RewriteCond %{REQUEST_URI} ^/api/ [NC]
+    RewriteRule ^ - [L]
+
+    # 3. Redirigir todo el RESTO del tráfico a la carpeta /public (Frontend)
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+
+</IfModule>

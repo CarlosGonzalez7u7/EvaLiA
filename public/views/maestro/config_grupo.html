@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Configurar Grupo - EvaLiA</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="../../assets/Logo.ico" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../../css/styles.css" />
+    <style>
+      .panel-container {
+        padding: 40px 5%;
+        max-width: 1200px;
+        margin: 0 auto;
+        animation: fadeInUp 0.8s ease-out;
+      }
+      .header-panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+      .btn-back {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 50px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: 0.3s;
+      }
+      .btn-back:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .list-group {
+        list-style: none;
+        padding: 0;
+        margin-top: 20px;
+      }
+      .list-group li {
+        background: rgba(15, 23, 42, 0.6);
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .badge-active {
+        background: var(--secondary);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+
+      .rubrica-form {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .rubrica-form input {
+        flex: 1;
+      }
+      .rubrica-form input[type="number"] {
+        max-width: 100px;
+      }
+
+      .progress-container {
+        background: rgba(15, 23, 42, 0.8);
+        height: 10px;
+        border-radius: 10px;
+        margin-top: 20px;
+        overflow: hidden;
+      }
+      .progress-bar {
+        background: var(--secondary);
+        height: 100%;
+        width: 0%;
+        transition: width 0.4s ease;
+      }
+      .progress-bar.success {
+        background: var(--secondary);
+      }
+      .progress-bar.error {
+        background: #ef4444;
+      }
+
+      @media (min-width: 768px) {
+        .config-grid {
+          grid-template-columns: 1.5fr 1fr; /* La tarjeta de rúbricas es más ancha (60/40) */
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="logo-container">
+        <img src="../../assets/Logo.png" class="nav-logo" /> EvaLiA
+      </div>
+      <a href="panel_maestro.html" class="btn-back"
+        ><i class="fas fa-arrow-left"></i> Volver al Panel</a
+      >
+    </nav>
+
+    <div class="panel-container">
+      <div class="header-panel">
+        <div>
+          <h1 style="font-size: 2rem; color: var(--text-light)">
+            Configuración: <span id="lbl-nombre-grupo">Cargando...</span>
+          </h1>
+          <p style="color: var(--text-muted)">
+            Administra cómo se evalúa este grupo a lo largo del ciclo.
+          </p>
+        </div>
+        <button
+          id="btn-ayuda-rubrica"
+          class="btn"
+          style="
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+          "
+        >
+          <i class="fas fa-question-circle"></i> Tutorial
+        </button>
+      </div>
+
+      <div class="grid config-grid">
+        <!-- Módulo de Rúbricas -->
+        <div class="card">
+          <h3 style="color: white; margin-bottom: 15px">
+            <i class="fas fa-chart-pie"></i> Rúbrica de Evaluación
+          </h3>
+          <p
+            style="
+              color: var(--text-muted);
+              font-size: 0.9rem;
+              margin-bottom: 20px;
+            "
+          >
+        Define los parámetros de calificación para tu periodo actual. Al terminar el periodo, podrás mantener estas mismas reglas o cambiarlas para el siguiente. Recuerda que <strong>debe sumar 100%</strong>.
+          </p>
+
+      <div style="margin-bottom: 20px;">
+        <span id="lbl-periodo-activo" class="badge-active" style="background: var(--primary); padding: 6px 15px; font-size: 0.9rem;">
+          <i class="fas fa-spinner fa-spin"></i> Cargando periodo...
+        </span>
+      </div>
+
+          <form id="form-rubrica" class="rubrica-form" style="align-items: flex-end;">
+            <div style="flex: 1">
+              <label
+                style="
+                  color: var(--text-muted);
+                  font-size: 0.85rem;
+                  margin-bottom: 5px;
+                  display: block;
+                "
+                >Criterio a evaluar</small
+              >
+              <input
+                type="text"
+                id="criterio"
+                class="form-control"
+                placeholder="Ej. Tareas"
+                required
+                autocomplete="off"
+              />
+            </div>
+            <div style="width: 100px">
+              <label
+                style="
+                  color: var(--text-muted);
+                  font-size: 0.85rem;
+                  margin-bottom: 5px;
+                  display: block;
+                "
+                >Valor %</small
+              >
+              <input
+                type="number"
+                id="porcentaje"
+                class="form-control"
+                placeholder="%"
+                min="1"
+                max="100"
+                required
+              />
+            </div>
+            <div style="width: 60px">
+              <label style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px; display: block;">Color</label>
+              <input type="color" id="color" class="form-control" style="padding: 2px; height: 44px; cursor: pointer;" value="#8b5cf6" required />
+            </div>
+            <button
+              type="submit"
+              class="btn btn-maestro"
+              style="width: 44px; height: 44px; padding: 0; display: flex; justify-content: center; align-items: center;"
+              title="Agregar Rúbrica"
+            >
+              <i class="fas fa-plus"></i>
+            </button>
+          </form>
+
+          <ul class="list-group" id="lista-rubricas">
+            <!-- Rúbricas inyectadas por JS -->
+          </ul>
+
+          <div style="margin-top: 25px">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                color: white;
+                font-weight: bold;
+              "
+            >
+              <span>Total Calculado:</span>
+              <span id="lbl-total">0% / 100%</span>
+            </div>
+            <div class="progress-container">
+              <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <p
+              id="msg-error"
+              style="
+                color: #ef4444;
+                font-size: 0.85rem;
+                margin-top: 10px;
+                display: none;
+              "
+            >
+              El porcentaje excede el 100%.
+            </p>
+          </div>
+        </div>
+
+        <!-- Módulo de Periodos -->
+        <div class="card">
+          <h3 style="color: white; margin-bottom: 15px">
+            <i class="fas fa-layer-group"></i> Periodos Auto-generados
+          </h3>
+          <p
+            style="
+              color: var(--text-muted);
+              font-size: 0.9rem;
+              margin-bottom: 20px;
+            "
+          >
+            El sistema generó los periodos basado en tu configuración. El
+            periodo activo es donde se capturan las calificaciones actuales.
+          </p>
+
+          <ul class="list-group" id="lista-periodos">
+            <!-- Periodos inyectados por JS -->
+          </ul>
+        </div>
+      </div>
+
+      <!-- Módulo de Confirmación General -->
+      <div class="card" style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div>
+          <h3 style="color: white; margin-bottom: 5px;"><i class="fas fa-save"></i> ¿Terminaste de configurar?</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">
+            La rúbrica y los periodos se guardan automáticamente. Confirma para continuar.
+          </p>
+        </div>
+        <a href="panel_maestro.html" class="btn btn-alumno" style="min-width: 250px; justify-content: center;">
+          <i class="fas fa-check-circle"></i> Finalizar Configuración
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Modal de Tutorial Rúbrica -->
+    <div id="modal-ayuda-rubrica" class="modal-overlay">
+      <div class="modal-content" style="max-width: 600px">
+        <div class="modal-header">
+          <h2 style="color: var(--secondary)">
+            <i class="fas fa-lightbulb"></i> ¿Cómo configuro las Rúbricas?
+          </h2>
+          <button id="btn-cerrar-ayuda-r" type="button" class="btn-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div style="color: var(--text-light); line-height: 1.6">
+          <p style="margin-bottom: 15px">
+            Para que EvaLiA automatice tus calificaciones, necesitas establecer
+            las reglas del juego:
+          </p>
+          <ul
+            style="
+              margin-left: 20px;
+              color: var(--text-muted);
+              margin-bottom: 20px;
+            "
+          >
+        <li style="margin-bottom: 10px;">
+          <strong>Configuración por Periodo:</strong> Las rúbricas que agregues (Ej. Tareas 40%) se aplicarán al periodo que esté <span class="badge-active" style="font-size: 0.7rem;">ACTIVO</span>.
+        </li>
+        <li style="margin-bottom: 10px;">
+          <strong>Flexibilidad:</strong> Cuando termine el periodo actual, podrás decidir si mantienes los mismos porcentajes para el siguiente o si creas una rúbrica completamente nueva.
+        </li>
+        <li style="margin-bottom: 10px;">
+          <strong>Regla de Oro:</strong> La barra de progreso debe llegar <strong>obligatoriamente a 100%</strong> en cada periodo para que el sistema pueda calcular promedios. Usa <i class="fas fa-trash" style="color: #ef4444;"></i> para borrar si te equivocas.
+            </li>
+          </ul>
+          <button
+            id="btn-entendido-r"
+            class="btn btn-maestro"
+            style="width: 100%; justify-content: center"
+          >
+            ¡Entendido!
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Editar Rúbrica -->
+    <div id="modal-editar-rubrica" class="modal-overlay">
+      <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+          <h2>Editar Rúbrica</h2>
+          <button onclick="document.getElementById('modal-editar-rubrica').classList.remove('active')" class="btn-close"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="form-editar-rubrica">
+          <input type="hidden" id="edit_id_rubrica" value="" />
+          <input type="hidden" id="edit_porcentaje_viejo" value="0" />
+          <div class="form-group">
+            <label>Criterio a evaluar</label>
+            <input type="text" id="edit_criterio" class="form-control" required autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label>Nuevo Valor %</label>
+            <input type="number" id="edit_porcentaje" class="form-control" min="1" max="100" required />
+          </div>
+          <div class="form-group">
+            <label>Color</label>
+            <input type="color" id="edit_color" class="form-control" style="padding: 2px; height: 44px; cursor: pointer;" required />
+          </div>
+          <p id="edit-msg-error" style="color: #ef4444; font-size: 0.85rem; margin-bottom: 15px; display: none;">
+            El nuevo porcentaje excede el 100% permitido.
+          </p>
+          <div class="modal-actions" style="margin-top: 10px;">
+            <button type="button" onclick="document.getElementById('modal-editar-rubrica').classList.remove('active')" class="btn btn-cancel" style="flex: 1; justify-content: center;">Cancelar</button>
+            <button type="submit" class="btn btn-maestro" style="flex: 1; justify-content: center;">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal de Alerta Personalizada -->
+    <div id="modal-alerta" class="modal-overlay">
+      <div class="modal-content" style="max-width: 400px; text-align: center;">
+        <i class="fas fa-exclamation-circle" style="font-size: 4rem; color: #ef4444; margin-bottom: 20px;"></i>
+        <h2 style="color: var(--text-light); margin-bottom: 10px;">Atención</h2>
+        <p id="alerta-mensaje" style="color: var(--text-muted); line-height: 1.5;"></p>
+        <button onclick="document.getElementById('modal-alerta').classList.remove('active')" class="btn btn-maestro" style="margin-top: 25px; width: 100%; justify-content: center;">Aceptar</button>
+      </div>
+    </div>
+
+    <!-- Modal de Confirmación Personalizada -->
+    <div id="modal-confirmacion" class="modal-overlay">
+      <div class="modal-content" style="max-width: 450px; text-align: center;">
+        <i class="fas fa-question-circle" style="font-size: 4rem; color: var(--primary); margin-bottom: 20px;"></i>
+        <h2 style="color: var(--text-light); margin-bottom: 10px;">¿Estás seguro?</h2>
+        <p id="confirmacion-mensaje" style="color: var(--text-muted); line-height: 1.5;"></p>
+        <div class="modal-actions">
+          <button onclick="document.getElementById('modal-confirmacion').classList.remove('active')" class="btn btn-cancel" style="flex: 1; justify-content: center;">Cancelar</button>
+          <button id="btn-confirmar-accion" class="btn btn-danger" style="flex: 1; justify-content: center;">Sí, continuar</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="../../js/config_grupo.js"></script>
+  </body>
+</html>

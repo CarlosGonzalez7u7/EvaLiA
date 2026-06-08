@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pase de Lista - EvaLiA</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="../../assets/Logo.ico" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../../css/styles.css" />
+    <!-- Librería del Escáner QR -->
+    <script
+      src="https://unpkg.com/html5-qrcode"
+      type="text/javascript"
+    ></script>
+    <style>
+      .panel-container {
+        padding: 40px 5%;
+        max-width: 1200px;
+        margin: 0 auto;
+        animation: fadeInUp 0.8s ease-out;
+      }
+      .header-panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+      .btn-back {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 50px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: 0.3s;
+      }
+      .btn-back:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .scanner-container {
+        background: rgba(30, 27, 75, 0.4);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      #reader {
+        width: 100%;
+        max-width: 500px;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        display: none;
+        margin-top: 20px;
+      }
+
+      .toast-asistencia {
+        background: var(--secondary);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+        margin-top: 20px;
+        width: 100%;
+        max-width: 500px;
+        display: none;
+        animation: fadeInUp 0.3s ease-out;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="logo-container">
+        <img src="../../assets/Logo.png" class="nav-logo" /> EvaLiA
+      </div>
+      <a href="panel_maestro.html" class="btn-back"
+        ><i class="fas fa-arrow-left"></i> Volver al Panel</a
+      >
+    </nav>
+
+    <div class="panel-container">
+      <div class="header-panel">
+        <div>
+          <h1 style="font-size: 2rem; color: var(--text-light)">
+            Asistencias: <span id="lbl-nombre-grupo">Cargando...</span>
+          </h1>
+          <p style="color: var(--text-muted)">
+            Controla el registro diario de tus alumnos y recibe alertas de
+            tiempo.
+          </p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <button
+            id="btn-modo-escaner"
+            class="btn btn-maestro"
+            style="padding: 10px 20px; font-size: 0.95rem"
+          >
+            <i class="fas fa-camera"></i> Modo Escáner
+          </button>
+          <button
+            id="btn-modo-tabla"
+            class="btn btn-cancel"
+            style="padding: 10px 20px; font-size: 0.95rem; color: white"
+          >
+            <i class="fas fa-table"></i> Tabla Completa (Excel)
+          </button>
+        </div>
+      </div>
+
+      <!-- VISTA 1: MODO ESCÁNER -->
+      <div
+        id="vista-escaner"
+        class="grid config-grid"
+        style="align-items: start"
+      >
+        <!-- Módulo del Escáner -->
+        <div class="scanner-container">
+          <i
+            class="fas fa-qrcode"
+            style="font-size: 4rem; color: var(--primary); margin-bottom: 10px"
+          ></i>
+          <h3 style="color: var(--text-light); margin-bottom: 10px">
+            Escáner Automático
+          </h3>
+
+          <button
+            id="btn-iniciar-escaner"
+            class="btn btn-maestro"
+            style="width: 100%; max-width: 300px; justify-content: center"
+          >
+            <i class="fas fa-camera"></i> Activar Cámara
+          </button>
+
+          <button
+            id="btn-detener-escaner"
+            class="btn btn-cancel"
+            style="
+              width: 100%;
+              max-width: 300px;
+              justify-content: center;
+              display: none;
+              margin-top: 10px;
+              color: white;
+            "
+          >
+            Detener Cámara
+          </button>
+
+          <div id="reader"></div>
+
+          <div id="toast-asistencia" class="toast-asistencia">
+            <h3 style="margin-bottom: 5px">
+              <i class="fas fa-check-circle"></i> Asistencia Registrada
+            </h3>
+            <p
+              id="lbl-alumno-asistencia"
+              style="font-weight: bold; font-size: 1.1rem"
+            ></p>
+            <p
+              id="lbl-hora-asistencia"
+              style="font-size: 0.9rem; margin-top: 5px"
+            ></p>
+          </div>
+        </div>
+
+        <!-- Módulo de Asistencias del Día -->
+        <div class="card" style="padding: 0; overflow: hidden">
+          <div
+            style="
+              padding: 20px;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+              background: rgba(0, 0, 0, 0.2);
+            "
+          >
+            <h3 style="color: white; margin: 0">
+              <i class="fas fa-list-check"></i> Asistencias de Hoy
+            </h3>
+          </div>
+          <div class="table-container" style="max-height: 400px">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Alumno</th>
+                  <th style="text-align: right">Hora</th>
+                </tr>
+              </thead>
+              <tbody id="lista-asistencias-hoy">
+                <tr>
+                  <td
+                    colspan="2"
+                    style="text-align: center; color: var(--text-muted)"
+                  >
+                    Cargando...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- VISTA 2: MODO TABLA EXCEL -->
+      <div id="vista-tabla" class="card" style="padding: 0; display: none">
+        <div class="excel-container">
+          <table class="table" id="tabla-asistencias-excel">
+            <!-- Inyectado por JS -->
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Alerta -->
+    <div id="modal-alerta" class="modal-overlay">
+      <div class="modal-content" style="max-width: 400px; text-align: center">
+        <i
+          class="fas fa-exclamation-circle"
+          style="font-size: 4rem; color: #ef4444; margin-bottom: 20px"
+        ></i>
+        <h2 style="color: var(--text-light); margin-bottom: 10px">Atención</h2>
+        <p
+          id="alerta-mensaje"
+          style="color: var(--text-muted); line-height: 1.5"
+        ></p>
+        <button
+          onclick="
+            document.getElementById('modal-alerta').classList.remove('active')
+          "
+          class="btn btn-maestro"
+          style="margin-top: 25px; width: 100%; justify-content: center"
+        >
+          Aceptar
+        </button>
+      </div>
+    </div>
+
+    <script type="module" src="../../js/pase_lista.js"></script>
+  </body>
+</html>

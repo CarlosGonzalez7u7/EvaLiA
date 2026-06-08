@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Acceso Profesor - EvaLiA</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="../../assets/Logo.ico" />
+    <!-- Fuentes e Íconos -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Estilos globales -->
+    <link rel="stylesheet" href="../../css/styles.css" />
+    <style>
+      .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .login-box {
+        background: rgba(30, 27, 75, 0.4);
+        backdrop-filter: blur(10px);
+        padding: 50px 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        text-align: center;
+        max-width: 420px;
+        width: 100%;
+        animation: fadeInUp 0.8s ease-out;
+      }
+      .login-box h2 {
+        margin-bottom: 10px;
+        font-size: 2rem;
+        color: var(--text-light);
+      }
+      .btn-google {
+        background: white;
+        color: #444;
+        width: 100%;
+        justify-content: center;
+        padding: 15px 20px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 50px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        border: none;
+        transition: all 0.3s ease;
+        margin-top: 30px;
+        margin-bottom: 20px;
+      }
+      .btn-google:hover {
+        background: #f1f1f1;
+        transform: translateY(-3px);
+        box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+      }
+      .btn-google img {
+        width: 24px;
+        height: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-box">
+        <img
+          src="../../assets/Logo.png"
+          alt="Logo EvaLiA"
+          style="
+            width: 100px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.2));
+          "
+        />
+        <h2>Acceso Profesor</h2>
+        <p style="color: var(--text-muted)">
+          Inicia sesión o crea tu cuenta al instante con Google.
+        </p>
+
+        <button id="btn-login-google" class="btn-google">
+          <img
+            src="https://cdn1.iconfinder.com/data/icons/google-s-logo/150/Google_Icons-09-512.png"
+            alt="Google"
+          />
+          Continuar con Google
+        </button>
+      </div>
+    </div>
+    <!-- Script de Autenticación -->
+    <script type="module" src="../../js/auth.js"></script>
+  </body>
+</html>
