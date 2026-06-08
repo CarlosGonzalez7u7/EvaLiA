@@ -218,6 +218,46 @@
 
       <!-- VISTA 2: MODO TABLA EXCEL -->
       <div id="vista-tabla" class="card" style="padding: 0; display: none">
+        <div
+          style="
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+          "
+        >
+          <h3 style="color: white; margin: 0; font-size: 1.2rem">
+            <i class="fas fa-calendar-plus"></i> Asistencias Manuales
+          </h3>
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              align-items: center;
+              flex-wrap: wrap;
+            "
+          >
+            <label style="color: var(--text-muted); font-size: 0.9rem"
+              >Agregar nueva columna:</label
+            >
+            <input
+              type="date"
+              id="fecha-manual-excel"
+              class="form-control"
+              style="width: auto; padding: 8px"
+            />
+            <button
+              onclick="agregarColumnaAsistencia()"
+              class="btn btn-maestro"
+              style="padding: 8px 15px; font-size: 0.9rem"
+            >
+              <i class="fas fa-plus"></i> Agregar Fecha
+            </button>
+          </div>
+        </div>
         <div class="excel-container">
           <table class="table" id="tabla-asistencias-excel">
             <!-- Inyectado por JS -->

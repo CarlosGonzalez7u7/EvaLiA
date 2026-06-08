@@ -350,6 +350,64 @@ footer {
   transform: translateY(20px);
   transition: transform 0.3s ease;
 }
+.modal-content.modal-lg {
+  max-width: 800px;
+}
+
+/* --- Tabs UI --- */
+.tabs-container {
+  display: flex;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 25px;
+  gap: 10px;
+  overflow-x: auto;
+}
+.tab-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: 0.3s;
+  white-space: nowrap;
+}
+.tab-btn:hover {
+  color: var(--text-light);
+}
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom: 2px solid var(--primary);
+}
+.tab-content {
+  display: none;
+  animation: fadeIn 0.3s ease-out;
+}
+.tab-content.active {
+  display: block;
+}
+
+/* --- Schedule UI --- */
+.schedule-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.schedule-time {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .modal-overlay.active .modal-content {
   transform: translateY(0);
 }

@@ -43,15 +43,26 @@ try {
         }
 
         // Obtener el horario del grupo para saber si es Asistencia o Retardo
-        $stmtG = $pdo->prepare("SELECT hora_inicio, tolerancia_minutos FROM grupos WHERE id_grupo = ?");
+        $stmtG = $pdo->prepare("SELECT horario, tolerancia_minutos FROM grupos WHERE id_grupo = ?");
         $stmtG->execute([$id_grupo]);
         $grupoConfig = $stmtG->fetch();
 
         $estado = 'Asistencia';
-        $hora_actual = date('H:i:s');
-        $hora_limite = date('H:i:s', strtotime($grupoConfig['hora_inicio'] . ' + ' . $grupoConfig['tolerancia_minutos'] . ' minutes'));
-        if ($hora_actual > $hora_limite) {
-            $estado = 'Retardo';
+        $dias_semana = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+        $dia_hoy = $dias_semana[date('w')]; 
+
+        $hora_inicio_hoy = null;
+        if (!empty($grupoConfig['horario'])) {
+            $horarios = json_decode($grupoConfig['horario'], true);
+            if (is_array($horarios)) {
+                foreach ($horarios as $h) { if ($h['dia'] === $dia_hoy) { $hora_inicio_hoy = $h['inicio']; break; } }
+            }
+        }
+
+        if ($hora_inicio_hoy) {
+            $hora_actual = date('H:i:s');
+            $hora_limite = date('H:i:s', strtotime($hora_inicio_hoy . ' + ' . $grupoConfig['tolerancia_minutos'] . ' minutes'));
+            if ($hora_actual > $hora_limite) $estado = 'Retardo';
         }
 
         // Registrar Asistencia (Usando CURRENT_TIMESTAMP de la BD por seguridad)

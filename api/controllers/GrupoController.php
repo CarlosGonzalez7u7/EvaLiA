@@ -57,7 +57,7 @@ try {
         $pdo->beginTransaction(); // Iniciamos transacción segura
 
         // 1. Insertar el Grupo
-        $insertGrp = $pdo->prepare("INSERT INTO grupos (id_maestro, nombre_grupo, ciclo_escolar, nivel_educativo, tipo_periodo, modo_calificacion, calificacion_minima, dias_clase, hora_inicio, hora_fin, tolerancia_minutos) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $insertGrp = $pdo->prepare("INSERT INTO grupos (id_maestro, nombre_grupo, ciclo_escolar, nivel_educativo, tipo_periodo, modo_calificacion, calificacion_minima, horario, tolerancia_minutos, minutos_alarma, sonido_alarma) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $insertGrp->execute([
             $id_maestro, 
             $input['nombre_grupo'], 
@@ -66,10 +66,10 @@ try {
             $input['tipo_periodo'], 
             $input['modo_calificacion'],
             $input['calificacion_minima'],
-            $input['dias_clase'] ?? 'Lunes,Martes,Miercoles,Jueves,Viernes',
-            $input['hora_inicio'] ?? '08:00:00',
-            $input['hora_fin'] ?? '09:00:00',
-            $input['tolerancia_minutos'] ?? 15
+            $input['horario'] ?? null,
+            $input['tolerancia_minutos'] ?? 15,
+            $input['minutos_alarma'] ?? 5,
+            $input['sonido_alarma'] ?? 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg'
         ]);
         
         $id_grupo = $pdo->lastInsertId();
@@ -108,7 +108,7 @@ try {
              exit;
         }
 
-        $updGrp = $pdo->prepare("UPDATE grupos SET nombre_grupo = ?, ciclo_escolar = ?, nivel_educativo = ?, tipo_periodo = ?, modo_calificacion = ?, calificacion_minima = ?, dias_clase = ?, hora_inicio = ?, hora_fin = ?, tolerancia_minutos = ? WHERE id_grupo = ?");
+        $updGrp = $pdo->prepare("UPDATE grupos SET nombre_grupo = ?, ciclo_escolar = ?, nivel_educativo = ?, tipo_periodo = ?, modo_calificacion = ?, calificacion_minima = ?, horario = ?, tolerancia_minutos = ?, minutos_alarma = ?, sonido_alarma = ? WHERE id_grupo = ?");
         $updGrp->execute([
             $input['nombre_grupo'], 
             $input['ciclo_escolar'], 
@@ -116,10 +116,10 @@ try {
             $input['tipo_periodo'], 
             $input['modo_calificacion'],
             $input['calificacion_minima'],
-            $input['dias_clase'],
-            $input['hora_inicio'],
-            $input['hora_fin'],
-            $input['tolerancia_minutos'],
+            $input['horario'] ?? null,
+            $input['tolerancia_minutos'] ?? 15,
+            $input['minutos_alarma'] ?? 5,
+            $input['sonido_alarma'] ?? 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg',
             $id_grupo
         ]);
 

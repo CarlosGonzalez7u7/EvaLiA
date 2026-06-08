@@ -22,9 +22,9 @@ CREATE TABLE grupos (
     tipo_periodo VARCHAR(50) NOT NULL DEFAULT 'Bimestre',
     modo_calificacion VARCHAR(50) NOT NULL DEFAULT 'Promedio',
     calificacion_minima DECIMAL(4,2) NOT NULL DEFAULT 6.00, -- Configurable por el maestro
-    dias_clase VARCHAR(100) DEFAULT 'Lunes,Martes,Miercoles,Jueves,Viernes',
-    hora_inicio TIME DEFAULT '08:00:00',
-    hora_fin TIME DEFAULT '09:00:00',
+    horario TEXT NULL,
+    minutos_alarma INT DEFAULT 5,
+    sonido_alarma VARCHAR(255) DEFAULT 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg',
     tolerancia_minutos INT DEFAULT 15,
     activo BOOLEAN NOT NULL DEFAULT TRUE, -- Para ocultar o mostrar grupos en el panel
     FOREIGN KEY (id_maestro) REFERENCES usuarios(id_maestro) ON DELETE CASCADE ON UPDATE CASCADE

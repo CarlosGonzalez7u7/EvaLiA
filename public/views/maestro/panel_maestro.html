@@ -107,7 +107,7 @@
 
     <!-- Modal para Crear Nuevo Grupo -->
     <div id="modal-grupo" class="modal-overlay">
-      <div class="modal-content">
+      <div class="modal-content modal-lg">
         <div class="modal-header">
           <h2 id="modal-title">Configurar Nuevo Grupo</h2>
           <button id="btn-cerrar-modal" type="button" class="btn-close">
@@ -117,89 +117,156 @@
         <form id="form-grupo">
           <input type="hidden" id="id_grupo" value="" />
 
-          <div class="form-group">
-            <label>Nivel Educativo</label>
-            <select id="nivel_educativo" class="form-control" required>
-              <option value="Primaria">Primaria</option>
-              <option value="Secundaria" selected>Secundaria</option>
-              <option value="Preparatoria">Preparatoria / Bachillerato</option>
-              <option value="Universidad">Universidad / Superior</option>
-              <option value="Otro">Otro</option>
-            </select>
+          <div class="tabs-container">
+            <button
+              type="button"
+              class="tab-btn active"
+              onclick="switchTab('tab-general', this)"
+            >
+              <i class="fas fa-info-circle"></i> General
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              onclick="switchTab('tab-eval', this)"
+            >
+              <i class="fas fa-calculator"></i> Evaluación
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              onclick="switchTab('tab-horario', this)"
+            >
+              <i class="fas fa-clock"></i> Horarios
+            </button>
           </div>
 
-          <div style="display: flex; gap: 15px">
-            <div class="form-group" style="flex: 1">
-              <label
-                >Nombre del Grupo
-                <small
-                  style="
-                    display: block;
-                    color: var(--text-muted);
-                    font-weight: normal;
-                    margin-top: 3px;
-                  "
-                  >Ej. 1ro A Matemáticas</small
-                ></label
-              >
-              <input
-                type="text"
-                id="nombre_grupo"
-                class="form-control"
-                placeholder="Ej. 1ro A"
-                required
-                autocomplete="off"
-              />
-            </div>
-            <div class="form-group" style="flex: 1">
-              <label
-                >Ciclo Escolar
-                <small
-                  style="
-                    display: block;
-                    color: var(--text-muted);
-                    font-weight: normal;
-                    margin-top: 3px;
-                  "
-                  >Ej. 2026-2</small
-                ></label
-              >
-              <input
-                type="text"
-                id="ciclo_escolar"
-                class="form-control"
-                placeholder="Ej. 2026-2"
-                required
-                autocomplete="off"
-              />
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 15px">
-            <div class="form-group" style="flex: 1">
-              <label
-                >¿Cómo se divide?
-                <small
-                  style="
-                    display: block;
-                    color: var(--text-muted);
-                    font-weight: normal;
-                    margin-top: 3px;
-                  "
-                  >Nombre de los periodos</small
-                ></label
-              >
-              <select id="tipo_periodo" class="form-control" required>
-                <option value="Bimestre">Bimestre</option>
-                <option value="Trimestre">Trimestre</option>
-                <option value="Parcial">Parcial</option>
-                <option value="Unidad">Unidad / Tema</option>
-                <option value="Semestre">Semestre</option>
+          <!-- PESTAÑA 1: GENERAL -->
+          <div id="tab-general" class="tab-content active">
+            <div class="form-group">
+              <label>Nivel Educativo</label>
+              <select id="nivel_educativo" class="form-control" required>
+                <option value="Primaria">Primaria</option>
+                <option value="Secundaria" selected>Secundaria</option>
+                <option value="Preparatoria">
+                  Preparatoria / Bachillerato
+                </option>
+                <option value="Universidad">Universidad / Superior</option>
+                <option value="Otro">Otro</option>
               </select>
             </div>
-            <div class="form-group" style="max-width: 130px">
+
+            <div style="display: flex; gap: 15px">
+              <div class="form-group" style="flex: 1">
+                <label
+                  >Nombre del Grupo
+                  <small
+                    style="
+                      display: block;
+                      color: var(--text-muted);
+                      font-weight: normal;
+                      margin-top: 3px;
+                    "
+                    >Ej. 1ro A Matemáticas</small
+                  ></label
+                >
+                <input
+                  type="text"
+                  id="nombre_grupo"
+                  class="form-control"
+                  placeholder="Ej. 1ro A"
+                  required
+                  autocomplete="off"
+                />
+              </div>
+              <div class="form-group" style="flex: 1">
+                <label
+                  >Ciclo Escolar
+                  <small
+                    style="
+                      display: block;
+                      color: var(--text-muted);
+                      font-weight: normal;
+                      margin-top: 3px;
+                    "
+                    >Ej. 2026-2</small
+                  ></label
+                >
+                <input
+                  type="text"
+                  id="ciclo_escolar"
+                  class="form-control"
+                  placeholder="Ej. 2026-2"
+                  required
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- PESTAÑA 2: EVALUACIÓN -->
+          <div id="tab-eval" class="tab-content">
+            <div style="display: flex; gap: 15px">
+              <div class="form-group" style="flex: 1">
+                <label
+                  >¿Cómo se divide?
+                  <small
+                    style="
+                      display: block;
+                      color: var(--text-muted);
+                      font-weight: normal;
+                      margin-top: 3px;
+                    "
+                    >Nombre de los periodos</small
+                  ></label
+                >
+                <select id="tipo_periodo" class="form-control" required>
+                  <option value="Bimestre">Bimestre</option>
+                  <option value="Trimestre">Trimestre</option>
+                  <option value="Parcial">Parcial</option>
+                  <option value="Unidad">Unidad / Tema</option>
+                  <option value="Semestre">Semestre</option>
+                </select>
+              </div>
+              <div class="form-group" style="max-width: 130px">
+                <label
+                  >Cantidad
+                  <small
+                    style="
+                      display: block;
+                      color: var(--text-muted);
+                      font-weight: normal;
+                      margin-top: 3px;
+                    "
+                    >Ej. 4 temas</small
+                  ></label
+                >
+                <input
+                  type="number"
+                  id="num_periodos"
+                  class="form-control"
+                  min="1"
+                  max="20"
+                  value="5"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Modo de Calificación</label>
+              <select id="modo_calificacion" class="form-control" required>
+                <option value="Promedio">
+                  Promedio Normal (Suma y divide)
+                </option>
+                <option value="Competencias">
+                  Por Competencias (Debe pasar todos para aprobar)
+                </option>
+              </select>
+            </div>
+            <div class="form-group">
               <label
-                >Cantidad
+                >Calificación Mínima
                 <small
                   style="
                     display: block;
@@ -207,133 +274,207 @@
                     font-weight: normal;
                     margin-top: 3px;
                   "
-                  >Ej. 4 temas</small
+                  >Puntaje necesario para pasar (De 0 a 10)</small
                 ></label
               >
               <input
                 type="number"
-                id="num_periodos"
+                id="calificacion_minima"
                 class="form-control"
-                min="1"
-                max="20"
-                value="5"
+                step="0.1"
+                min="0"
+                max="10"
+                value="6.0"
                 required
               />
             </div>
           </div>
+          <!-- Cierre de la Pestaña de Evaluación -->
 
-          <div class="form-group">
-            <label
-              >Horario y Tolerancia de Clase
-              <small
-                style="
-                  display: block;
-                  color: var(--text-muted);
-                  font-weight: normal;
-                  margin-top: 3px;
-                "
-                >Se usará para calcular retardos y lanzar la alarma de fin de
-                clase.</small
-              ></label
-            >
-            <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <!-- PESTAÑA 3: HORARIOS -->
+          <div id="tab-horario" class="tab-content">
+            <div class="form-group">
+              <label>Tolerancia para Retardos (Minutos)</label>
               <input
-                type="text"
-                id="dias_clase"
+                type="number"
+                id="tolerancia_minutos"
                 class="form-control"
-                placeholder="Ej. Lu, Mi, Vi"
-                value="Lunes a Viernes"
+                value="15"
+                min="0"
                 required
-                style="flex: 2; min-width: 150px"
               />
-              <div style="display: flex; flex-direction: column; flex: 1">
-                <small
-                  style="
-                    color: var(--text-muted);
-                    font-size: 0.8rem;
-                    margin-bottom: 3px;
-                  "
-                  >Inicio</small
-                >
-                <input
-                  type="time"
-                  id="hora_inicio"
-                  class="form-control"
-                  value="08:00"
-                  required
-                />
-              </div>
-              <div style="display: flex; flex-direction: column; flex: 1">
-                <small
-                  style="
-                    color: var(--text-muted);
-                    font-size: 0.8rem;
-                    margin-bottom: 3px;
-                  "
-                  >Fin</small
-                >
-                <input
-                  type="time"
-                  id="hora_fin"
-                  class="form-control"
-                  value="09:00"
-                  required
-                />
-              </div>
-              <div style="display: flex; flex-direction: column; flex: 1">
-                <small
-                  style="
-                    color: var(--text-muted);
-                    font-size: 0.8rem;
-                    margin-bottom: 3px;
-                  "
-                  >Retardo a los (Mins)</small
-                >
-                <input
-                  type="number"
-                  id="tolerancia_minutos"
-                  class="form-control"
-                  value="15"
-                  min="0"
-                  required
-                />
+            </div>
+
+            <div class="form-group">
+              <label>Configura el horario por día (Opcional)</label>
+              <div id="schedule-container">
+                <div class="schedule-row">
+                  <label style="color: var(--text-light)"
+                    ><input
+                      type="checkbox"
+                      id="chk_lunes"
+                      onchange="toggleDay('lunes')"
+                      style="margin-right: 10px"
+                    />
+                    Lunes</label
+                  >
+                  <div class="schedule-time">
+                    <input
+                      type="time"
+                      id="inicio_lunes"
+                      class="form-control"
+                      style="padding: 8px; width: 110px"
+                      disabled
+                    /><span style="color: var(--text-muted)">a</span
+                    ><input
+                      type="time"
+                      id="fin_lunes"
+                      class="form-control"
+                      style="padding: 8px; width: 110px"
+                      disabled
+                    />
+                  </div>
+                </div>
+                <div class="schedule-row">
+                  <label style="color: var(--text-light)"
+                    ><input
+                      type="checkbox"
+                      id="chk_martes"
+                      onchange="toggleDay('martes')"
+                      style="margin-right: 10px"
+                    />
+                    Martes</label
+                  >
+                  <div class="schedule-time">
+                    <input
+                      type="time"
+                      id="inicio_martes"
+                      class="form-control"
+                      style="padding: 8px; width: 110px"
+                      disabled
+                    /><span style="color: var(--text-muted)">a</span
+                    ><input
+                      type="time"
+                      id="fin_martes"
+                      class="form-control"
+                      style="padding: 8px; width: 110px"
+                      disabled
+                    />
+                  </div>
+                </div>
+                <div class="schedule-row">
+                  <label style="color: var(--text-light)"
+                    ><input
+                      type="checkbox"
+                      id="chk_miercoles"
+                      onchange="toggleDay('miercoles')"
+                      style="margin-right: 10px"
+                    />
+                    Miércoles</label
+                  >
+                  <div class="schedule-time">
+                    <input
+                      type="time"
+                      id="inicio_miercoles"
+                      class="form-control"
+                      style="padding: 8px; width: 110px"
+                      disabled
+                    /><span style="color: var(--text-muted)">a</span
+                    ><input
+                      type="time"
+                      id="fin_miercoles"
+                      class="form-control"
+                      style="padding: 8px; width: 110px"
+                      disabled
+                    />
+                  </div>
+                </div>
+                <div class="schedule-row">
+                  <label style="color: var(--text-light)"
+                    ><input
+                      type="checkbox"
+                      id="chk_jueves"
+                      onchange="toggleDay('jueves')"
+                      style="margin-right: 10px"
+                    />
+                    Jueves</label
+                  >
+                  <div class="schedule-time">
+                    <input
+                      type="time"
+                      id="inicio_jueves"
+                      class="form-control"
+                      style="padding: 8px; width: 110px"
+                      disabled
+                    /><span style="color: var(--text-muted)">a</span
+                    ><input
+                      type="time"
+                      id="fin_jueves"
+                      class="form-control"
+                      style="padding: 8px; width: 110px"
+                      disabled
+                    />
+                  </div>
+                </div>
+                <div class="schedule-row">
+                  <label style="color: var(--text-light)"
+                    ><input
+                      type="checkbox"
+                      id="chk_viernes"
+                      onchange="toggleDay('viernes')"
+                      style="margin-right: 10px"
+                    />
+                    Viernes</label
+                  >
+                  <div class="schedule-time">
+                    <input
+                      type="time"
+                      id="inicio_viernes"
+                      class="form-control"
+                      style="padding: 8px; width: 110px"
+                      disabled
+                    /><span style="color: var(--text-muted)">a</span
+                    ><input
+                      type="time"
+                      id="fin_viernes"
+                      class="form-control"
+                      style="padding: 8px; width: 110px"
+                      disabled
+                    />
+                  </div>
+                </div>
+                <div class="schedule-row">
+                  <label style="color: var(--text-light)"
+                    ><input
+                      type="checkbox"
+                      id="chk_sabado"
+                      onchange="toggleDay('sabado')"
+                      style="margin-right: 10px"
+                    />
+                    Sábado</label
+                  >
+                  <div class="schedule-time">
+                    <input
+                      type="time"
+                      id="inicio_sabado"
+                      class="form-control"
+                      style="padding: 8px; width: 110px"
+                      disabled
+                    /><span style="color: var(--text-muted)">a</span
+                    ><input
+                      type="time"
+                      id="fin_sabado"
+                      class="form-control"
+                      style="padding: 8px; width: 110px"
+                      disabled
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+          <!-- Cierre de la Pestaña de Horarios -->
 
-          <div class="form-group">
-            <label>Modo de Calificación</label>
-            <select id="modo_calificacion" class="form-control" required>
-              <option value="Promedio">Promedio Normal (Suma y divide)</option>
-              <option value="Competencias">
-                Por Competencias (Debe pasar todos para aprobar)
-              </option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label
-              >Calificación Mínima
-              <small
-                style="
-                  display: block;
-                  color: var(--text-muted);
-                  font-weight: normal;
-                  margin-top: 3px;
-                "
-                >Puntaje necesario para pasar (De 0 a 10)</small
-              ></label
-            >
-            <input
-              type="number"
-              id="calificacion_minima"
-              class="form-control"
-              step="0.1"
-              min="0"
-              max="10"
-              value="6.0"
-              required
-            />
-          </div>
           <button type="submit" id="btn-submit-grupo" class="btn-submit">
             Crear Grupo y Periodos
           </button>

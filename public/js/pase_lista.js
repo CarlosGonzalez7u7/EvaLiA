@@ -5,6 +5,7 @@ window.mostrarAlerta = function (mensaje) {
 
 let grupoDatos = null;
 let alarmPlayed = false;
+let fechasAgregadasManualmente = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -32,6 +33,25 @@ document.addEventListener("DOMContentLoaded", async () => {
       grupoDatos = data.grupo;
       document.getElementById("lbl-nombre-grupo").innerText =
         grupoDatos.nombre_grupo;
+
+      // Detectar hora fin para hoy
+      const diasSemana = [
+        "Domingo",
+        "Lunes",
+        "Martes",
+        "Miercoles",
+        "Jueves",
+        "Viernes",
+        "Sabado",
+      ];
+      const diaHoyStr = diasSemana[new Date().getDay()];
+      if (grupoDatos.horario) {
+        try {
+          const hArr = JSON.parse(grupoDatos.horario);
+          const hHoy = hArr.find((h) => h.dia === diaHoyStr);
+          if (hHoy) grupoDatos.hora_fin_hoy = hHoy.fin;
+        } catch (e) {}
+      }
       iniciarAlarma();
     } else {
       mostrarAlerta(data.message);
@@ -165,29 +185,45 @@ document.addEventListener("DOMContentLoaded", async () => {
 // --- LÓGICA DE ALARMA ---
 function iniciarAlarma() {
   setInterval(() => {
-    if (!grupoDatos || !grupoDatos.hora_fin) return;
+    if (!grupoDatos || !grupoDatos.hora_fin_hoy) return;
     const now = new Date();
     const end = new Date();
-    const [h, m] = grupoDatos.hora_fin.split(":");
+    const [h, m] = grupoDatos.hora_fin_hoy.split(":");
     end.setHours(h, m, 0, 0);
 
     const diffMs = end - now;
-    // Si faltan 5 minutos (300000 ms) o menos y no ha sonado hoy
-    if (diffMs > 0 && diffMs <= 300000 && !alarmPlayed) {
+
+    const minutosAlarma = grupoDatos.minutos_alarma || 5;
+    const msAlarma = minutosAlarma * 60 * 1000;
+
+    if (diffMs > 0 && diffMs <= msAlarma && !alarmPlayed) {
       alarmPlayed = true;
-      // Sonido nativo
-      const audio = new Audio(
-        "https://actions.google.com/sounds/v1/alarms/beep_short.ogg",
-      );
+
+      const urlSonido =
+        grupoDatos.sonido_alarma ||
+        "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
+      const audio = new Audio(urlSonido);
       audio
         .play()
         .catch((e) => console.log("Audio play blocked by browser", e));
       mostrarAlerta(
-        `¡Atención! Faltan menos de 5 minutos para que termine la clase (${grupoDatos.hora_fin.substring(0, 5)}).`,
+        `¡Atención! Faltan menos de ${minutosAlarma} minutos para que termine la clase (${grupoDatos.hora_fin_hoy.substring(0, 5)}).`,
       );
     }
-  }, 30000); // Revisar cada 30 segundos
+  }, 10000); // Revisar cada 10 segundos para mayor precisión
 }
+
+window.agregarColumnaAsistencia = function () {
+  const fecha = document.getElementById("fecha-manual-excel").value;
+  if (!fecha) {
+    mostrarAlerta("Por favor selecciona una fecha.");
+    return;
+  }
+  if (!fechasAgregadasManualmente.includes(fecha)) {
+    fechasAgregadasManualmente.push(fecha);
+    cargarTablaExcel(new URLSearchParams(window.location.search).get("id"));
+  }
+};
 
 // --- LÓGICA DE LA TABLA EXCEL ---
 async function cargarTablaExcel(idGrupo) {
@@ -199,7 +235,12 @@ async function cargarTablaExcel(idGrupo) {
   const tabla = document.getElementById("tabla-asistencias-excel");
   let thead = `<thead><tr><th>N°</th><th>Alumno</th>`;
 
-  data.fechas.forEach((fecha) => {
+  let allFechas = Array.from(
+    new Set([...data.fechas, ...fechasAgregadasManualmente]),
+  );
+  allFechas.sort();
+
+  allFechas.forEach((fecha) => {
     thead += `<th>${fecha.split("-").reverse().join("/")}</th>`;
   });
   thead += `</tr></thead>`;
@@ -209,7 +250,7 @@ async function cargarTablaExcel(idGrupo) {
   let nLista = 1;
   data.alumnos.forEach((al) => {
     tbody += `<tr><td>${nLista++}</td><th>${al.nombre}</th>`;
-    data.fechas.forEach((fecha) => {
+    allFechas.forEach((fecha) => {
       const asis = data.asistencias.find(
         (a) => a.id_alumno == al.id_alumno && a.fecha === fecha,
       );
