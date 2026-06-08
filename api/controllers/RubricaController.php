@@ -18,16 +18,24 @@ try {
     // LEER RÚBRICAS DEL GRUPO
     if ($action === 'list') {
         $id_grupo = $_GET['id_grupo'] ?? 0;
-        $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_grupo = ? ORDER BY id_rubrica ASC");
-        $stmt->execute([$id_grupo]);
+        $id_periodo = $_GET['id_periodo'] ?? null;
+        
+        if ($id_periodo) {
+            $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_grupo = ? AND id_periodo = ? ORDER BY id_rubrica ASC");
+            $stmt->execute([$id_grupo, $id_periodo]);
+        } else {
+            $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_grupo = ? AND id_periodo IS NULL ORDER BY id_rubrica ASC");
+            $stmt->execute([$id_grupo]);
+        }
+        
         echo json_encode(["success" => true, "data" => $stmt->fetchAll()]);
         exit;
     }
 
     // CREAR UNA RÚBRICA
     if ($action === 'create') {
-        $stmt = $pdo->prepare("INSERT INTO rubricas (id_grupo, categoria, porcentaje, color) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$input['id_grupo'], $input['categoria'], $input['porcentaje'], $input['color'] ?? '#8b5cf6']);
+        $stmt = $pdo->prepare("INSERT INTO rubricas (id_grupo, id_periodo, categoria, porcentaje, color) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$input['id_grupo'], $input['id_periodo'] ?? null, $input['categoria'], $input['porcentaje'], $input['color'] ?? '#8b5cf6']);
         
         $id_rubrica = $pdo->lastInsertId();
         $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_rubrica = ?");

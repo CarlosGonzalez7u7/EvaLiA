@@ -266,6 +266,9 @@
           <ul class="list-group" id="lista-periodos">
             <!-- Periodos inyectados por JS -->
           </ul>
+          <button id="btn-siguiente-periodo" class="btn btn-alumno" style="width: 100%; justify-content: center; margin-top: 15px;">
+            <i class="fas fa-forward"></i> Avanzar al Siguiente Periodo
+          </button>
         </div>
       </div>
 
@@ -382,6 +385,11 @@
           <button id="btn-confirmar-accion" class="btn btn-danger" style="flex: 1; justify-content: center;">Sí, continuar</button>
         </div>
       </div>
+    </div>
+
+    <!-- Toasts (Notificaciones silenciosas de guardado) -->
+    <div id="toast-save" style="position: fixed; bottom: 20px; right: 20px; background: var(--secondary); color: white; padding: 10px 20px; border-radius: 5px; font-weight: bold; opacity: 0; transition: 0.3s; transform: translateY(20px); box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); pointer-events: none; z-index: 9999;">
+      <i class="fas fa-check-circle"></i> Guardado automático
     </div>
 
     <script type="module" src="../../js/config_grupo.js"></script>

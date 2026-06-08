@@ -63,6 +63,37 @@ try {
         exit;
     }
 
+    // ACTUALIZAR ALUMNO
+    if ($action === 'update') {
+        $id_alumno = $input['id_alumno'];
+        $nombre = trim($input['nombre']);
+        $matricula = trim($input['matricula']);
+
+        // Validar que la matrícula no se repita en otro alumno
+        $check = $pdo->prepare("SELECT id_alumno FROM alumnos WHERE matricula = ? AND id_alumno != ?");
+        $check->execute([$matricula, $id_alumno]);
+        if ($check->fetch()) {
+            echo json_encode(["success" => false, "message" => "La matrícula '$matricula' ya está registrada en el sistema."]);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("UPDATE alumnos SET nombre = ?, matricula = ? WHERE id_alumno = ?");
+        $stmt->execute([$nombre, $matricula, $id_alumno]);
+        echo json_encode(["success" => true]);
+        exit;
+    }
+
+    // REGENERAR CÓDIGO QR
+    if ($action === 'regenerate_qr') {
+        $id_alumno = $input['id_alumno'];
+        $qr_token = bin2hex(random_bytes(16));
+
+        $stmt = $pdo->prepare("UPDATE alumnos SET qr_token = ? WHERE id_alumno = ?");
+        $stmt->execute([$qr_token, $id_alumno]);
+        echo json_encode(["success" => true]);
+        exit;
+    }
+
     // BORRAR ALUMNO
     if ($action === 'delete') {
         $stmt = $pdo->prepare("DELETE FROM alumnos WHERE id_alumno = ?");

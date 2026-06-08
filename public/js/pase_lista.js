@@ -15,15 +15,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  const from = urlParams.get("from");
-  if (from === "calificaciones") {
-    const btnBack = document.querySelector(".btn-back");
-    if (btnBack) {
-      btnBack.href = `calificaciones.html?id=${idGrupo}`;
-      btnBack.innerHTML = `<i class="fas fa-arrow-left"></i> Volver a Calificaciones`;
-    }
-  }
-
   try {
     const res = await fetch(
       `/api/controllers/GrupoController.php?action=get&id=${idGrupo}`,
@@ -60,6 +51,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   } catch (error) {
     console.error("Error al cargar grupo:", error);
   }
+
+  // Inyectar Barra de Navegación Integrada (Pestañas)
+  inyectarPestanasNavegacion(idGrupo, "asistencias");
 
   // Lógica de Tabs (Cambio de Vista)
   const btnEscaner = document.getElementById("btn-modo-escaner");
@@ -306,3 +300,16 @@ window.cambiarEstadoAsistencia = async function (
 
   cargarTablaExcel(new URLSearchParams(window.location.search).get("id"));
 };
+
+function inyectarPestanasNavegacion(idGrupo, vistaActiva) {
+  const header = document.querySelector(".header-panel");
+  if (!header) return;
+  const navHtml = `
+    <div class="tabs-container" style="width: 100%; margin-top: 20px; padding-bottom: 0; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; gap: 15px; overflow-x: auto;">
+      <a href="grupo_alumnos.html?id=${idGrupo}" class="tab-btn ${vistaActiva === "alumnos" ? "active" : ""}" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i class="fas fa-users"></i> Directorio y Alumnos</a>
+      <a href="calificaciones.html?id=${idGrupo}" class="tab-btn ${vistaActiva === "calificaciones" ? "active" : ""}" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i class="fas fa-table"></i> Tabla de Calificaciones</a>
+      <a href="pase_lista.html?id=${idGrupo}" class="tab-btn ${vistaActiva === "asistencias" ? "active" : ""}" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i class="fas fa-clipboard-list"></i> Asistencias (Pase de Lista)</a>
+    </div>
+  `;
+  header.insertAdjacentHTML("afterend", navHtml);
+}

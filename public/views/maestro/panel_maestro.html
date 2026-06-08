@@ -139,6 +139,24 @@
             >
               <i class="fas fa-clock"></i> Horarios
             </button>
+            <button
+              type="button"
+              class="tab-btn"
+              id="btn-tab-rubricas"
+              onclick="switchTab('tab-rubricas', this)"
+              style="display: none"
+            >
+              <i class="fas fa-chart-pie"></i> Rúbricas
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              id="btn-tab-periodos"
+              onclick="switchTab('tab-periodos', this)"
+              style="display: none"
+            >
+              <i class="fas fa-layer-group"></i> Periodos
+            </button>
           </div>
 
           <!-- PESTAÑA 1: GENERAL -->
@@ -265,6 +283,26 @@
               </select>
             </div>
             <div class="form-group">
+              <label>Aplicación de las Rúbricas de Evaluación</label>
+              <select id="tipo_rubrica" class="form-control" required>
+                <option value="Global">
+                  Mismas rúbricas para todos los periodos
+                </option>
+                <option value="Por Periodo">
+                  Rúbricas independientes para cada periodo
+                </option>
+              </select>
+              <small
+                style="
+                  color: var(--text-muted);
+                  display: block;
+                  margin-top: 5px;
+                "
+                >Elige si el % de evaluación cambia dependiendo el
+                bimestre/parcial.</small
+              >
+            </div>
+            <div class="form-group">
               <label
                 >Calificación Mínima
                 <small
@@ -293,16 +331,78 @@
 
           <!-- PESTAÑA 3: HORARIOS -->
           <div id="tab-horario" class="tab-content">
-            <div class="form-group">
-              <label>Tolerancia para Retardos (Minutos)</label>
-              <input
-                type="number"
-                id="tolerancia_minutos"
-                class="form-control"
-                value="15"
-                min="0"
-                required
-              />
+            <div style="display: flex; gap: 15px; flex-wrap: wrap">
+              <div class="form-group" style="flex: 1; min-width: 150px">
+                <label>Tolerancia Retardos (Mins)</label>
+                <input
+                  type="number"
+                  id="tolerancia_minutos"
+                  class="form-control"
+                  value="15"
+                  min="0"
+                  required
+                />
+              </div>
+              <div class="form-group" style="flex: 1; min-width: 150px">
+                <label>Alarma de salida (Mins)</label>
+                <input
+                  type="number"
+                  id="minutos_alarma"
+                  class="form-control"
+                  value="5"
+                  min="0"
+                  required
+                />
+              </div>
+              <div class="form-group" style="flex: 2; min-width: 200px">
+                <label>Sonido de Alarma</label>
+                <div style="display: flex; gap: 10px">
+                  <select
+                    id="sonido_alarma"
+                    class="form-control"
+                    style="flex: 1"
+                    onchange="verificarSonidoCustom()"
+                  >
+                    <option
+                      value="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"
+                    >
+                      Beep Corto
+                    </option>
+                    <option
+                      value="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
+                    >
+                      Reloj Despertador
+                    </option>
+                    <option
+                      value="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg"
+                    >
+                      Reloj Digital
+                    </option>
+                    <option
+                      value="https://actions.google.com/sounds/v1/doors/doorbell_chime.ogg"
+                    >
+                      Timbre de Puerta
+                    </option>
+                    <option value="custom">Otro (Personalizado)...</option>
+                  </select>
+                  <button
+                    type="button"
+                    id="btn-play-sound"
+                    class="btn btn-cancel"
+                    style="padding: 10px"
+                    title="Pre-escuchar"
+                  >
+                    <i class="fas fa-play"></i>
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  id="sonido_custom"
+                  class="form-control"
+                  style="display: none; margin-top: 10px"
+                  placeholder="Pega aquí la URL de tu audio (.mp3 o .ogg)"
+                />
+              </div>
             </div>
 
             <div class="form-group">
@@ -474,6 +574,244 @@
             </div>
           </div>
           <!-- Cierre de la Pestaña de Horarios -->
+
+          <!-- PESTAÑA 4: RÚBRICAS -->
+          <div id="tab-rubricas" class="tab-content">
+            <p
+              style="
+                color: var(--text-muted);
+                font-size: 0.9rem;
+                margin-bottom: 15px;
+              "
+            >
+              Define los parámetros de calificación. Recuerda que debe sumar
+              100%.
+            </p>
+
+            <div
+              id="container-select-periodo-rubrica"
+              style="
+                display: none;
+                margin-bottom: 20px;
+                background: rgba(0, 0, 0, 0.2);
+                padding: 15px;
+                border-radius: 10px;
+                border: 1px solid rgba(255, 255, 255, 0.05);
+              "
+            >
+              <label
+                style="
+                  color: var(--text-light);
+                  font-size: 0.9rem;
+                  margin-bottom: 8px;
+                  display: block;
+                "
+              >
+                <i class="fas fa-filter" style="color: var(--primary)"></i>
+                Configurando rúbricas para el periodo:
+              </label>
+              <select
+                id="select-periodo-rubrica"
+                class="form-control"
+                onchange="
+                  cargarRubricasModal(document.getElementById('id_grupo').value)
+                "
+              >
+                <!-- Llenado por JS -->
+              </select>
+            </div>
+
+            <div
+              style="
+                display: flex;
+                gap: 10px;
+                margin-bottom: 20px;
+                align-items: flex-end;
+                flex-wrap: wrap;
+              "
+            >
+              <div style="flex: 1; min-width: 150px">
+                <label
+                  style="
+                    color: var(--text-muted);
+                    font-size: 0.85rem;
+                    margin-bottom: 5px;
+                    display: block;
+                  "
+                  >Criterio a evaluar</label
+                >
+                <input
+                  type="text"
+                  id="nueva_rubrica_criterio"
+                  class="form-control"
+                  placeholder="Ej. Tareas"
+                  autocomplete="off"
+                  onkeydown="
+                    if (event.key === 'Enter') {
+                      document.getElementById('btn-add-rubrica').click();
+                      return false;
+                    }
+                  "
+                />
+              </div>
+              <div style="width: 80px">
+                <label
+                  style="
+                    color: var(--text-muted);
+                    font-size: 0.85rem;
+                    margin-bottom: 5px;
+                    display: block;
+                  "
+                  >Valor %</label
+                >
+                <input
+                  type="number"
+                  id="nueva_rubrica_porcentaje"
+                  class="form-control"
+                  placeholder="%"
+                  min="1"
+                  max="100"
+                  onkeydown="
+                    if (event.key === 'Enter') {
+                      document.getElementById('btn-add-rubrica').click();
+                      return false;
+                    }
+                  "
+                />
+              </div>
+              <div style="width: 60px">
+                <label
+                  style="
+                    color: var(--text-muted);
+                    font-size: 0.85rem;
+                    margin-bottom: 5px;
+                    display: block;
+                  "
+                  >Color</label
+                >
+                <input
+                  type="color"
+                  id="nueva_rubrica_color"
+                  class="form-control"
+                  style="padding: 2px; height: 44px; cursor: pointer"
+                  value="#8b5cf6"
+                />
+              </div>
+              <button
+                type="button"
+                id="btn-add-rubrica"
+                class="btn btn-maestro"
+                style="
+                  width: 44px;
+                  height: 44px;
+                  padding: 0;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                "
+              >
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+            <ul
+              class="list-group"
+              id="lista-rubricas-modal"
+              style="
+                list-style: none;
+                padding: 0;
+                margin-bottom: 20px;
+                max-height: 200px;
+                overflow-y: auto;
+              "
+            ></ul>
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  color: white;
+                  font-weight: bold;
+                  margin-bottom: 5px;
+                "
+              >
+                <span>Total Calculado:</span>
+                <span id="lbl-total-rubricas">0% / 100%</span>
+              </div>
+              <div
+                style="
+                  background: rgba(15, 23, 42, 0.8);
+                  height: 10px;
+                  border-radius: 10px;
+                  overflow: hidden;
+                "
+              >
+                <div
+                  id="progress-bar-rubricas"
+                  style="
+                    background: var(--secondary);
+                    height: 100%;
+                    width: 0%;
+                    transition: width 0.4s ease;
+                  "
+                ></div>
+              </div>
+              <p
+                id="msg-error-rubrica"
+                style="
+                  color: #ef4444;
+                  font-size: 0.85rem;
+                  margin-top: 10px;
+                  display: none;
+                "
+              >
+                El porcentaje excede el 100%.
+              </p>
+            </div>
+          </div>
+
+          <!-- PESTAÑA 5: PERIODOS -->
+          <div id="tab-periodos" class="tab-content">
+            <p
+              style="
+                color: var(--text-muted);
+                font-size: 0.9rem;
+                margin-bottom: 15px;
+              "
+            >
+              Administra las fechas de tus periodos o avanza al siguiente.
+            </p>
+            <div style="margin-bottom: 15px">
+              <span
+                id="lbl-periodo-activo-modal"
+                class="badge-active"
+                style="
+                  background: var(--primary);
+                  padding: 6px 15px;
+                  font-size: 0.9rem;
+                "
+                ><i class="fas fa-spinner fa-spin"></i> Cargando...</span
+              >
+            </div>
+            <ul
+              class="list-group"
+              id="lista-periodos-modal"
+              style="
+                list-style: none;
+                padding: 0;
+                margin-bottom: 20px;
+                max-height: 300px;
+                overflow-y: auto;
+              "
+            ></ul>
+            <button
+              type="button"
+              id="btn-siguiente-periodo-modal"
+              class="btn btn-alumno"
+              style="width: 100%; justify-content: center"
+            >
+              <i class="fas fa-forward"></i> Avanzar al Siguiente Periodo
+            </button>
+          </div>
 
           <button type="submit" id="btn-submit-grupo" class="btn-submit">
             Crear Grupo y Periodos

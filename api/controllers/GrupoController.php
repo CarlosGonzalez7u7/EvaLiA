@@ -57,7 +57,7 @@ try {
         $pdo->beginTransaction(); // Iniciamos transacción segura
 
         // 1. Insertar el Grupo
-        $insertGrp = $pdo->prepare("INSERT INTO grupos (id_maestro, nombre_grupo, ciclo_escolar, nivel_educativo, tipo_periodo, modo_calificacion, calificacion_minima, horario, tolerancia_minutos, minutos_alarma, sonido_alarma) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $insertGrp = $pdo->prepare("INSERT INTO grupos (id_maestro, nombre_grupo, ciclo_escolar, nivel_educativo, tipo_periodo, modo_calificacion, tipo_rubrica, calificacion_minima, horario, tolerancia_minutos, minutos_alarma, sonido_alarma) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $insertGrp->execute([
             $id_maestro, 
             $input['nombre_grupo'], 
@@ -65,6 +65,7 @@ try {
             $input['nivel_educativo'],
             $input['tipo_periodo'], 
             $input['modo_calificacion'],
+            $input['tipo_rubrica'] ?? 'Global',
             $input['calificacion_minima'],
             $input['horario'] ?? null,
             $input['tolerancia_minutos'] ?? 15,
@@ -108,13 +109,14 @@ try {
              exit;
         }
 
-        $updGrp = $pdo->prepare("UPDATE grupos SET nombre_grupo = ?, ciclo_escolar = ?, nivel_educativo = ?, tipo_periodo = ?, modo_calificacion = ?, calificacion_minima = ?, horario = ?, tolerancia_minutos = ?, minutos_alarma = ?, sonido_alarma = ? WHERE id_grupo = ?");
+        $updGrp = $pdo->prepare("UPDATE grupos SET nombre_grupo = ?, ciclo_escolar = ?, nivel_educativo = ?, tipo_periodo = ?, modo_calificacion = ?, tipo_rubrica = ?, calificacion_minima = ?, horario = ?, tolerancia_minutos = ?, minutos_alarma = ?, sonido_alarma = ? WHERE id_grupo = ?");
         $updGrp->execute([
             $input['nombre_grupo'], 
             $input['ciclo_escolar'], 
             $input['nivel_educativo'],
             $input['tipo_periodo'], 
             $input['modo_calificacion'],
+            $input['tipo_rubrica'],
             $input['calificacion_minima'],
             $input['horario'] ?? null,
             $input['tolerancia_minutos'] ?? 15,

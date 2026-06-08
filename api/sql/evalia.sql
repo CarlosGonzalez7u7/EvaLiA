@@ -21,6 +21,7 @@ CREATE TABLE grupos (
     nivel_educativo VARCHAR(50) NOT NULL DEFAULT 'Secundaria',
     tipo_periodo VARCHAR(50) NOT NULL DEFAULT 'Bimestre',
     modo_calificacion VARCHAR(50) NOT NULL DEFAULT 'Promedio',
+    tipo_rubrica VARCHAR(50) NOT NULL DEFAULT 'Global',
     calificacion_minima DECIMAL(4,2) NOT NULL DEFAULT 6.00, -- Configurable por el maestro
     horario TEXT NULL,
     minutos_alarma INT DEFAULT 5,
@@ -36,6 +37,8 @@ CREATE TABLE periodos (
     id_periodo INT AUTO_INCREMENT PRIMARY KEY,
     id_grupo INT NOT NULL,
     nombre_periodo VARCHAR(50) NOT NULL, -- Ej. "Bloque 1", "Bimestre I"
+    fecha_inicio DATE NULL,
+    fecha_fin DATE NULL,
     activo BOOLEAN NOT NULL DEFAULT TRUE, -- Para determinar qué periodo se está evaluando actualmente
     FOREIGN KEY (id_grupo) REFERENCES grupos(id_grupo) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB;
@@ -57,10 +60,12 @@ CREATE TABLE alumnos (
 CREATE TABLE rubricas (
     id_rubrica INT AUTO_INCREMENT PRIMARY KEY,
     id_grupo INT NOT NULL,
+    id_periodo INT NULL,
     categoria VARCHAR(50) NOT NULL, 
     porcentaje DECIMAL(5,2) NOT NULL, 
     color VARCHAR(7) NOT NULL DEFAULT '#8b5cf6',
-    FOREIGN KEY (id_grupo) REFERENCES grupos(id_grupo) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (id_grupo) REFERENCES grupos(id_grupo) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (id_periodo) REFERENCES periodos(id_periodo) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
 -- 7. Tabla de Actividades

@@ -43,13 +43,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("Error al cargar grupo:", error);
   }
 
-  // Habilitar el botón hacia la Hoja de Calificaciones
-  const btnCalificaciones = document.getElementById("btn-ir-calificaciones");
-  btnCalificaciones.style.display = "flex";
-  btnCalificaciones.addEventListener(
-    "click",
-    () => (window.location.href = `calificaciones.html?id=${idGrupo}`),
-  );
+  // Inyectar Barra de Navegación Integrada (Pestañas)
+  inyectarPestanasNavegacion(idGrupo, "alumnos");
 
   // 2. Cargar Lista de Alumnos
   cargarAlumnos(idGrupo);
@@ -58,38 +53,82 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("btn-abrir-modal-alumno")
     .addEventListener("click", () => {
+      document.getElementById("modal-alumno-title").innerText =
+        "Registrar Alumno";
+      document.getElementById("btn-submit-alumno").innerHTML =
+        '<i class="fas fa-save"></i> Guardar y Generar QR';
+      document.getElementById("id_alumno").value = "";
       document.getElementById("form-alumno").reset();
+      document.getElementById("btn-regenerar-qr").style.display = "none";
       document.getElementById("modal-alumno").classList.add("active");
     });
 
-  // 4. Guardar Alumno
+  // 4. Guardar o Editar Alumno
   document
     .getElementById("form-alumno")
     .addEventListener("submit", async (e) => {
       e.preventDefault();
+      const id_alumno = document.getElementById("id_alumno").value;
       const matricula = document.getElementById("matricula").value;
       const nombre = document.getElementById("nombre").value;
+
+      const payload = {
+        action: id_alumno ? "update" : "create",
+        id_grupo: idGrupo,
+        matricula,
+        nombre,
+      };
+      if (id_alumno) payload.id_alumno = id_alumno;
 
       const res = await fetch("/api/controllers/AlumnoController.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create",
-          id_grupo: idGrupo,
-          matricula,
-          nombre,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
 
       if (data.success) {
         document.getElementById("modal-alumno").classList.remove("active");
         cargarAlumnos(idGrupo);
-        mostrarCredencial(data.data); // Desplegamos su QR
+        if (!id_alumno) {
+          mostrarCredencial(data.data); // Desplegamos su QR al crearlo
+        } else {
+          mostrarAlerta("Alumno actualizado correctamente.");
+        }
       } else {
         mostrarAlerta(data.message);
       }
     });
+
+  // Botón Regenerar QR
+  document.getElementById("btn-regenerar-qr").addEventListener("click", () => {
+    const id_alumno = document.getElementById("id_alumno").value;
+    if (!id_alumno) return;
+    mostrarConfirmacion(
+      "¿Estás seguro de que deseas regenerar el código QR? El código anterior dejará de funcionar para este alumno.",
+      async () => {
+        try {
+          const res = await fetch("/api/controllers/AlumnoController.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "regenerate_qr", id_alumno }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            document.getElementById("modal-alumno").classList.remove("active");
+            mostrarAlerta(
+              "QR regenerado correctamente. Puedes imprimirlo nuevamente desde la lista de clase.",
+            );
+            cargarAlumnos(idGrupo);
+          } else {
+            mostrarAlerta(data.message);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      },
+    );
+  });
 
   // 5. Botón Imprimir Todos
   document
@@ -182,11 +221,24 @@ function renderFilaAlumno(alumno) {
         <button onclick="verCredencial(${alumno.id_alumno})" class="btn-icon" style="color: var(--primary);" title="Ver Credencial"><i class="fas fa-qrcode"></i></button>
     </td>
     <td style="text-align: center;">
+        <button onclick="editarAlumno(${alumno.id_alumno}, '${alumno.matricula}', '${alumno.nombre}')" class="btn-icon" style="color: var(--primary);" title="Editar Alumno"><i class="fas fa-edit"></i></button>
         <button onclick="eliminarAlumno(${alumno.id_alumno})" class="btn-icon" style="color: #ef4444;" title="Eliminar alumno"><i class="fas fa-trash"></i></button>
     </td>
   `;
   tbody.appendChild(tr);
 }
+
+// Función global para Editar Alumno
+window.editarAlumno = function (id_alumno, matricula, nombre) {
+  document.getElementById("modal-alumno-title").innerText = "Editar Alumno";
+  document.getElementById("btn-submit-alumno").innerHTML =
+    '<i class="fas fa-save"></i> Guardar Cambios';
+  document.getElementById("id_alumno").value = id_alumno;
+  document.getElementById("matricula").value = matricula;
+  document.getElementById("nombre").value = nombre;
+  document.getElementById("btn-regenerar-qr").style.display = "flex";
+  document.getElementById("modal-alumno").classList.add("active");
+};
 
 // Mostrar nuevamente la credencial de un alumno específico
 window.verCredencial = function (idAlumno) {
@@ -242,3 +294,16 @@ window.eliminarAlumno = async function (idAlumno) {
     },
   );
 };
+
+function inyectarPestanasNavegacion(idGrupo, vistaActiva) {
+  const header = document.querySelector(".header-panel");
+  if (!header) return;
+  const navHtml = `
+    <div class="tabs-container" style="width: 100%; margin-top: 20px; padding-bottom: 0; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; gap: 15px; overflow-x: auto;">
+      <a href="grupo_alumnos.html?id=${idGrupo}" class="tab-btn ${vistaActiva === "alumnos" ? "active" : ""}" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i class="fas fa-users"></i> Directorio y Alumnos</a>
+      <a href="calificaciones.html?id=${idGrupo}" class="tab-btn ${vistaActiva === "calificaciones" ? "active" : ""}" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i class="fas fa-table"></i> Tabla de Calificaciones</a>
+      <a href="pase_lista.html?id=${idGrupo}" class="tab-btn ${vistaActiva === "asistencias" ? "active" : ""}" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i class="fas fa-clipboard-list"></i> Asistencias (Pase de Lista)</a>
+    </div>
+  `;
+  header.insertAdjacentHTML("afterend", navHtml);
+}

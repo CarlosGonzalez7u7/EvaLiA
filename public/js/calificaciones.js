@@ -14,12 +14,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.location.href = "panel_maestro.html";
     return;
   }
-  document.getElementById("btn-volver").href =
-    `grupo_alumnos.html?id=${idGrupo}`;
 
-  // Ligar botón de Pase de Lista
-  document.getElementById("btn-pase-lista").href =
-    `pase_lista.html?id=${idGrupo}&from=calificaciones`;
+  if (document.getElementById("btn-volver"))
+    document.getElementById("btn-volver").href = "panel_maestro.html";
+  if (document.getElementById("btn-pase-lista"))
+    document.getElementById("btn-pase-lista").style.display = "none";
+
+  // Inyectar Barra de Navegación Integrada (Pestañas)
+  inyectarPestanasNavegacion(idGrupo, "calificaciones");
 
   // 0. Cargar Claves del .env e inicializar el script del Editor (TinyMCE)
   try {
@@ -220,6 +222,12 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
 
   const tabla = document.getElementById("tabla-calificaciones");
   tabla.innerHTML = "";
+
+  // Remover el scroll interno para mejorar la experiencia de usuario
+  if (tabla.parentElement) {
+    tabla.parentElement.style.maxHeight = "none";
+    tabla.parentElement.style.overflowY = "visible";
+  }
 
   // 1. DIBUJAR CABECERAS (THEAD)
   let thead = `<thead><tr><th style="width: 50px; text-align: center;">N°</th><th style="width: 250px;">Alumno</th>`;
@@ -459,3 +467,16 @@ window.guardarCalificacion = async function (inputElem, minAprobatoria) {
     console.error("Error al guardar:", e);
   }
 };
+
+function inyectarPestanasNavegacion(idGrupo, vistaActiva) {
+  const header = document.querySelector(".header-panel");
+  if (!header) return;
+  const navHtml = `
+    <div class="tabs-container" style="width: 100%; margin-top: 20px; padding-bottom: 0; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; gap: 15px; overflow-x: auto;">
+      <a href="grupo_alumnos.html?id=${idGrupo}" class="tab-btn ${vistaActiva === "alumnos" ? "active" : ""}" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i class="fas fa-users"></i> Directorio y Alumnos</a>
+      <a href="calificaciones.html?id=${idGrupo}" class="tab-btn ${vistaActiva === "calificaciones" ? "active" : ""}" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i class="fas fa-table"></i> Tabla de Calificaciones</a>
+      <a href="pase_lista.html?id=${idGrupo}" class="tab-btn ${vistaActiva === "asistencias" ? "active" : ""}" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i class="fas fa-clipboard-list"></i> Asistencias (Pase de Lista)</a>
+    </div>
+  `;
+  header.insertAdjacentHTML("afterend", navHtml);
+}

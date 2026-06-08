@@ -42,9 +42,53 @@ window.toggleDay = function (day) {
   if (isChecked && !end.value) end.value = "09:00";
 };
 
+// Lógica de Sonido de Alarma
+let audioPreview = null;
+window.verificarSonidoCustom = function () {
+  const val = document.getElementById("sonido_alarma").value;
+  const customInput = document.getElementById("sonido_custom");
+  if (customInput) {
+    customInput.style.display = val === "custom" ? "block" : "none";
+  }
+};
+
+// Mostrar/ocultar selector de periodos al cambiar el tipo de rúbrica
+document.addEventListener("change", (e) => {
+  if (e.target.id === "tipo_rubrica") {
+    const isPerPeriod = e.target.value === "Por Periodo";
+    document.getElementById("container-select-periodo-rubrica").style.display =
+      isPerPeriod ? "block" : "none";
+    if (document.getElementById("id_grupo").value) {
+      cargarRubricasModal(document.getElementById("id_grupo").value);
+    }
+  }
+});
+
 let gruposData = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
+  document.getElementById("btn-play-sound")?.addEventListener("click", () => {
+    if (audioPreview) {
+      audioPreview.pause();
+      audioPreview.currentTime = 0;
+    }
+    const selectVal = document.getElementById("sonido_alarma").value;
+    const url =
+      selectVal === "custom"
+        ? document.getElementById("sonido_custom").value
+        : selectVal;
+    if (url) {
+      audioPreview = new Audio(url);
+      audioPreview
+        .play()
+        .catch((e) =>
+          mostrarAlerta(
+            "No se pudo reproducir. Verifica que la URL sea válida.",
+          ),
+        );
+    }
+  });
+
   // 1. Obtener Sesión del Maestro
   try {
     const res = await fetch(
@@ -102,6 +146,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
 
+    document.getElementById("btn-tab-rubricas").style.display = "none";
+    document.getElementById("btn-tab-periodos").style.display = "none";
+
     document.querySelector(".tab-btn").click(); // Volver al primer tab
     modal.classList.add("active");
   });
@@ -150,6 +197,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
 
+      const rawSnd = document.getElementById("sonido_alarma")
+        ? document.getElementById("sonido_alarma").value
+        : "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
+      const finalSound =
+        rawSnd === "custom"
+          ? document.getElementById("sonido_custom").value
+          : rawSnd;
+
       const datos = {
         action: idGrupo ? "update" : "create",
         id_grupo: idGrupo,
@@ -159,12 +214,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         tipo_periodo: document.getElementById("tipo_periodo").value,
         num_periodos: document.getElementById("num_periodos").value,
         modo_calificacion: document.getElementById("modo_calificacion").value,
+        tipo_rubrica: document.getElementById("tipo_rubrica").value,
         calificacion_minima: document.getElementById("calificacion_minima")
           .value,
         horario: JSON.stringify(horarioArray),
         tolerancia_minutos: document.getElementById("tolerancia_minutos").value,
-        minutos_alarma: document.getElementById("minutos_alarma").value,
-        sonido_alarma: document.getElementById("sonido_alarma").value,
+        minutos_alarma: document.getElementById("minutos_alarma")
+          ? document.getElementById("minutos_alarma").value
+          : 5,
+        sonido_alarma: finalSound,
       };
 
       try {
@@ -237,14 +295,35 @@ window.abrirModalEdicion = function (id) {
   document.getElementById("tipo_periodo").value = grupo.tipo_periodo;
   document.getElementById("num_periodos").value = grupo.num_periodos || 1;
   document.getElementById("modo_calificacion").value = grupo.modo_calificacion;
+  document.getElementById("tipo_rubrica").value =
+    grupo.tipo_rubrica || "Global";
+
+  // Activar o desactivar el contenedor de periodos visualmente
+  document.getElementById("container-select-periodo-rubrica").style.display =
+    grupo.tipo_rubrica === "Por Periodo" ? "block" : "none";
+
   document.getElementById("calificacion_minima").value =
     grupo.calificacion_minima;
   document.getElementById("tolerancia_minutos").value =
     grupo.tolerancia_minutos || 15;
-  document.getElementById("minutos_alarma").value = grupo.minutos_alarma || 5;
-  document.getElementById("sonido_alarma").value =
-    grupo.sonido_alarma ||
-    "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
+  if (document.getElementById("minutos_alarma")) {
+    document.getElementById("minutos_alarma").value = grupo.minutos_alarma || 5;
+  }
+  if (document.getElementById("sonido_alarma")) {
+    const sel = document.getElementById("sonido_alarma");
+    const opt = Array.from(sel.options).map((o) => o.value);
+    const customInput = document.getElementById("sonido_custom");
+    if (grupo.sonido_alarma && !opt.includes(grupo.sonido_alarma)) {
+      sel.value = "custom";
+      customInput.value = grupo.sonido_alarma;
+      customInput.style.display = "block";
+    } else {
+      sel.value =
+        grupo.sonido_alarma ||
+        "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
+      customInput.style.display = "none";
+    }
+  }
 
   const diasSemana = [
     "Lunes",
@@ -280,6 +359,13 @@ window.abrirModalEdicion = function (id) {
       });
     } catch (e) {}
   }
+
+  document.getElementById("btn-tab-rubricas").style.display = "block";
+  document.getElementById("btn-tab-periodos").style.display = "block";
+
+  cargarPeriodosModal(id).then(() => {
+    cargarRubricasModal(id); // Primero cargamos los periodos, luego las rúbricas
+  });
 
   document.getElementById("modal-title").innerText = "Editar Grupo";
   document.getElementById("btn-submit-grupo").innerText = "Guardar Cambios";
@@ -336,7 +422,7 @@ function renderGrupoCard(grupo, isNew = false) {
               <span class="badge-active" style="margin-left: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); font-size: 0.7rem; vertical-align: top;">${grupo.nivel_educativo}</span>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button onclick="abrirModalEdicion(${grupo.id_grupo})" class="btn-icon" title="Editar Grupo"><i class="fas fa-edit"></i></button>
+                <button onclick="abrirModalEdicion(${grupo.id_grupo})" class="btn-icon" title="Configurar Grupo"><i class="fas fa-cog"></i></button>
                 <button onclick="deshabilitarGrupo(${grupo.id_grupo})" class="btn-icon" title="Ocultar Grupo" style="color: #ef4444;"><i class="fas fa-eye-slash"></i></button>
             </div>
         </div>
@@ -344,15 +430,9 @@ function renderGrupoCard(grupo, isNew = false) {
         <p style="margin-bottom: 5px; font-size: 0.9rem;"><i class="fas fa-calendar-alt"></i> Ciclo: ${grupo.ciclo_escolar}</p>
         <p style="margin-bottom: 5px; font-size: 0.9rem;"><i class="fas fa-layer-group"></i> Divisiones: ${grupo.num_periodos || 1} ${grupo.tipo_periodo}s</p>
         <p style="margin-bottom: 5px; font-size: 0.85rem;"><i class="fas fa-clock"></i> ${horarioText}</p>
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <a href="grupo_alumnos.html?id=${grupo.id_grupo}" class="btn" style="flex: 1; justify-content: center; font-size: 0.95rem; padding: 10px; background: linear-gradient(45deg, var(--primary), var(--secondary)); border: none; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4); color: white;" title="Ver alumnos y calificaciones">
-                <i class="fas fa-chalkboard"></i> <strong style="margin-left: 5px;">Entrar a Clase</strong>
-            </a>
-            <a href="pase_lista.html?id=${grupo.id_grupo}" class="btn btn-alumno" style="flex: 1; justify-content: center; font-size: 0.9rem; padding: 10px;" title="Gestión de Asistencias">
-                <i class="fas fa-clipboard-list"></i> Asistencias
-            </a>
-            <a href="config_grupo.html?id=${grupo.id_grupo}" class="btn btn-cancel" style="padding: 10px; display: flex; align-items: center; justify-content: center; color: white;" title="Configurar Rúbricas">
-                <i class="fas fa-cog"></i>
+        <div style="margin-top: 20px;">
+            <a href="grupo_alumnos.html?id=${grupo.id_grupo}" class="btn" style="width: 100%; justify-content: center; font-size: 0.95rem; padding: 12px; background: linear-gradient(45deg, var(--primary), var(--secondary)); border: none; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4); color: white;" title="Abrir Panel de la Clase">
+                <i class="fas fa-chalkboard"></i> <strong style="margin-left: 5px;">Entrar a la Clase</strong>
             </a>
         </div>
     `;
@@ -360,3 +440,195 @@ function renderGrupoCard(grupo, isNew = false) {
   if (isNew) container.prepend(card);
   else container.appendChild(card);
 }
+
+// ==============================================
+// LÓGICA DE RÚBRICAS Y PERIODOS EN EL MODAL
+// ==============================================
+
+let totalPorcentajeActual = 0;
+
+async function cargarRubricasModal(idGrupo) {
+  const tipoRubrica = document.getElementById("tipo_rubrica").value;
+  const idPeriodo = document.getElementById("select-periodo-rubrica").value;
+  let url = `/api/controllers/RubricaController.php?action=list&id_grupo=${idGrupo}`;
+
+  if (tipoRubrica === "Por Periodo" && idPeriodo) {
+    url += `&id_periodo=${idPeriodo}`;
+  }
+
+  const res = await fetch(url);
+  const data = await res.json();
+  totalPorcentajeActual = 0;
+  document.getElementById("lista-rubricas-modal").innerHTML = "";
+  if (data.success) {
+    data.data.forEach((r) => renderRubricaEnModal(r));
+  }
+}
+
+function renderRubricaEnModal(rubrica) {
+  const lista = document.getElementById("lista-rubricas-modal");
+  const li = document.createElement("li");
+  li.style.cssText =
+    "background: rgba(15, 23, 42, 0.6); padding: 10px 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255, 255, 255, 0.05);";
+  li.innerHTML = `
+      <span style="color: var(--text-light);"><span style="display:inline-block; width: 12px; height: 12px; background: ${rubrica.color || "#8b5cf6"}; border-radius: 50%; margin-right: 8px;"></span>${rubrica.categoria}</span>
+      <div style="display: flex; align-items: center; gap: 15px;">
+          <span style="color: var(--secondary); font-weight: bold;">${rubrica.porcentaje}%</span>
+          <button type="button" onclick="eliminarRubricaModal(${rubrica.id_rubrica})" class="btn-icon" style="color: #ef4444; font-size: 1rem;" title="Eliminar"><i class="fas fa-trash"></i></button>
+      </div>
+  `;
+  lista.appendChild(li);
+
+  totalPorcentajeActual += parseFloat(rubrica.porcentaje);
+  actualizarProgresoRubricas();
+}
+
+function actualizarProgresoRubricas() {
+  const progress = document.getElementById("progress-bar-rubricas");
+  const lblTotal = document.getElementById("lbl-total-rubricas");
+  progress.style.width = `${totalPorcentajeActual}%`;
+  lblTotal.innerText = `${totalPorcentajeActual}% / 100%`;
+  progress.style.background =
+    totalPorcentajeActual > 100 ? "#ef4444" : "var(--secondary)";
+}
+
+window.eliminarRubricaModal = async function (idRubrica) {
+  mostrarConfirmacion("¿Eliminar este criterio de evaluación?", async () => {
+    const res = await fetch("/api/controllers/RubricaController.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", id_rubrica: idRubrica }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      cargarRubricasModal(document.getElementById("id_grupo").value);
+    }
+  });
+};
+
+async function cargarPeriodosModal(idGrupo) {
+  const res = await fetch(
+    `/api/controllers/GrupoController.php?action=get&id=${idGrupo}`,
+  );
+  const data = await res.json();
+  if (data.success) {
+    const listaPeriodos = document.getElementById("lista-periodos-modal");
+    const selectPeriodoRub = document.getElementById("select-periodo-rubrica");
+    listaPeriodos.innerHTML = "";
+    selectPeriodoRub.innerHTML = "";
+    let periodoActivoName = "Ninguno";
+
+    data.periodos.forEach((p) => {
+      const isActivo = p.activo == 1;
+      if (isActivo) periodoActivoName = p.nombre_periodo;
+      selectPeriodoRub.innerHTML += `<option value="${p.id_periodo}">${p.nombre_periodo}</option>`;
+      listaPeriodos.innerHTML += `
+              <li style="background: rgba(15, 23, 42, 0.6); padding: 10px 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; align-items: stretch;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                      <span style="color: var(--text-light);"><i class="fas fa-calendar-day"></i> ${p.nombre_periodo}</span>
+                      ${isActivo ? '<span class="badge-active" style="background: var(--secondary); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; color: white;">ACTIVO</span>' : ""}
+                  </div>
+                  <div style="display: flex; gap: 10px;">
+                      <div style="flex: 1;">
+                          <small style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 3px; display: block;">Inicio</small>
+                          <input type="date" class="form-control" style="padding: 6px; font-size: 0.85rem;" value="${p.fecha_inicio || ""}" onchange="guardarFechaPeriodo(${p.id_periodo}, 'inicio', this.value)">
+                      </div>
+                      <div style="flex: 1;">
+                          <small style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 3px; display: block;">Fin</small>
+                          <input type="date" class="form-control" style="padding: 6px; font-size: 0.85rem;" value="${p.fecha_fin || ""}" onchange="guardarFechaPeriodo(${p.id_periodo}, 'fin', this.value)">
+                      </div>
+                  </div>
+              </li>
+          `;
+    });
+    document.getElementById("lbl-periodo-activo-modal").innerHTML =
+      `<i class="fas fa-calendar-check"></i> Evaluando: ${periodoActivoName}`;
+  }
+}
+
+window.guardarFechaPeriodo = async function (idPeriodo, tipo, fecha) {
+  try {
+    await fetch("/api/controllers/PeriodoController.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "update_dates",
+        id_periodo: idPeriodo,
+        tipo: tipo,
+        fecha: fecha,
+      }),
+    });
+  } catch (e) {}
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  document
+    .getElementById("btn-add-rubrica")
+    ?.addEventListener("click", async () => {
+      const idGrupo = document.getElementById("id_grupo").value;
+      const criterio = document.getElementById("nueva_rubrica_criterio").value;
+      const porcentaje = parseFloat(
+        document.getElementById("nueva_rubrica_porcentaje").value,
+      );
+      const color = document.getElementById("nueva_rubrica_color").value;
+
+      if (!criterio || isNaN(porcentaje)) {
+        mostrarAlerta("Ingresa un criterio y porcentaje válido.");
+        return;
+      }
+      if (totalPorcentajeActual + porcentaje > 100) {
+        document.getElementById("msg-error-rubrica").style.display = "block";
+        return;
+      }
+      document.getElementById("msg-error-rubrica").style.display = "none";
+
+      const tipoRubrica = document.getElementById("tipo_rubrica").value;
+      const idPeriodo =
+        tipoRubrica === "Por Periodo"
+          ? document.getElementById("select-periodo-rubrica").value
+          : null;
+
+      const res = await fetch("/api/controllers/RubricaController.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          id_grupo: idGrupo,
+          id_periodo: idPeriodo,
+          categoria: criterio,
+          porcentaje: porcentaje,
+          color: color,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById("nueva_rubrica_criterio").value = "";
+        document.getElementById("nueva_rubrica_porcentaje").value = "";
+        renderRubricaEnModal(data.data);
+      } else {
+        mostrarAlerta("Error: " + data.message);
+      }
+    });
+
+  document
+    .getElementById("btn-siguiente-periodo-modal")
+    ?.addEventListener("click", () => {
+      const idGrupo = document.getElementById("id_grupo").value;
+      mostrarConfirmacion(
+        "¿Deseas cerrar este periodo y avanzar al siguiente? Las calificaciones se seguirán guardando pero en la nueva pestaña.",
+        async () => {
+          const res = await fetch("/api/controllers/PeriodoController.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "next_period", id_grupo: idGrupo }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            cargarPeriodosModal(idGrupo);
+          } else {
+            mostrarAlerta(data.message);
+          }
+        },
+      );
+    });
+});

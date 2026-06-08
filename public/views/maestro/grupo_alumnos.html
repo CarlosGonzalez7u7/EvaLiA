@@ -138,15 +138,6 @@
             Directorio de Alumnos y Registro
           </p>
         </div>
-        <div style="display: flex; gap: 15px">
-          <button
-            id="btn-ir-calificaciones"
-            class="btn btn-alumno"
-            style="display: none"
-          >
-            <i class="fas fa-table"></i> Capturar Calificaciones
-          </button>
-        </div>
       </div>
 
       <div class="card" style="padding: 0; overflow: hidden">
@@ -219,7 +210,7 @@
     <div id="modal-alumno" class="modal-overlay">
       <div class="modal-content" style="max-width: 400px">
         <div class="modal-header">
-          <h2>Registrar Alumno</h2>
+          <h2 id="modal-alumno-title">Registrar Alumno</h2>
           <button
             type="button"
             onclick="
@@ -231,6 +222,7 @@
           </button>
         </div>
         <form id="form-alumno">
+          <input type="hidden" id="id_alumno" value="" />
           <div class="form-group">
             <label
               >Matrícula / ID
@@ -264,9 +256,27 @@
               autocomplete="off"
             />
           </div>
-          <div class="modal-actions" style="margin-top: 10px">
+          <div
+            class="modal-actions"
+            style="margin-top: 10px; display: flex; gap: 10px"
+          >
+            <button
+              type="button"
+              id="btn-regenerar-qr"
+              class="btn btn-cancel"
+              style="
+                display: none;
+                justify-content: center;
+                padding: 10px;
+                flex: 1;
+              "
+              title="Regenerar Código QR"
+            >
+              <i class="fas fa-sync-alt"></i> Regenerar QR
+            </button>
             <button
               type="submit"
+              id="btn-submit-alumno"
               class="btn btn-maestro"
               style="flex: 1; justify-content: center"
             >

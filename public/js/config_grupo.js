@@ -48,9 +48,21 @@ document.addEventListener("DOMContentLoaded", async () => {
           periodoActivoName = p.nombre_periodo;
         }
         listaPeriodos.innerHTML += `
-                    <li>
-                        <span style="color: var(--text-light);"><i class="fas fa-calendar-day"></i> ${p.nombre_periodo}</span>
-                        ${isActivo ? '<span class="badge-active">ACTIVO</span>' : ""}
+                    <li style="flex-direction: column; align-items: stretch;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 10px;">
+                          <span style="color: var(--text-light);"><i class="fas fa-calendar-day"></i> ${p.nombre_periodo}</span>
+                          ${isActivo ? '<span class="badge-active">ACTIVO</span>' : ""}
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <small style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 3px; display: block;">Fecha Inicio</small>
+                                <input type="date" class="form-control" style="padding: 6px; font-size: 0.85rem;" value="${p.fecha_inicio || ""}" onchange="guardarFechaPeriodo(${p.id_periodo}, 'inicio', this.value)">
+                            </div>
+                            <div style="flex: 1;">
+                                <small style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 3px; display: block;">Fecha Fin</small>
+                                <input type="date" class="form-control" style="padding: 6px; font-size: 0.85rem;" value="${p.fecha_fin || ""}" onchange="guardarFechaPeriodo(${p.id_periodo}, 'fin', this.value)">
+                            </div>
+                        </div>
                     </li>
                 `;
       });
@@ -58,6 +70,35 @@ document.addEventListener("DOMContentLoaded", async () => {
       const lblActivo = document.getElementById("lbl-periodo-activo");
       if (lblActivo) {
         lblActivo.innerHTML = `<i class="fas fa-calendar-check"></i> Evaluando: ${periodoActivoName}`;
+      }
+
+      // Botón para avanzar al siguiente periodo
+      const btnSiguiente = document.getElementById("btn-siguiente-periodo");
+      if (btnSiguiente) {
+        btnSiguiente.onclick = () => {
+          mostrarConfirmacion(
+            "¿Deseas cerrar este periodo y avanzar al siguiente? Las calificaciones se seguirán guardando pero en la nueva pestaña.",
+            async () => {
+              const resP = await fetch(
+                "/api/controllers/PeriodoController.php",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "next_period",
+                    id_grupo: idGrupo,
+                  }),
+                },
+              );
+              const dataP = await resP.json();
+              if (dataP.success) {
+                window.location.reload();
+              } else {
+                mostrarAlerta(dataP.message);
+              }
+            },
+          );
+        };
       }
     } else {
       mostrarAlerta(data.message);
@@ -180,6 +221,36 @@ async function cargarRubricas(idGrupo) {
     data.data.forEach((rubrica) => renderRubricaCard(rubrica));
   }
 }
+
+// Función Global para guardar las fechas de los periodos
+window.guardarFechaPeriodo = async function (idPeriodo, tipo, fecha) {
+  try {
+    const res = await fetch("/api/controllers/PeriodoController.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "update_dates",
+        id_periodo: idPeriodo,
+        tipo: tipo,
+        fecha: fecha,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      const toast = document.getElementById("toast-save");
+      if (toast) {
+        toast.style.opacity = "1";
+        toast.style.transform = "translateY(0)";
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          toast.style.transform = "translateY(20px)";
+        }, 2000);
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
+};
 
 // Función Global para Abrir el Modal de Edición
 window.abrirModalEdicionRubrica = function (id, categoria, porcentaje, color) {

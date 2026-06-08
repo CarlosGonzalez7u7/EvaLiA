@@ -26,8 +26,8 @@ try {
         $alumnos = $stmt->fetchAll();
 
         // Obtener Rúbricas
-        $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_grupo = ?");
-        $stmt->execute([$id_grupo]);
+        $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_grupo = ? AND (id_periodo = ? OR id_periodo IS NULL)");
+        $stmt->execute([$id_grupo, $id_periodo]);
         $rubricas = $stmt->fetchAll();
 
         // Obtener Actividades del Periodo
