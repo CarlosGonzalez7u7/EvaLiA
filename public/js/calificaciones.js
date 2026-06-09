@@ -341,6 +341,32 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("btn-export-pdf")?.addEventListener("click", () => {
     window.print();
   });
+
+  // --- NAVEGACIÓN ESTILO EXCEL PARA CALIFICACIONES ---
+  document.addEventListener("keydown", (e) => {
+    if (e.target.classList.contains("grade-input")) {
+      let currentTd = e.target.closest("td");
+      let currentTr = currentTd.parentElement;
+      let index = Array.from(currentTr.children).indexOf(currentTd);
+
+      let targetInput = null;
+      if (e.key === "ArrowUp") {
+        let prevTr = currentTr.previousElementSibling;
+        if (prevTr)
+          targetInput = prevTr.children[index]?.querySelector("input");
+      } else if (e.key === "ArrowDown") {
+        let nextTr = currentTr.nextElementSibling;
+        if (nextTr)
+          targetInput = nextTr.children[index]?.querySelector("input");
+      }
+
+      if (targetInput) {
+        e.preventDefault();
+        targetInput.focus();
+        targetInput.select();
+      }
+    }
+  });
 });
 
 function cerrarModalActividad() {
@@ -438,15 +464,33 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
   let tbody = `<tbody>`;
   let nLista = 1;
 
-  // Calcular el máximo de asistencias del grupo para la base 100 (El que tenga más marca la base de clases dadas)
-  let maxAsistencias = 0;
-  data.alumnos.forEach((al) => {
-    const c = asistenciasGlobal.filter(
-      (a) => a.id_alumno == al.id_alumno,
-    ).length;
-    if (c > maxAsistencias) maxAsistencias = c;
-  });
-  if (maxAsistencias === 0) maxAsistencias = 1; // Para evitar dividir por cero
+  // Filtrar asistencias según el periodo seleccionado para un cálculo preciso
+  const selectedPeriodoObj = periodosGlobal.find(
+    (p) => p.id_periodo == idPeriodo,
+  );
+  let asistenciasFiltradas = asistenciasGlobal;
+  if (
+    selectedPeriodoObj &&
+    selectedPeriodoObj.fecha_inicio &&
+    selectedPeriodoObj.fecha_fin
+  ) {
+    const start = new Date(selectedPeriodoObj.fecha_inicio + "T00:00:00");
+    const end = new Date(selectedPeriodoObj.fecha_fin + "T23:59:59");
+    asistenciasFiltradas = asistenciasGlobal.filter((a) => {
+      const d = new Date(a.fecha_hora);
+      return d >= start && d <= end;
+    });
+  }
+
+  // Calcular el máximo de asistencias (Total de clases impartidas = días únicos registrados en el grupo)
+  let fechasUnicas = new Set(
+    asistenciasFiltradas.map((a) =>
+      a.fecha_hora ? a.fecha_hora.substring(0, 10) : "",
+    ),
+  );
+  fechasUnicas.delete(""); // Remover inválidos si los hay
+  let maxAsistencias = fechasUnicas.size;
+  if (maxAsistencias === 0) maxAsistencias = 1;
 
   data.alumnos.forEach((alumno) => {
     tbody += `<tr><td style="text-align: center; color: var(--text-muted); font-weight: bold;">${nLista++}</td><th>${alumno.nombre}</th>`;
@@ -455,15 +499,22 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
 
     data.rubricas.forEach((rubrica) => {
       if (rubrica.categoria.toLowerCase().includes("asistencia")) {
-        const asisAlumno = asistenciasGlobal.filter(
+        const asisAlumno = asistenciasFiltradas.filter(
           (a) => a.id_alumno == alumno.id_alumno,
         );
-        const scoreAsis = (asisAlumno.length / maxAsistencias) * 10;
+
+        let asisScore = 0;
+        asisAlumno.forEach((a) => {
+          if (a.estado === "Asistencia") asisScore += 1;
+          else if (a.estado === "Retardo") asisScore += 0.5;
+        });
+
+        const scoreAsis = (asisScore / maxAsistencias) * 10;
         sumaFinal += scoreAsis * (rubrica.porcentaje / 100);
 
         tbody += `<td style="text-align: center; vertical-align: middle;">
             <button onclick="verAsistencias(${alumno.id_alumno}, '${alumno.nombre}')" style="background: transparent; border: none; border-bottom: 2px solid ${rubrica.color || "#8b5cf6"}; cursor: pointer; color: white; width: 100%; padding: 10px 0; font-family: 'Inter', sans-serif;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" title="Ver/Editar Asistencias">
-               <strong>${asisAlumno.length}</strong> <span style="color: var(--text-muted); font-size: 0.8rem;">/ ${maxAsistencias}</span> <br><span style="color: var(--secondary); font-size: 0.8rem; font-weight: bold;">(Nota: ${scoreAsis.toFixed(1)})</span>
+               <strong>${asisScore}</strong> <span style="color: var(--text-muted); font-size: 0.8rem;">/ ${maxAsistencias}</span> <br><span style="color: var(--secondary); font-size: 0.8rem; font-weight: bold;">(Nota: ${scoreAsis.toFixed(1)})</span>
             </button>
         </td>`;
       } else {

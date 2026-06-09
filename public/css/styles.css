@@ -540,6 +540,10 @@ textarea.form-control {
 .excel-container table {
   white-space: nowrap;
 }
+.excel-container table th,
+.excel-container table td {
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Bordes de celda para parecerse a Excel */
+}
 .excel-container thead th {
   position: sticky;
   top: 0;
@@ -580,6 +584,39 @@ textarea.form-control {
 .excel-container thead th:nth-child(2) {
   background: #0f172a;
   z-index: 12;
+}
+
+/* --- Estilos para Celdas de Asistencia --- */
+.st-asi {
+  color: #10b981 !important;
+  font-weight: bold;
+  background: rgba(16, 185, 129, 0.1);
+}
+.st-ret {
+  color: #f59e0b !important;
+  font-weight: bold;
+  background: rgba(245, 158, 11, 0.1);
+}
+.st-fal {
+  color: #ef4444 !important;
+  font-weight: bold;
+  background: rgba(239, 68, 68, 0.1);
+}
+.st-nul {
+  color: var(--text-muted) !important;
+}
+
+.cell-asistencia {
+  cursor: pointer;
+  text-align: center;
+  vertical-align: middle;
+  transition: 0.1s;
+  outline: none;
+}
+.cell-asistencia:focus {
+  border: 2px solid var(--primary) !important;
+  background: rgba(139, 92, 246, 0.2) !important;
+  z-index: 100;
 }
 
 .table {

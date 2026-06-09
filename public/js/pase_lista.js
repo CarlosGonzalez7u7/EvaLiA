@@ -177,6 +177,180 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error(e);
     }
   }
+
+  // --- NAVEGACIÓN ESTILO EXCEL Y ATAJOS PARA ASISTENCIAS ---
+  document.addEventListener("keydown", (e) => {
+    if (e.target.classList.contains("cell-asistencia")) {
+      let currentTd = e.target;
+      let currentTr = currentTd.parentElement;
+      let index = Array.from(currentTr.children).indexOf(currentTd);
+
+      let targetCell = null;
+      if (e.key === "ArrowUp") {
+        let prevTr = currentTr.previousElementSibling;
+        if (prevTr) targetCell = prevTr.children[index];
+      } else if (e.key === "ArrowDown") {
+        let nextTr = currentTr.nextElementSibling;
+        if (nextTr) targetCell = nextTr.children[index];
+      } else if (e.key === "ArrowLeft") {
+        targetCell = currentTr.children[index - 1];
+        if (targetCell && !targetCell.classList.contains("cell-asistencia"))
+          targetCell = null;
+      } else if (e.key === "ArrowRight") {
+        targetCell = currentTr.children[index + 1];
+        if (targetCell && !targetCell.classList.contains("cell-asistencia"))
+          targetCell = null;
+      }
+
+      if (targetCell) {
+        e.preventDefault();
+        targetCell.focus();
+        return;
+      }
+
+      // Atajos de teclado para poner estado
+      if (e.key === "1" || e.key === "0" || e.key === "/") {
+        e.preventDefault();
+        let newEstado = "Asistencia";
+        if (e.key === "0") newEstado = "Falta";
+        if (e.key === "/") newEstado = "Retardo";
+
+        let idAlumno = currentTd.getAttribute("data-alumno");
+        let fecha = currentTd.getAttribute("data-fecha");
+        if (idAlumno && fecha) {
+          setEstadoAsistenciaDirecto(currentTd, idAlumno, fecha, newEstado);
+        }
+      }
+    }
+  });
+
+  // LÓGICA DE EXPORTACIÓN A EXCEL Y PDF (ASISTENCIAS)
+  document
+    .getElementById("btn-export-excel-asis")
+    ?.addEventListener("click", async () => {
+      if (typeof ExcelJS === "undefined") {
+        mostrarAlerta(
+          "El bloqueador de anuncios de tu navegador impidió cargar el motor de Excel. Desactívalo temporalmente en este sitio y recarga la página.",
+        );
+        return;
+      }
+
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Asistencias");
+
+      // 1. Cabeceras del archivo (Logo y Títulos)
+      try {
+        const logoRes = await fetch("../../assets/Logo.png");
+        const logoBlob = await logoRes.blob();
+        const logoBuffer = await logoBlob.arrayBuffer();
+        const logoId = workbook.addImage({
+          buffer: logoBuffer,
+          extension: "png",
+        });
+        sheet.addImage(logoId, {
+          tl: { col: 0, row: 0 },
+          ext: { width: 45, height: 45 },
+        });
+      } catch (e) {
+        console.log("No se pudo cargar el logo");
+      }
+
+      sheet.getRow(1).height = 40;
+      sheet.mergeCells("B1:E1");
+      const titleCell = sheet.getCell("B1");
+      titleCell.value = "Reporte de Asistencias - EvaLiA";
+      titleCell.font = { size: 16, bold: true, color: { argb: "FF8B5CF6" } };
+      titleCell.alignment = { vertical: "middle", horizontal: "left" };
+
+      sheet.mergeCells("B2:E2");
+      sheet.getCell("B2").value =
+        `Grupo: ${grupoDatos.nombre_grupo} | Ciclo: ${grupoDatos.ciclo_escolar}`;
+      sheet.getCell("B2").font = { size: 12, bold: true };
+
+      sheet.addRow([]);
+
+      const table = document.getElementById("tabla-asistencias-excel");
+      const theadTr = table.querySelector("thead tr");
+      const headerRow = sheet.addRow([]);
+
+      Array.from(theadTr.cells).forEach((th, index) => {
+        const cell = headerRow.getCell(index + 1);
+        cell.value = th.innerText.trim();
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF0F172A" },
+        };
+        cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+
+        if (index === 0) sheet.getColumn(index + 1).width = 5;
+        else if (index === 1) sheet.getColumn(index + 1).width = 35;
+        else sheet.getColumn(index + 1).width = 12;
+      });
+      headerRow.height = 30;
+
+      const tbody = table.querySelector("tbody");
+      Array.from(tbody.rows).forEach((tr) => {
+        const row = sheet.addRow([]);
+        Array.from(tr.cells).forEach((td, index) => {
+          const cell = row.getCell(index + 1);
+          let val = td.innerText.trim();
+          cell.value = val;
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: index === 1 ? "left" : "center",
+          };
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+
+          if (val === "1") {
+            cell.font = { color: { argb: "FF10B981" }, bold: true };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFE6F9F0" },
+            };
+          } else if (val === "0") {
+            cell.font = { color: { argb: "FFEF4444" }, bold: true };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFDE8E8" },
+            };
+          } else if (val === "/") {
+            cell.font = { color: { argb: "FFF59E0B" }, bold: true };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFFF4E5" },
+            };
+          }
+        });
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const safeName = grupoDatos.nombre_grupo
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase();
+      saveAs(new Blob([buffer]), `Asistencias_${safeName}.xlsx`);
+    });
+
+  document
+    .getElementById("btn-export-pdf-asis")
+    ?.addEventListener("click", () => {
+      window.print();
+    });
 });
 
 // --- LÓGICA DE ALARMA ---
@@ -274,10 +448,10 @@ async function cargarTablaExcel(idGrupo) {
       }
 
       let titleTxt =
-        "Clic para cambiar estado | Shift+Clic para justificar o agregar comentario";
+        "Clic para cambiar estado | Shift+Clic para justificar | Teclas: 1 (Asistencia), 0 (Falta), / (Retardo)";
       if (comentario) titleTxt += `\nComentario: ${comentario}`;
 
-      tbody += `<td class="cell-asistencia ${cssClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')">
+      tbody += `<td tabindex="0" data-alumno="${al.id_alumno}" data-fecha="${fecha}" data-estado="${estadoTxt}" class="cell-asistencia ${cssClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')">
           ${symbol} ${comentario ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}
       </td>`;
     });
@@ -286,6 +460,54 @@ async function cargarTablaExcel(idGrupo) {
   tbody += `</tbody>`;
   tabla.innerHTML += tbody;
 }
+
+window.setEstadoAsistenciaDirecto = async function (
+  td,
+  idAlumno,
+  fecha,
+  nuevoEstado,
+) {
+  // 1. Actualización visual instantánea
+  let symbol = "-";
+  let cssClass = "st-nul";
+  if (nuevoEstado === "Asistencia") {
+    symbol = "1";
+    cssClass = "st-asi";
+  } else if (nuevoEstado === "Falta") {
+    symbol = "0";
+    cssClass = "st-fal";
+  } else if (nuevoEstado === "Retardo") {
+    symbol = "/";
+    cssClass = "st-ret";
+  }
+
+  td.className = `cell-asistencia ${cssClass}`;
+  td.setAttribute("data-estado", nuevoEstado);
+
+  let hasComment = td.innerHTML.includes("fa-comment-dots");
+  td.innerHTML = `${symbol} ${hasComment ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}`;
+
+  td.setAttribute(
+    "onclick",
+    `cambiarEstadoAsistencia(event, ${idAlumno}, '${fecha}', '${nuevoEstado}', '${hasComment ? "Comentario guardado" : ""}')`,
+  );
+
+  // 2. Enviar a BD en segundo plano
+  try {
+    await fetch("/api/controllers/AsistenciaController.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "save_cell",
+        id_alumno: idAlumno,
+        fecha: fecha,
+        estado: nuevoEstado,
+      }),
+    });
+  } catch (e) {
+    console.error("Error al guardar asistencia");
+  }
+};
 
 window.cambiarEstadoAsistencia = async function (
   event,

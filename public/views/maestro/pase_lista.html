@@ -14,12 +14,15 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="../../css/styles.css" />
+    <link rel="stylesheet" href="../../css/styles.css?v=1" />
     <!-- Librería del Escáner QR -->
     <script
       src="https://unpkg.com/html5-qrcode"
       type="text/javascript"
     ></script>
+    <!-- ExcelJS y FileSaver (Exportar a Excel con estilos) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
       .panel-container {
         padding: 40px 5%;
@@ -82,6 +85,53 @@
         max-width: 500px;
         display: none;
         animation: fadeInUp 0.3s ease-out;
+      }
+
+      /* Reglas para imprimir Asistencias en PDF limpio */
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #vista-tabla,
+        .excel-container,
+        .excel-container * {
+          visibility: visible;
+        }
+        .excel-container {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          border: none;
+          max-height: none !important;
+          overflow: visible !important;
+        }
+        .excel-container table {
+          width: 100%;
+          color: black !important;
+        }
+        .excel-container th,
+        .excel-container td {
+          color: black !important;
+          background: white !important;
+          border: 1px solid #000 !important;
+          font-size: 10pt;
+          padding: 5px;
+          position: static !important;
+        }
+        nav,
+        .header-panel,
+        .tabs-container,
+        .rotate-prompt {
+          display: none !important;
+        }
+        #vista-tabla > div:first-child {
+          display: none !important;
+        } /* Ocultar barra de botones */
+        @page {
+          size: landscape;
+          margin: 1cm;
+        }
       }
     </style>
   </head>
@@ -263,9 +313,32 @@
             gap: 15px;
           "
         >
-          <h3 style="color: white; margin: 0; font-size: 1.2rem">
-            <i class="fas fa-calendar-plus"></i> Asistencias Manuales
-          </h3>
+          <div style="display: flex; flex-direction: column; gap: 5px">
+            <h3 style="color: white; margin: 0; font-size: 1.2rem">
+              <i class="fas fa-calendar-plus"></i> Asistencias Manuales
+            </h3>
+            <div
+              style="
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                display: flex;
+                gap: 15px;
+                flex-wrap: wrap;
+              "
+            >
+              <span
+                ><strong style="color: #10b981">1</strong> = Asistencia (1
+                pt)</span
+              >
+              <span
+                ><strong style="color: #f59e0b">/</strong> = Retardo (0.5
+                pts)</span
+              >
+              <span
+                ><strong style="color: #ef4444">0</strong> = Falta (0 pts)</span
+              >
+            </div>
+          </div>
           <div
             style="
               display: flex;
@@ -275,7 +348,7 @@
             "
           >
             <label style="color: var(--text-muted); font-size: 0.9rem"
-              >Agregar nueva columna:</label
+              >Columna:</label
             >
             <input
               type="date"
@@ -288,7 +361,31 @@
               class="btn btn-maestro"
               style="padding: 8px 15px; font-size: 0.9rem"
             >
-              <i class="fas fa-plus"></i> Agregar Fecha
+              <i class="fas fa-plus"></i> Agregar
+            </button>
+            <button
+              id="btn-export-excel-asis"
+              class="btn btn-cancel"
+              style="
+                padding: 8px 15px;
+                font-size: 0.9rem;
+                color: #10b981;
+                border-color: #10b981;
+              "
+            >
+              <i class="fas fa-file-excel"></i> Excel
+            </button>
+            <button
+              id="btn-export-pdf-asis"
+              class="btn btn-cancel"
+              style="
+                padding: 8px 15px;
+                font-size: 0.9rem;
+                color: #ef4444;
+                border-color: #ef4444;
+              "
+            >
+              <i class="fas fa-file-pdf"></i> PDF
             </button>
           </div>
         </div>
@@ -324,6 +421,6 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/pase_lista.js"></script>
+    <script type="module" src="../../js/pase_lista.js?v=1"></script>
   </body>
 </html>

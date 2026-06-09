@@ -72,6 +72,7 @@ function renderDashboard(idPeriodo) {
     calificaciones,
     asistencias,
     max_asistencias,
+    fechas_grupo,
   } = rawData;
   const isGlobal = idPeriodo === "all";
 
@@ -97,7 +98,30 @@ function renderDashboard(idPeriodo) {
     rubricasPeriodo.forEach((rubrica) => {
       const color = rubrica.color || "#8b5cf6";
       if (rubrica.categoria.toLowerCase().includes("asistencia")) {
-        const scoreAsis = (asistencias.length / max_asistencias) * 10;
+        let asisPeriodo = asistencias;
+        let fechasGrupoPeriodo = fechas_grupo;
+        if (!isGlobal && periodo.fecha_inicio && periodo.fecha_fin) {
+          const start = new Date(periodo.fecha_inicio + "T00:00:00");
+          const end = new Date(periodo.fecha_fin + "T23:59:59");
+          asisPeriodo = asistencias.filter((a) => {
+            const d = new Date(a.fecha_hora);
+            return d >= start && d <= end;
+          });
+          fechasGrupoPeriodo = fechas_grupo.filter((f) => {
+            const d = new Date(f + "T00:00:00");
+            return d >= start && d <= end;
+          });
+        }
+        let max_asis_periodo = fechasGrupoPeriodo.length;
+        if (max_asis_periodo === 0) max_asis_periodo = 1;
+
+        let asisScore = 0;
+        asisPeriodo.forEach((a) => {
+          if (a.estado === "Asistencia") asisScore += 1;
+          else if (a.estado === "Retardo") asisScore += 0.5;
+        });
+
+        const scoreAsis = (asisScore / max_asis_periodo) * 10;
         sumaPeriodo +=
           (scoreAsis > 10 ? 10 : scoreAsis) * (rubrica.porcentaje / 100);
 
@@ -111,7 +135,7 @@ function renderDashboard(idPeriodo) {
               </th>`;
 
           tbodyHtml += `<td style="text-align: center; vertical-align: middle; border-bottom: 2px solid ${color};">
-                   <strong>${asistencias.length}</strong> <span style="color: var(--text-muted); font-size: 0.8rem;">/ ${max_asistencias}</span> <br><span style="color: var(--secondary); font-size: 0.8rem; font-weight: bold;">(Nota: ${scoreAsis.toFixed(1)})</span>
+                   <strong>${asisScore}</strong> <span style="color: var(--text-muted); font-size: 0.8rem;">/ ${max_asis_periodo}</span> <br><span style="color: var(--secondary); font-size: 0.8rem; font-weight: bold;">(Nota: ${scoreAsis.toFixed(1)})</span>
             </td>`;
         }
       } else {

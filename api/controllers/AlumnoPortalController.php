@@ -47,12 +47,11 @@ try {
         $stmt->execute([$id_alumno]);
         $asistencias_alumno = $stmt->fetchAll();
 
-        // 7. Max Asistencias del Grupo (para calcular la base de sus faltas)
-        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM asistencias WHERE id_alumno IN (SELECT id_alumno FROM alumnos WHERE id_grupo = ?) GROUP BY id_alumno ORDER BY total DESC LIMIT 1");
+        // 7. Fechas únicas de asistencia del grupo (para calcular max_asistencias global y por periodo)
+        $stmt = $pdo->prepare("SELECT DISTINCT DATE(fecha_hora) as fecha FROM asistencias WHERE id_alumno IN (SELECT id_alumno FROM alumnos WHERE id_grupo = ?)");
         $stmt->execute([$id_grupo]);
-        $maxAsist = $stmt->fetch();
-        $max_asistencias = $maxAsist ? (int)$maxAsist['total'] : 1;
-        if ($max_asistencias === 0) $max_asistencias = 1;
+        $fechas_grupo = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $max_asistencias = count($fechas_grupo) > 0 ? count($fechas_grupo) : 1;
 
         // 8. Calcular el Número de Lista del Alumno
         $stmt = $pdo->prepare("SELECT id_alumno FROM alumnos WHERE id_grupo = ? ORDER BY orden ASC, nombre ASC");
@@ -69,7 +68,8 @@ try {
             "actividades" => $actividades,
             "calificaciones" => $calificaciones,
             "asistencias" => $asistencias_alumno,
-            "max_asistencias" => $max_asistencias
+            "max_asistencias" => $max_asistencias,
+            "fechas_grupo" => $fechas_grupo
         ]);
         exit;
     }
