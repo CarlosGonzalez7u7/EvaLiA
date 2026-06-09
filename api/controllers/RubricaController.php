@@ -47,10 +47,32 @@ try {
     
     // ACTUALIZAR UNA RÚBRICA
     if ($action === 'update') {
-        $stmt = $pdo->prepare("UPDATE rubricas SET categoria = ?, porcentaje = ?, color = ? WHERE id_rubrica = ? AND id_grupo = ?");
-        $stmt->execute([$input['categoria'], $input['porcentaje'], $input['color'], $input['id_rubrica'], $input['id_grupo']]);
+        $id_periodo = $input['id_periodo'] ?? null;
+        if ($id_periodo === 'null' || $id_periodo === '') $id_periodo = null;
+
+        $stmt = $pdo->prepare("UPDATE rubricas SET categoria = ?, porcentaje = ?, color = ?, id_periodo = ? WHERE id_rubrica = ? AND id_grupo = ?");
+        $stmt->execute([$input['categoria'], $input['porcentaje'], $input['color'], $id_periodo, $input['id_rubrica'], $input['id_grupo']]);
         
         echo json_encode(["success" => true]);
+        exit;
+    }
+    
+    // DUPLICAR UNA RÚBRICA
+    if ($action === 'duplicate') {
+        $id_rubrica_origen = $input['id_rubrica'];
+        $id_periodo_destino = $input['id_periodo'] ?? null;
+
+        $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_rubrica = ?");
+        $stmt->execute([$id_rubrica_origen]);
+        $rub = $stmt->fetch();
+
+        if ($rub) {
+            $stmtInsert = $pdo->prepare("INSERT INTO rubricas (id_grupo, id_periodo, categoria, porcentaje, color) VALUES (?, ?, ?, ?, ?)");
+            $stmtInsert->execute([$rub['id_grupo'], $id_periodo_destino, $rub['categoria'], $rub['porcentaje'], $rub['color']]);
+            echo json_encode(["success" => true]);
+        } else {
+            echo json_encode(["success" => false, "message" => "Rúbrica no encontrada."]);
+        }
         exit;
     }
 

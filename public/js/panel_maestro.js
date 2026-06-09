@@ -305,6 +305,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           categoria: categoriaEdit,
           porcentaje: porcentajeNuevo,
           color: colorNuevo,
+          id_periodo: document.getElementById("edit_id_periodo").value,
         }),
       });
       const data = await res.json();
@@ -567,7 +568,8 @@ function renderRubricaEnModal(rubrica) {
       </div>
       <div style="display: flex; align-items: center; gap: 10px;">
           <span style="color: var(--secondary); font-weight: bold; margin-right: 5px;">${rubrica.porcentaje}%</span>
-          <button type="button" onclick="abrirModalEdicionRubrica(${rubrica.id_rubrica}, '${rubrica.categoria}', ${rubrica.porcentaje}, '${rubrica.color}')" class="btn-icon" style="color: var(--primary); font-size: 1rem;" title="Editar"><i class="fas fa-edit"></i></button>
+          <button type="button" onclick="duplicarRubricaModal(${rubrica.id_rubrica})" class="btn-icon" style="color: #10b981; font-size: 1rem;" title="Duplicar"><i class="fas fa-copy"></i></button>
+          <button type="button" onclick="abrirModalEdicionRubrica(${rubrica.id_rubrica}, '${rubrica.categoria}', ${rubrica.porcentaje}, '${rubrica.color}', ${rubrica.id_periodo || "null"})" class="btn-icon" style="color: var(--primary); font-size: 1rem;" title="Editar"><i class="fas fa-edit"></i></button>
           <button type="button" onclick="eliminarRubricaModal(${rubrica.id_rubrica})" class="btn-icon" style="color: #ef4444; font-size: 1rem;" title="Eliminar"><i class="fas fa-trash"></i></button>
       </div>
   `;
@@ -577,12 +579,50 @@ function renderRubricaEnModal(rubrica) {
   actualizarProgresoRubricas();
 }
 
-window.abrirModalEdicionRubrica = function (id, categoria, porcentaje, color) {
+window.duplicarRubricaModal = async function (idRubrica) {
+  const idGrupo = document.getElementById("id_grupo").value;
+  const tipoRubrica = document.getElementById("tipo_rubrica").value;
+  const idPeriodo =
+    tipoRubrica === "Por Periodo"
+      ? document.getElementById("select-periodo-rubrica").value
+      : null;
+
+  const res = await fetch("/api/controllers/RubricaController.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "duplicate",
+      id_rubrica: idRubrica,
+      id_periodo: idPeriodo,
+    }),
+  });
+  const data = await res.json();
+  if (data.success) {
+    cargarRubricasModal(idGrupo);
+  } else {
+    mostrarAlerta("Error al duplicar rúbrica: " + data.message);
+  }
+};
+
+window.abrirModalEdicionRubrica = function (
+  id,
+  categoria,
+  porcentaje,
+  color,
+  id_periodo,
+) {
   document.getElementById("edit_id_rubrica").value = id;
   document.getElementById("edit_criterio").value = categoria;
   document.getElementById("edit_porcentaje").value = porcentaje;
   document.getElementById("edit_porcentaje_viejo").value = porcentaje;
   document.getElementById("edit_color").value = color || "#8b5cf6";
+  document.getElementById("edit_id_periodo").value = id_periodo || "null";
+
+  document.getElementById("container-edit-periodo").style.display =
+    document.getElementById("tipo_rubrica").value === "Global"
+      ? "none"
+      : "block";
+
   document.getElementById("edit-msg-error").style.display = "none";
   document.getElementById("modal-editar-rubrica").classList.add("active");
 };
@@ -618,14 +658,20 @@ async function cargarPeriodosModal(idGrupo) {
   if (data.success) {
     const listaPeriodos = document.getElementById("lista-periodos-modal");
     const selectPeriodoRub = document.getElementById("select-periodo-rubrica");
+    const editPeriodo = document.getElementById("edit_id_periodo");
     listaPeriodos.innerHTML = "";
     selectPeriodoRub.innerHTML = "";
+    if (editPeriodo)
+      editPeriodo.innerHTML =
+        '<option value="null">Global (Todos los periodos)</option>';
     let periodoActivoName = "Ninguno";
 
     data.periodos.forEach((p) => {
       const isActivo = p.activo == 1;
       if (isActivo) periodoActivoName = p.nombre_periodo;
       selectPeriodoRub.innerHTML += `<option value="${p.id_periodo}">${p.nombre_periodo}</option>`;
+      if (editPeriodo)
+        editPeriodo.innerHTML += `<option value="${p.id_periodo}">${p.nombre_periodo}</option>`;
       listaPeriodos.innerHTML += `
               <li style="background: rgba(15, 23, 42, 0.6); padding: 10px 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; align-items: stretch;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">

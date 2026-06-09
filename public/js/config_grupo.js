@@ -194,6 +194,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           categoria: categoriaEdit,
           porcentaje: porcentajeNuevo,
           color: colorNuevo,
+          id_periodo: null,
         }),
       });
       const data = await res.json();
@@ -262,6 +263,25 @@ window.abrirModalEdicionRubrica = function (id, categoria, porcentaje, color) {
   document.getElementById("modal-editar-rubrica").classList.add("active");
 };
 
+window.duplicarRubrica = async function (idRubrica) {
+  const idGrupo = new URLSearchParams(window.location.search).get("id");
+  const res = await fetch("/api/controllers/RubricaController.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "duplicate",
+      id_rubrica: idRubrica,
+      id_periodo: null,
+    }),
+  });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById("lista-rubricas").innerHTML = ""; // Limpiar lista
+    totalPorcentajeActual = 0; // Reiniciar cuenta
+    cargarRubricas(idGrupo); // Recargar lista
+  }
+};
+
 // Función Global para Eliminar Rúbrica
 window.eliminarRubrica = async function (idRubrica) {
   mostrarConfirmacion(
@@ -294,7 +314,8 @@ function renderRubricaCard(rubrica) {
         <span style="color: var(--text-light);"><span style="display:inline-block; width: 12px; height: 12px; background: ${rubrica.color || "#8b5cf6"}; border-radius: 50%; margin-right: 8px;"></span>${rubrica.categoria}</span>
         <div style="display: flex; align-items: center; gap: 15px;">
             <span style="color: var(--secondary); font-weight: bold;">${rubrica.porcentaje}%</span>
-            <button onclick="abrirModalEdicionRubrica(${rubrica.id_rubrica}, '${rubrica.categoria}', ${rubrica.porcentaje}, '${rubrica.color}')" class="btn-icon" style="color: var(--primary); font-size: 1rem;" title="Editar criterio"><i class="fas fa-edit"></i></button>
+            <button onclick="duplicarRubrica(${rubrica.id_rubrica})" class="btn-icon" style="color: #10b981; font-size: 1rem;" title="Duplicar criterio"><i class="fas fa-copy"></i></button>
+            <button onclick="abrirModalEdicionRubrica(${rubrica.id_rubrica}, '${rubrica.categoria}', ${rubrica.porcentaje}, '${rubrica.color}', null)" class="btn-icon" style="color: var(--primary); font-size: 1rem;" title="Editar criterio"><i class="fas fa-edit"></i></button>
             <button onclick="eliminarRubrica(${rubrica.id_rubrica})" class="btn-icon" style="color: #ef4444; font-size: 1rem;" title="Eliminar criterio"><i class="fas fa-trash"></i></button>
         </div>
     `;
