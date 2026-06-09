@@ -271,6 +271,53 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Error en petición:", error);
       }
     });
+
+  // Editar Rúbrica Modal
+  document
+    .getElementById("form-editar-rubrica")
+    ?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const idGrupo = document.getElementById("id_grupo").value;
+      const idRubricaEdit = document.getElementById("edit_id_rubrica").value;
+      const categoriaEdit = document.getElementById("edit_criterio").value;
+      const porcentajeNuevo = parseFloat(
+        document.getElementById("edit_porcentaje").value,
+      );
+      const porcentajeViejo = parseFloat(
+        document.getElementById("edit_porcentaje_viejo").value,
+      );
+      const colorNuevo = document.getElementById("edit_color").value;
+
+      // Validar si el cambio no excede el 100% total
+      if (totalPorcentajeActual - porcentajeViejo + porcentajeNuevo > 100) {
+        document.getElementById("edit-msg-error").style.display = "block";
+        return;
+      }
+      document.getElementById("edit-msg-error").style.display = "none";
+
+      const res = await fetch("/api/controllers/RubricaController.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update",
+          id_grupo: idGrupo,
+          id_rubrica: idRubricaEdit,
+          categoria: categoriaEdit,
+          porcentaje: porcentajeNuevo,
+          color: colorNuevo,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        document
+          .getElementById("modal-editar-rubrica")
+          .classList.remove("active");
+        cargarRubricasModal(idGrupo);
+      } else {
+        mostrarAlerta("Error al editar rúbrica: " + data.message);
+      }
+    });
 });
 
 // Función para pedir grupos al servidor
@@ -507,10 +554,20 @@ function renderRubricaEnModal(rubrica) {
   const li = document.createElement("li");
   li.style.cssText =
     "background: rgba(15, 23, 42, 0.6); padding: 10px 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255, 255, 255, 0.05);";
+
+  const scopeTag = rubrica.nombre_periodo
+    ? `<span style="font-size: 0.7rem; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px; margin-left: 8px; color: var(--text-muted);">${rubrica.nombre_periodo}</span>`
+    : `<span style="font-size: 0.7rem; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px; margin-left: 8px; color: var(--text-muted);">Global</span>`;
+
   li.innerHTML = `
-      <span style="color: var(--text-light);"><span style="display:inline-block; width: 12px; height: 12px; background: ${rubrica.color || "#8b5cf6"}; border-radius: 50%; margin-right: 8px;"></span>${rubrica.categoria}</span>
-      <div style="display: flex; align-items: center; gap: 15px;">
-          <span style="color: var(--secondary); font-weight: bold;">${rubrica.porcentaje}%</span>
+      <div style="display: flex; align-items: center;">
+          <span style="display:inline-block; width: 12px; height: 12px; background: ${rubrica.color || "#8b5cf6"}; border-radius: 50%; margin-right: 8px;"></span>
+          <span style="color: var(--text-light);">${rubrica.categoria}</span>
+          ${scopeTag}
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="color: var(--secondary); font-weight: bold; margin-right: 5px;">${rubrica.porcentaje}%</span>
+          <button type="button" onclick="abrirModalEdicionRubrica(${rubrica.id_rubrica}, '${rubrica.categoria}', ${rubrica.porcentaje}, '${rubrica.color}')" class="btn-icon" style="color: var(--primary); font-size: 1rem;" title="Editar"><i class="fas fa-edit"></i></button>
           <button type="button" onclick="eliminarRubricaModal(${rubrica.id_rubrica})" class="btn-icon" style="color: #ef4444; font-size: 1rem;" title="Eliminar"><i class="fas fa-trash"></i></button>
       </div>
   `;
@@ -519,6 +576,16 @@ function renderRubricaEnModal(rubrica) {
   totalPorcentajeActual += parseFloat(rubrica.porcentaje);
   actualizarProgresoRubricas();
 }
+
+window.abrirModalEdicionRubrica = function (id, categoria, porcentaje, color) {
+  document.getElementById("edit_id_rubrica").value = id;
+  document.getElementById("edit_criterio").value = categoria;
+  document.getElementById("edit_porcentaje").value = porcentaje;
+  document.getElementById("edit_porcentaje_viejo").value = porcentaje;
+  document.getElementById("edit_color").value = color || "#8b5cf6";
+  document.getElementById("edit-msg-error").style.display = "none";
+  document.getElementById("modal-editar-rubrica").classList.add("active");
+};
 
 function actualizarProgresoRubricas() {
   const progress = document.getElementById("progress-bar-rubricas");

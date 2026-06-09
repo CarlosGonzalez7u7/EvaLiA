@@ -19,7 +19,7 @@
     />
 
     <!-- Estilos globales heredados -->
-    <link rel="stylesheet" href="../../css/styles.css?v=1" />
+    <link rel="stylesheet" href="../../css/styles.css?v=3" />
 
     <style>
       .panel-container {
@@ -1162,7 +1162,94 @@
       </div>
     </div>
 
+    <!-- Modal para Editar Rúbrica -->
+    <div id="modal-editar-rubrica" class="modal-overlay" style="z-index: 2010">
+      <div class="modal-content" style="max-width: 400px">
+        <div class="modal-header">
+          <h2>Editar Rúbrica</h2>
+          <button
+            type="button"
+            onclick="
+              document
+                .getElementById('modal-editar-rubrica')
+                .classList.remove('active')
+            "
+            class="btn-close"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="form-editar-rubrica">
+          <input type="hidden" id="edit_id_rubrica" value="" />
+          <input type="hidden" id="edit_porcentaje_viejo" value="0" />
+          <div class="form-group">
+            <label>Criterio a evaluar</label>
+            <input
+              type="text"
+              id="edit_criterio"
+              class="form-control"
+              required
+              autocomplete="off"
+            />
+          </div>
+          <div class="form-group">
+            <label>Nuevo Valor %</label>
+            <input
+              type="number"
+              id="edit_porcentaje"
+              class="form-control"
+              min="1"
+              max="100"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Color</label>
+            <input
+              type="color"
+              id="edit_color"
+              class="form-control"
+              style="padding: 2px; height: 44px; cursor: pointer"
+              required
+            />
+          </div>
+          <p
+            id="edit-msg-error"
+            style="
+              color: #ef4444;
+              font-size: 0.85rem;
+              margin-bottom: 15px;
+              display: none;
+            "
+          >
+            El nuevo porcentaje excede el 100% permitido.
+          </p>
+          <div class="modal-actions" style="margin-top: 10px">
+            <button
+              type="button"
+              onclick="
+                document
+                  .getElementById('modal-editar-rubrica')
+                  .classList.remove('active')
+              "
+              class="btn btn-cancel"
+              style="flex: 1; justify-content: center"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn btn-maestro"
+              style="flex: 1; justify-content: center"
+            >
+              Guardar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Lógica de la Interfaz -->
-    <script type="module" src="../../js/panel_maestro.js"></script>
+    <script type="module" src="../../js/panel_maestro.js?v=1"></script>
   </body>
 </html>

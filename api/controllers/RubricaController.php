@@ -21,10 +21,10 @@ try {
         $id_periodo = $_GET['id_periodo'] ?? null;
         
         if ($id_periodo) {
-            $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_grupo = ? AND id_periodo = ? ORDER BY id_rubrica ASC");
+            $stmt = $pdo->prepare("SELECT r.*, p.nombre_periodo FROM rubricas r LEFT JOIN periodos p ON r.id_periodo = p.id_periodo WHERE r.id_grupo = ? AND (r.id_periodo = ? OR r.id_periodo IS NULL) ORDER BY r.id_rubrica ASC");
             $stmt->execute([$id_grupo, $id_periodo]);
         } else {
-            $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_grupo = ? AND id_periodo IS NULL ORDER BY id_rubrica ASC");
+            $stmt = $pdo->prepare("SELECT r.*, 'Global' as nombre_periodo FROM rubricas r WHERE r.id_grupo = ? AND r.id_periodo IS NULL ORDER BY r.id_rubrica ASC");
             $stmt->execute([$id_grupo]);
         }
         
@@ -38,7 +38,7 @@ try {
         $stmt->execute([$input['id_grupo'], $input['id_periodo'] ?? null, $input['categoria'], $input['porcentaje'], $input['color'] ?? '#8b5cf6']);
         
         $id_rubrica = $pdo->lastInsertId();
-        $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_rubrica = ?");
+        $stmt = $pdo->prepare("SELECT r.*, p.nombre_periodo FROM rubricas r LEFT JOIN periodos p ON r.id_periodo = p.id_periodo WHERE r.id_rubrica = ?");
         $stmt->execute([$id_rubrica]);
         
         echo json_encode(["success" => true, "data" => $stmt->fetch()]);
