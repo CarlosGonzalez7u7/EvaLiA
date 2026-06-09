@@ -25,13 +25,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 0. Cargar Claves del .env e inicializar el script del Editor (TinyMCE)
   try {
-    const configRes = await fetch("/api/controllers/ConfigController.php");
-    const configData = await configRes.json();
-    const tinymceKey = configData.tinymce_key || "no-api-key";
-
-    // Inyectar el script dinámicamente con tu API Key
+    // Usar la versión Open Source (gratuita) desde CDNJS para evitar errores de API Key o dominios inválidos
     const script = document.createElement("script");
-    script.src = `https://cdn.tiny.cloud/1/${tinymceKey}/tinymce/6/tinymce.min.js`;
+    script.src =
+      "https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js";
     script.referrerPolicy = "origin";
     script.onload = () => {
       tinymceLoaded = true; // Confirmar que se cargó con éxito
@@ -176,6 +173,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // LÓGICA DE EXPORTACIÓN A EXCEL Y PDF
   document.getElementById("btn-export-excel")?.addEventListener("click", () => {
+    if (typeof XLSX === "undefined") {
+      mostrarAlerta(
+        "El bloqueador de anuncios de tu navegador impidió cargar el motor de Excel. Desactívalo temporalmente en este sitio y recarga la página.",
+      );
+      return;
+    }
+
     const table = document.getElementById("tabla-calificaciones");
     // Convertir tabla a Excel ignorando estilos complejos
     const wb = XLSX.utils.table_to_book(table, {
