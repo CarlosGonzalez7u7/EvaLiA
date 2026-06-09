@@ -151,12 +151,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         card.style.border = "1px solid #ccc";
         card.style.boxShadow = "none";
         card.style.margin = "0";
+        card.style.textAlign = "center";
         card.innerHTML = `
+          <img src="../../assets/Logo.png" style="width: 50px; margin-bottom: 10px;" />
           <h3 style="color: black; margin-bottom: 5px;">${alumno.nombre}</h3>
           <p style="color: #666; font-size: 0.9rem">Matrícula: <strong>${alumno.matricula}</strong></p>
-          <div class="qr-wrapper" id="qr-all-${alumno.id_alumno}" style="margin: 10px auto; padding: 10px; border: 2px solid #eee;"></div>
-          <p style="color: #666; font-size: 0.8rem; margin-top: 5px">PIN de Acceso:</p>
-          <div class="pin-box" style="color: black; border: 1px solid #ccc; padding: 5px; margin-top: 5px;">${alumno.pin_acceso || "N/A"}</div>
+          <div class="qr-wrapper" id="qr-all-${alumno.id_alumno}" style="margin: 15px auto; padding: 15px; background: white; display: inline-block; border-radius: 10px; border: 2px solid #f1f1f1;"></div>
+          <p style="color: #666; font-size: 0.8rem; margin-top: 10px">PIN de Acceso a EvaLiA:</p>
+          <div class="pin-box" style="color: var(--secondary); background: #f8fafc; border: 1px solid #ccc; padding: 10px; margin-top: 15px; border-radius: 8px; font-size: 1.5rem; font-weight: 800; letter-spacing: 5px;">${alumno.pin_acceso || "N/A"}</div>
       `;
         container.appendChild(card);
 
@@ -193,13 +195,13 @@ async function cargarAlumnos(idGrupo) {
     tbody.innerHTML = "";
     nLista = 1;
     if (data.data.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">Aún no hay alumnos registrados en este grupo.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">Aún no hay alumnos registrados en este grupo.</td></tr>`;
       return;
     }
     data.data.forEach((alumno) => renderFilaAlumno(alumno));
   } else {
     // Ocultar el mensaje de "Cargando" y mostrar el error real
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 30px;">Error al cargar: ${data.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #ef4444; padding: 30px;">Error al cargar: ${data.message}</td></tr>`;
     if (data.message.includes("pin_acceso")) {
       mostrarAlerta(
         "ERROR DE CONFIGURACIÓN: Falta la columna 'pin_acceso' en tu tabla de alumnos. Por favor ejecuta esto en MySQL Workbench:\n\nALTER TABLE alumnos ADD COLUMN pin_acceso VARCHAR(10) AFTER password_hash;",
@@ -213,7 +215,12 @@ async function cargarAlumnos(idGrupo) {
 function renderFilaAlumno(alumno) {
   const tbody = document.getElementById("lista-alumnos");
   const tr = document.createElement("tr");
+  tr.id = `alumno-row-${alumno.id_alumno}`;
   tr.innerHTML = `
+    <td style="text-align: center;">
+        <button onclick="moverAlumno(${alumno.id_alumno}, -1)" class="btn-icon" style="font-size: 1rem;" title="Subir"><i class="fas fa-arrow-up"></i></button>
+        <button onclick="moverAlumno(${alumno.id_alumno}, 1)" class="btn-icon" style="font-size: 1rem;" title="Bajar"><i class="fas fa-arrow-down"></i></button>
+    </td>
     <td style="text-align: center; font-weight: bold; color: var(--text-muted);">${nLista++}</td>
     <td style="color: var(--secondary); font-family: monospace; font-size: 1.1rem;">${alumno.matricula}</td>
     <td style="font-weight: 600;">${alumno.nombre}</td>
@@ -227,6 +234,37 @@ function renderFilaAlumno(alumno) {
   `;
   tbody.appendChild(tr);
 }
+
+window.moverAlumno = async function (idAlumno, direccion) {
+  const index = alumnosData.findIndex((a) => a.id_alumno == idAlumno);
+  if (index === -1) return;
+
+  const nuevoIndex = index + direccion;
+  if (nuevoIndex < 0 || nuevoIndex >= alumnosData.length) return; // Fuera de límites
+
+  // Intercambiar en el array local
+  const temp = alumnosData[index];
+  alumnosData[index] = alumnosData[nuevoIndex];
+  alumnosData[nuevoIndex] = temp;
+
+  // Recolectar el nuevo orden de IDs
+  const nuevoOrden = alumnosData.map((a) => a.id_alumno);
+
+  // Enviar al servidor
+  const idGrupo = new URLSearchParams(window.location.search).get("id");
+  await fetch("/api/controllers/AlumnoController.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "reorder",
+      id_grupo: idGrupo,
+      ordenes: nuevoOrden,
+    }),
+  });
+
+  // Recargar para repintar números de lista correctamente
+  cargarAlumnos(idGrupo);
+};
 
 // Función global para Editar Alumno
 window.editarAlumno = function (id_alumno, matricula, nombre) {

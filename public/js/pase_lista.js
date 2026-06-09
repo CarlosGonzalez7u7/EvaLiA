@@ -123,6 +123,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           action: "registrar",
           id_grupo: idGrupo,
           qr_token: decodedText,
+          comentario: document.getElementById("scanner-comentario")
+            ? document.getElementById("scanner-comentario").value
+            : null,
         }),
       });
       const data = await res.json();
@@ -251,8 +254,10 @@ async function cargarTablaExcel(idGrupo) {
       let symbol = "-";
       let cssClass = "st-nul";
       let estadoTxt = "Eliminar";
+      let comentario = "";
 
       if (asis) {
+        comentario = asis.comentario || "";
         if (asis.estado === "Asistencia") {
           symbol = "1";
           cssClass = "st-asi";
@@ -268,7 +273,13 @@ async function cargarTablaExcel(idGrupo) {
         }
       }
 
-      tbody += `<td class="cell-asistencia ${cssClass}" title="Clic para cambiar estado" onclick="cambiarEstadoAsistencia(${al.id_alumno}, '${fecha}', '${estadoTxt}')">${symbol}</td>`;
+      let titleTxt =
+        "Clic para cambiar estado | Shift+Clic para justificar o agregar comentario";
+      if (comentario) titleTxt += `\nComentario: ${comentario}`;
+
+      tbody += `<td class="cell-asistencia ${cssClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')">
+          ${symbol} ${comentario ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}
+      </td>`;
     });
     tbody += `</tr>`;
   });
@@ -277,10 +288,33 @@ async function cargarTablaExcel(idGrupo) {
 }
 
 window.cambiarEstadoAsistencia = async function (
+  event,
   idAlumno,
   fecha,
   estadoActual,
+  comentarioActual,
 ) {
+  if (event.shiftKey) {
+    const com = prompt(
+      "Escribe un comentario o justificación (ej. 'Llegó tarde por tráfico'):",
+      comentarioActual,
+    );
+    if (com !== null) {
+      await fetch("/api/controllers/AsistenciaController.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "add_comment",
+          id_alumno: idAlumno,
+          fecha: fecha,
+          comentario: com,
+        }),
+      });
+      cargarTablaExcel(new URLSearchParams(window.location.search).get("id"));
+    }
+    return;
+  }
+
   // Ciclo rápido: Asistencia -> Retardo -> Falta -> Eliminar -> Asistencia...
   let nuevoEstado = "Asistencia";
   if (estadoActual === "Asistencia") nuevoEstado = "Retardo";

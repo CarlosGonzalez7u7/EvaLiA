@@ -33,14 +33,21 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 40px;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+      .welcome-text {
+        flex: 1 1 250px;
       }
       .welcome-text h1 {
-        font-size: 2.5rem;
+        font-size: clamp(1.5rem, 5vw, 2.5rem);
         color: var(--text-light);
+        line-height: 1.2;
+        word-break: break-word;
       }
       .welcome-text p {
         color: var(--text-muted);
-        font-size: 1.1rem;
+        font-size: clamp(0.9rem, 3vw, 1.1rem);
         margin-top: 5px;
       }
       .btn-logout {
@@ -61,6 +68,19 @@
         background: var(--secondary);
         color: white;
       }
+      @media (max-width: 768px) {
+        .header-panel {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .header-actions {
+          width: 100%;
+        }
+        .header-actions .btn {
+          flex: 1;
+          justify-content: center;
+        }
+      }
     </style>
   </head>
   <body>
@@ -70,9 +90,29 @@
         <img src="../../assets/Logo.png" alt="Logo EvaLiA" class="nav-logo" />
         EvaLiA
       </div>
-      <a href="#" id="btn-logout" class="btn-logout"
-        ><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a
+      <div
+        style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap"
       >
+        <button
+          id="btn-config-global"
+          class="btn-cancel"
+          style="
+            padding: 10px 20px;
+            border-radius: 50px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
+          <i class="fas fa-user-cog"></i> Ajustes
+        </button>
+        <a href="#" id="btn-logout" class="btn-logout"
+          ><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a
+        >
+      </div>
     </nav>
 
     <!-- Contenido Principal -->
@@ -83,7 +123,18 @@
           <p>Tus grupos y herramientas de evaluación están listos.</p>
         </div>
 
-        <div style="display: flex; gap: 15px">
+        <div
+          class="header-actions"
+          style="display: flex; gap: 15px; flex-wrap: wrap"
+        >
+          <select
+            id="filtro-estado-grupo"
+            class="form-control"
+            style="width: auto; background: rgba(15, 23, 42, 0.8)"
+          >
+            <option value="1">👁️ Grupos Activos</option>
+            <option value="0">🙈 Grupos Ocultos</option>
+          </select>
           <button
             id="btn-ayuda-panel"
             class="btn"
@@ -218,6 +269,33 @@
                   required
                   autocomplete="off"
                 />
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 15px">
+              <div class="form-group" style="flex: 1">
+                <label>Color del Grupo</label>
+                <input
+                  type="color"
+                  id="color_grupo"
+                  class="form-control"
+                  style="padding: 2px; height: 44px; cursor: pointer"
+                  value="#8b5cf6"
+                  required
+                />
+              </div>
+              <div class="form-group" style="flex: 1">
+                <label>Ícono</label>
+                <select id="icono_grupo" class="form-control">
+                  <option value="fas fa-users">👥 Grupo</option>
+                  <option value="fas fa-book">📖 Libro</option>
+                  <option value="fas fa-calculator">🧮 Matemáticas</option>
+                  <option value="fas fa-flask">🧪 Ciencias</option>
+                  <option value="fas fa-globe">🌍 Geografía</option>
+                  <option value="fas fa-laptop-code">💻 Computación</option>
+                  <option value="fas fa-palette">🎨 Arte</option>
+                  <option value="fas fa-running">🏃 Deportes</option>
+                </select>
               </div>
             </div>
           </div>
@@ -932,6 +1010,132 @@
             style="flex: 1; justify-content: center"
           >
             Sí, continuar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Clonar / Promover Grupo -->
+    <div id="modal-clonar-grupo" class="modal-overlay">
+      <div class="modal-content" style="max-width: 400px">
+        <div class="modal-header">
+          <h2 style="color: var(--primary)">
+            <i class="fas fa-copy"></i> Promover Grupo
+          </h2>
+          <button
+            type="button"
+            onclick="
+              document
+                .getElementById('modal-clonar-grupo')
+                .classList.remove('active')
+            "
+            class="btn-close"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="form-clonar-grupo">
+          <input type="hidden" id="clone_id_grupo" value="" />
+          <p
+            style="
+              color: var(--text-muted);
+              font-size: 0.9rem;
+              margin-bottom: 15px;
+            "
+          >
+            Esto duplicará la configuración, rúbricas y la lista de alumnos a un
+            nuevo ciclo escolar, ocultando el grupo actual para que no pierdas
+            el historial.
+          </p>
+          <div class="form-group">
+            <label>Nuevo Nombre del Grupo</label>
+            <input
+              type="text"
+              id="clone_nombre"
+              class="form-control"
+              placeholder="Ej. 3ro A"
+              required
+              autocomplete="off"
+            />
+          </div>
+          <div class="form-group">
+            <label>Nuevo Ciclo Escolar</label>
+            <input
+              type="text"
+              id="clone_ciclo"
+              class="form-control"
+              placeholder="Ej. 2027-1"
+              required
+              autocomplete="off"
+            />
+          </div>
+          <button
+            type="submit"
+            class="btn btn-maestro"
+            style="width: 100%; justify-content: center; margin-top: 10px"
+          >
+            <i class="fas fa-magic"></i> Promover Estudiantes
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Configuración Global -->
+    <div id="modal-config-global" class="modal-overlay">
+      <div class="modal-content" style="max-width: 450px">
+        <div class="modal-header">
+          <h2 style="color: var(--text-light)">
+            <i class="fas fa-user-cog"></i> Ajustes de Cuenta
+          </h2>
+          <button
+            type="button"
+            onclick="
+              document
+                .getElementById('modal-config-global')
+                .classList.remove('active')
+            "
+            class="btn-close"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div style="text-align: center; margin-bottom: 20px">
+          <i
+            class="fas fa-user-circle"
+            style="font-size: 5rem; color: var(--primary)"
+          ></i>
+          <h3 style="margin-top: 10px; color: white" id="ajuste-nombre">
+            Cargando...
+          </h3>
+          <p style="color: var(--text-muted)" id="ajuste-email">Cargando...</p>
+        </div>
+        <p
+          style="
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-align: center;
+          "
+        >
+          Para cambiar tu nombre o contraseña, debes hacerlo desde tu cuenta de
+          Google. EvaLiA se sincroniza automáticamente.
+        </p>
+
+        <div style="margin-top: 20px">
+          <h4 style="color: white; margin-bottom: 10px">Exportación Global</h4>
+          <button
+            class="btn btn-cancel"
+            style="
+              width: 100%;
+              justify-content: center;
+              margin-bottom: 10px;
+              color: white;
+              opacity: 0.5;
+              cursor: not-allowed;
+            "
+            title="Próximamente"
+          >
+            <i class="fas fa-file-pdf"></i> Exportar todo mi historial (PDF)
           </button>
         </div>
       </div>

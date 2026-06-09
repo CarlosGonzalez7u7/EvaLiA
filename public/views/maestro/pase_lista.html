@@ -86,6 +86,31 @@
     </style>
   </head>
   <body>
+    <!-- Prompt Girar Dispositivo (Solo visible en móviles verticales) -->
+    <div id="rotate-prompt" class="rotate-prompt">
+      <i class="fas fa-mobile-alt rotate-icon"></i>
+      <h2 style="color: white; margin-bottom: 10px">Gira tu teléfono</h2>
+      <p
+        style="
+          color: var(--text-muted);
+          margin-bottom: 25px;
+          font-size: 1.1rem;
+          max-width: 300px;
+        "
+      >
+        Para ver las asistencias cómodamente, te recomendamos usar tu
+        dispositivo en horizontal.
+      </p>
+      <button
+        onclick="
+          document.getElementById('rotate-prompt').style.display = 'none'
+        "
+        class="btn btn-maestro"
+      >
+        Continuar de todos modos
+      </button>
+    </div>
+
     <nav>
       <div class="logo-container">
         <img src="../../assets/Logo.png" class="nav-logo" /> EvaLiA
@@ -162,6 +187,15 @@
           >
             Detener Cámara
           </button>
+
+          <input
+            type="text"
+            id="scanner-comentario"
+            class="form-control"
+            style="max-width: 300px; margin-top: 15px"
+            placeholder="Escribe un comentario (opcional)..."
+            autocomplete="off"
+          />
 
           <div id="reader"></div>
 

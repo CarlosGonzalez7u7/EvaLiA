@@ -67,6 +67,13 @@ document.addEventListener("change", (e) => {
 let gruposData = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
+  document
+    .getElementById("filtro-estado-grupo")
+    ?.addEventListener("change", () => {
+      document.getElementById("grupos-container").innerHTML = "";
+      cargarGrupos();
+    });
+
   document.getElementById("btn-play-sound")?.addEventListener("click", () => {
     if (audioPreview) {
       audioPreview.pause();
@@ -101,6 +108,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
     document.getElementById("nombre-maestro").innerText = session.nombre;
+    document.getElementById("ajuste-nombre").innerText = session.nombre;
+    document.getElementById("ajuste-email").innerText =
+      session.email || "Vinculado a Google";
   } catch (error) {
     console.error("Error al obtener perfil:", error);
   }
@@ -116,6 +126,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Opcional: Podrías desloguear de Firebase aquí importando auth y signOut
     window.location.href = "../../index.html";
   });
+
+  // Modal Ajustes Globales
+  document
+    .getElementById("btn-config-global")
+    .addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("modal-config-global").classList.add("active");
+    });
 
   // 4. Lógica del Modal
   const modal = document.getElementById("modal-grupo");
@@ -215,6 +233,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         num_periodos: document.getElementById("num_periodos").value,
         modo_calificacion: document.getElementById("modo_calificacion").value,
         tipo_rubrica: document.getElementById("tipo_rubrica").value,
+        color_grupo: document.getElementById("color_grupo").value,
+        icono_grupo: document.getElementById("icono_grupo").value,
         calificacion_minima: document.getElementById("calificacion_minima")
           .value,
         horario: JSON.stringify(horarioArray),
@@ -261,11 +281,47 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Error en petición:", error);
       }
     });
+
+  // Promover Grupo Formulario
+  document
+    .getElementById("form-clonar-grupo")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {
+        action: "clone",
+        id_grupo: document.getElementById("clone_id_grupo").value,
+        nuevo_nombre: document.getElementById("clone_nombre").value,
+        nuevo_ciclo: document.getElementById("clone_ciclo").value,
+      };
+      const res = await fetch("/api/controllers/GrupoController.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        document
+          .getElementById("modal-clonar-grupo")
+          .classList.remove("active");
+        mostrarAlerta(
+          "Grupo promovido con éxito. El grupo anterior fue ocultado.",
+        );
+        document.getElementById("grupos-container").innerHTML = "";
+        cargarGrupos();
+      } else {
+        mostrarAlerta("Error: " + data.message);
+      }
+    });
 });
 
 // Función para pedir grupos al servidor
 async function cargarGrupos() {
-  const res = await fetch("/api/controllers/GrupoController.php?action=list");
+  const estado = document.getElementById("filtro-estado-grupo")
+    ? document.getElementById("filtro-estado-grupo").value
+    : 1;
+  const res = await fetch(
+    `/api/controllers/GrupoController.php?action=list&estado=${estado}`,
+  );
   const response = await res.json();
   if (response.success) {
     gruposData = response.data; // Guardamos en memoria global
@@ -297,6 +353,9 @@ window.abrirModalEdicion = function (id) {
   document.getElementById("modo_calificacion").value = grupo.modo_calificacion;
   document.getElementById("tipo_rubrica").value =
     grupo.tipo_rubrica || "Global";
+  document.getElementById("color_grupo").value = grupo.color_grupo || "#8b5cf6";
+  document.getElementById("icono_grupo").value =
+    grupo.icono_grupo || "fas fa-users";
 
   // Activar o desactivar el contenedor de periodos visualmente
   document.getElementById("container-select-periodo-rubrica").style.display =
@@ -374,23 +433,37 @@ window.abrirModalEdicion = function (id) {
   document.getElementById("modal-grupo").classList.add("active");
 };
 
-window.deshabilitarGrupo = async function (id) {
-  mostrarConfirmacion(
-    "¿Estás seguro de que deseas ocultar este grupo? No se borrarán los datos de tus alumnos, pero el grupo desaparecerá de este panel.",
-    async () => {
-      const res = await fetch("/api/controllers/GrupoController.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "deactivate", id_grupo: id }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        document.getElementById(`grupo-card-${id}`).remove(); // Quita la tarjeta visualmente al instante
-      } else {
-        mostrarAlerta("Error al ocultar grupo.");
-      }
-    },
-  );
+window.toggleEstadoGrupo = async function (id, estadoActual) {
+  const nuevoEstado = estadoActual == 1 ? 0 : 1;
+  const mensaje =
+    estadoActual == 1
+      ? "¿Estás seguro de que deseas ocultar este grupo? No se borrarán los datos, pero desaparecerá del panel principal."
+      : "¿Deseas restaurar este grupo para que vuelva a aparecer en tu panel principal?";
+
+  mostrarConfirmacion(mensaje, async () => {
+    const res = await fetch("/api/controllers/GrupoController.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "toggle_status",
+        id_grupo: id,
+        estado: nuevoEstado,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById(`grupo-card-${id}`).remove(); // Quita la tarjeta visualmente al instante
+    } else {
+      mostrarAlerta("Error al cambiar estado del grupo.");
+    }
+  });
+};
+
+window.abrirModalClonar = function (id) {
+  document.getElementById("clone_id_grupo").value = id;
+  document.getElementById("clone_nombre").value = "";
+  document.getElementById("clone_ciclo").value = "";
+  document.getElementById("modal-clonar-grupo").classList.add("active");
 };
 
 // Función de Renderizado (Pinta la UI mágicamente)
@@ -400,17 +473,29 @@ function renderGrupoCard(grupo, isNew = false) {
   card.className = "card scroll-show";
   card.id = `grupo-card-${grupo.id_grupo}`;
 
+  const color = grupo.color_grupo || "#8b5cf6";
+  const icono = grupo.icono_grupo || "fas fa-users";
+  const btnToggleIcon = grupo.activo == 1 ? "fa-eye-slash" : "fa-eye";
+  const btnToggleColor = grupo.activo == 1 ? "#ef4444" : "#10b981";
+  const btnToggleTitle =
+    grupo.activo == 1 ? "Ocultar Grupo" : "Restaurar Grupo";
+
   let horarioText = "No definido";
   if (grupo.horario) {
     try {
       const hArr = JSON.parse(grupo.horario);
       if (hArr.length > 0) {
-        horarioText = hArr
+        const grouped = {};
+        hArr.forEach((h) => {
+          const timeKey = `${h.inicio.substring(0, 5)} - ${h.fin.substring(0, 5)}`;
+          if (!grouped[timeKey]) grouped[timeKey] = [];
+          grouped[timeKey].push(h.dia.substring(0, 2));
+        });
+        horarioText = Object.keys(grouped)
           .map(
-            (h) =>
-              `${h.dia.substring(0, 2)}: ${h.inicio.substring(0, 5)}-${h.fin.substring(0, 5)}`,
+            (time) => `<strong>${grouped[time].join(", ")}</strong> (${time})`,
           )
-          .join(", ");
+          .join(" | ");
       }
     } catch (e) {}
   }
@@ -418,20 +503,25 @@ function renderGrupoCard(grupo, isNew = false) {
   card.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
             <div>
-              <i class="fas fa-users card-icon" style="margin-bottom: 0;"></i>
-              <span class="badge-active" style="margin-left: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); font-size: 0.7rem; vertical-align: top;">${grupo.nivel_educativo}</span>
+              <i class="${icono} card-icon" style="margin-bottom: 0; color: ${color};"></i>
+              <span class="badge-active" style="margin-left: 10px; background: ${color}40; border: 1px solid ${color}; color: white; font-size: 0.7rem; vertical-align: top;">${grupo.nivel_educativo}</span>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button onclick="abrirModalEdicion(${grupo.id_grupo})" class="btn-icon" title="Configurar Grupo"><i class="fas fa-cog"></i></button>
-                <button onclick="deshabilitarGrupo(${grupo.id_grupo})" class="btn-icon" title="Ocultar Grupo" style="color: #ef4444;"><i class="fas fa-eye-slash"></i></button>
+                <button onclick="toggleEstadoGrupo(${grupo.id_grupo}, ${grupo.activo})" class="btn-icon" title="${btnToggleTitle}" style="color: ${btnToggleColor};"><i class="fas ${btnToggleIcon}"></i></button>
+                <button onclick="abrirModalClonar(${grupo.id_grupo})" class="btn-icon" title="Promover Grupo al siguiente ciclo" style="color: var(--primary);"><i class="fas fa-copy"></i></button>
             </div>
         </div>
         <h3 style="margin-bottom: 10px;">${grupo.nombre_grupo}</h3>
+        <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+          <p style="font-size: 0.9rem;"><i class="fas fa-user-graduate" style="color: var(--text-muted);"></i> <strong style="color: white;">${grupo.num_alumnos || 0}</strong> Alumnos</p>
+          <p style="font-size: 0.9rem;"><i class="fas fa-chart-line" style="color: var(--text-muted);"></i> Promedio: <strong style="color: ${grupo.promedio_general >= grupo.calificacion_minima ? "#10b981" : "#ef4444"};">${grupo.promedio_general || "0.0"}</strong></p>
+        </div>
         <p style="margin-bottom: 5px; font-size: 0.9rem;"><i class="fas fa-calendar-alt"></i> Ciclo: ${grupo.ciclo_escolar}</p>
         <p style="margin-bottom: 5px; font-size: 0.9rem;"><i class="fas fa-layer-group"></i> Divisiones: ${grupo.num_periodos || 1} ${grupo.tipo_periodo}s</p>
         <p style="margin-bottom: 5px; font-size: 0.85rem;"><i class="fas fa-clock"></i> ${horarioText}</p>
         <div style="margin-top: 20px;">
-            <a href="grupo_alumnos.html?id=${grupo.id_grupo}" class="btn" style="width: 100%; justify-content: center; font-size: 0.95rem; padding: 12px; background: linear-gradient(45deg, var(--primary), var(--secondary)); border: none; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4); color: white;" title="Abrir Panel de la Clase">
+            <a href="grupo_alumnos.html?id=${grupo.id_grupo}" class="btn" style="width: 100%; justify-content: center; font-size: 0.95rem; padding: 12px; background: linear-gradient(45deg, ${color}, var(--secondary)); border: none; box-shadow: 0 4px 15px ${color}40; color: white;" title="Abrir Panel de la Clase">
                 <i class="fas fa-chalkboard"></i> <strong style="margin-left: 5px;">Entrar a la Clase</strong>
             </a>
         </div>

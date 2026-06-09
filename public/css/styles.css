@@ -527,7 +527,61 @@ textarea.form-control {
 .table-container {
   overflow-x: auto;
   width: 100%;
+  -webkit-overflow-scrolling: touch; /* Scroll nativo y suave para arrastrar en móviles */
 }
+
+/* --- Tablas Grandes (Estilo Excel) --- */
+.excel-container {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  -webkit-overflow-scrolling: touch;
+}
+.excel-container table {
+  white-space: nowrap;
+}
+.excel-container thead th {
+  position: sticky;
+  top: 0;
+  background: #0f172a;
+  z-index: 10;
+  border-bottom: 2px solid var(--primary);
+  min-width: 120px;
+}
+/* Columna 1: Número de lista */
+.excel-container tbody td:first-child,
+.excel-container thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 11;
+  background: #1e1b4b;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  min-width: 50px;
+  max-width: 50px;
+  text-align: center;
+}
+/* Columna 2: Nombre del Alumno */
+.excel-container tbody th:nth-child(2),
+.excel-container thead th:nth-child(2) {
+  position: sticky;
+  left: 50px;
+  z-index: 11;
+  background: #1e1b4b;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
+  padding: 10px 15px;
+  min-width: 180px;
+  max-width: 250px;
+  font-size: 0.85rem; /* Texto más pequeño para no ensanchar la tabla */
+  white-space: normal; /* Permite múltiples líneas, evita que se corte el nombre */
+  word-wrap: break-word;
+}
+.excel-container thead th:first-child,
+.excel-container thead th:nth-child(2) {
+  background: #0f172a;
+  z-index: 12;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -622,4 +676,47 @@ textarea.form-control {
 }
 .card:nth-child(4) {
   transition-delay: 0.4s;
+}
+
+/* --- Prompt Girar Dispositivo (Móviles Verticales) --- */
+.rotate-prompt {
+  display: none;
+}
+@media screen and (max-width: 768px) and (orientation: portrait) {
+  .rotate-prompt {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.98);
+    backdrop-filter: blur(10px);
+    z-index: 10000;
+    text-align: center;
+    padding: 30px;
+  }
+  .rotate-icon {
+    font-size: 5rem;
+    color: var(--primary);
+    margin-bottom: 20px;
+    animation: rotatePhone 2.5s infinite ease-in-out;
+  }
+}
+@keyframes rotatePhone {
+  0% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-90deg);
+  }
+  60% {
+    transform: rotate(-90deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
 }

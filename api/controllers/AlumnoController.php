@@ -18,7 +18,7 @@ try {
     // LEER ALUMNOS DEL GRUPO
     if ($action === 'list') {
         $id_grupo = $_GET['id_grupo'] ?? 0;
-        $stmt = $pdo->prepare("SELECT id_alumno, matricula, nombre, qr_token, pin_acceso FROM alumnos WHERE id_grupo = ? ORDER BY nombre ASC");
+        $stmt = $pdo->prepare("SELECT id_alumno, matricula, nombre, qr_token, pin_acceso FROM alumnos WHERE id_grupo = ? ORDER BY orden ASC, nombre ASC");
         $stmt->execute([$id_grupo]);
         echo json_encode(["success" => true, "data" => $stmt->fetchAll()]);
         exit;
@@ -30,23 +30,38 @@ try {
         $nombre = trim($input['nombre']);
         $matricula = trim($input['matricula']);
 
-        // Generar PIN de 6 dígitos aleatorio
-        $pin = sprintf("%06d", mt_rand(100000, 999999));
+        // Generar PIN de 6 dígitos aleatorio que sea ÚNICO en todo el sistema
+        do {
+            $pin = sprintf("%06d", mt_rand(100000, 999999));
+            $checkPin = $pdo->prepare("SELECT id_alumno FROM alumnos WHERE pin_acceso = ?");
+            $checkPin->execute([$pin]);
+        } while ($checkPin->fetch());
+
         $password_hash = password_hash($pin, PASSWORD_DEFAULT);
 
-        // Generar token único para el QR
-        $qr_token = bin2hex(random_bytes(16));
+        // Generar token único para el QR garantizado
+        do {
+            $qr_token = bin2hex(random_bytes(16));
+            $checkQr = $pdo->prepare("SELECT id_alumno FROM alumnos WHERE qr_token = ?");
+            $checkQr->execute([$qr_token]);
+        } while ($checkQr->fetch());
 
-        // Validar que la matrícula no se repita
-        $check = $pdo->prepare("SELECT id_alumno FROM alumnos WHERE matricula = ?");
-        $check->execute([$matricula]);
+        // Validar que la matrícula no se repita en este grupo
+        $check = $pdo->prepare("SELECT id_alumno FROM alumnos WHERE matricula = ? AND id_grupo = ?");
+        $check->execute([$matricula, $id_grupo]);
         if ($check->fetch()) {
             echo json_encode(["success" => false, "message" => "La matrícula '$matricula' ya está registrada en el sistema."]);
             exit;
         }
 
-        $stmt = $pdo->prepare("INSERT INTO alumnos (id_grupo, nombre, matricula, password_hash, pin_acceso, qr_token) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$id_grupo, $nombre, $matricula, $password_hash, $pin, $qr_token]);
+        // Obtener el último orden para ponerlo al final
+        $stmtOrder = $pdo->prepare("SELECT MAX(orden) FROM alumnos WHERE id_grupo = ?");
+        $stmtOrder->execute([$id_grupo]);
+        $maxOrder = $stmtOrder->fetchColumn();
+        $nuevo_orden = $maxOrder ? $maxOrder + 1 : 1;
+
+        $stmt = $pdo->prepare("INSERT INTO alumnos (id_grupo, nombre, matricula, password_hash, pin_acceso, orden, qr_token) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$id_grupo, $nombre, $matricula, $password_hash, $pin, $nuevo_orden, $qr_token]);
         
         $id_alumno = $pdo->lastInsertId();
 
@@ -68,10 +83,11 @@ try {
         $id_alumno = $input['id_alumno'];
         $nombre = trim($input['nombre']);
         $matricula = trim($input['matricula']);
+        $id_grupo = $input['id_grupo'];
 
-        // Validar que la matrícula no se repita en otro alumno
-        $check = $pdo->prepare("SELECT id_alumno FROM alumnos WHERE matricula = ? AND id_alumno != ?");
-        $check->execute([$matricula, $id_alumno]);
+        // Validar que la matrícula no se repita en otro alumno del mismo grupo
+        $check = $pdo->prepare("SELECT id_alumno FROM alumnos WHERE matricula = ? AND id_alumno != ? AND id_grupo = ?");
+        $check->execute([$matricula, $id_alumno, $id_grupo]);
         if ($check->fetch()) {
             echo json_encode(["success" => false, "message" => "La matrícula '$matricula' ya está registrada en el sistema."]);
             exit;
@@ -86,7 +102,12 @@ try {
     // REGENERAR CÓDIGO QR
     if ($action === 'regenerate_qr') {
         $id_alumno = $input['id_alumno'];
-        $qr_token = bin2hex(random_bytes(16));
+        
+        do {
+            $qr_token = bin2hex(random_bytes(16));
+            $checkQr = $pdo->prepare("SELECT id_alumno FROM alumnos WHERE qr_token = ?");
+            $checkQr->execute([$qr_token]);
+        } while ($checkQr->fetch());
 
         $stmt = $pdo->prepare("UPDATE alumnos SET qr_token = ? WHERE id_alumno = ?");
         $stmt->execute([$qr_token, $id_alumno]);
@@ -98,6 +119,22 @@ try {
     if ($action === 'delete') {
         $stmt = $pdo->prepare("DELETE FROM alumnos WHERE id_alumno = ?");
         $stmt->execute([$input['id_alumno']]);
+        echo json_encode(["success" => true]);
+        exit;
+    }
+    
+    // REORDENAR ALUMNOS
+    if ($action === 'reorder') {
+        $ordenes = $input['ordenes'] ?? [];
+        
+        if (!empty($ordenes)) {
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare("UPDATE alumnos SET orden = ? WHERE id_alumno = ? AND id_grupo = ?");
+            foreach ($ordenes as $index => $id_alumno) {
+                $stmt->execute([$index + 1, $id_alumno, $input['id_grupo']]);
+            }
+            $pdo->commit();
+        }
         echo json_encode(["success" => true]);
         exit;
     }

@@ -65,9 +65,12 @@ try {
             if ($hora_actual > $hora_limite) $estado = 'Retardo';
         }
 
+        $comentario = $input['comentario'] ?? null;
+        if (empty(trim($comentario))) $comentario = null;
+
         // Registrar Asistencia (Usando CURRENT_TIMESTAMP de la BD por seguridad)
-        $insert = $pdo->prepare("INSERT INTO asistencias (id_alumno, fecha_hora, estado) VALUES (?, CURRENT_TIMESTAMP, ?)");
-        $insert->execute([$alumno['id_alumno'], $estado]);
+        $insert = $pdo->prepare("INSERT INTO asistencias (id_alumno, fecha_hora, estado, comentario) VALUES (?, CURRENT_TIMESTAMP, ?, ?)");
+        $insert->execute([$alumno['id_alumno'], $estado, $comentario]);
 
         // Obtener la hora registrada para mandarla de vuelta
         $fecha_hora = date('d/m/Y h:i A');
@@ -105,7 +108,7 @@ try {
     if ($action === 'get_grid') {
         $id_grupo = $_GET['id_grupo'];
         
-        $stmt = $pdo->prepare("SELECT id_alumno, nombre FROM alumnos WHERE id_grupo = ? ORDER BY nombre ASC");
+        $stmt = $pdo->prepare("SELECT id_alumno, nombre FROM alumnos WHERE id_grupo = ? ORDER BY orden ASC, nombre ASC");
         $stmt->execute([$id_grupo]);
         $alumnos = $stmt->fetchAll();
 
@@ -113,7 +116,7 @@ try {
         $stmt->execute([$id_grupo]);
         $fechas = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-        $stmt = $pdo->prepare("SELECT a.id_alumno, DATE(a.fecha_hora) as fecha, a.estado FROM asistencias a JOIN alumnos al ON a.id_alumno = al.id_alumno WHERE al.id_grupo = ?");
+        $stmt = $pdo->prepare("SELECT a.id_alumno, DATE(a.fecha_hora) as fecha, a.estado, a.comentario FROM asistencias a JOIN alumnos al ON a.id_alumno = al.id_alumno WHERE al.id_grupo = ?");
         $stmt->execute([$id_grupo]);
         $asistencias = $stmt->fetchAll();
 
@@ -138,6 +141,17 @@ try {
                 $pdo->prepare("INSERT INTO asistencias (id_alumno, fecha_hora, estado) VALUES (?, ?, ?)")->execute([$id_alumno, $fecha . ' ' . date('H:i:s'), $estado]);
             }
         }
+        echo json_encode(["success" => true]);
+        exit;
+    }
+
+    // 2.7 AGREGAR COMENTARIO A UNA CELDA MANUAL
+    if ($action === 'add_comment') {
+        $id_alumno = $input['id_alumno'];
+        $fecha = $input['fecha'];
+        $comentario = $input['comentario'];
+        
+        $pdo->prepare("UPDATE asistencias SET comentario = ? WHERE id_alumno = ? AND DATE(fecha_hora) = ?")->execute([$comentario, $id_alumno, $fecha]);
         echo json_encode(["success" => true]);
         exit;
     }

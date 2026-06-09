@@ -84,8 +84,8 @@ if ($input['action'] === 'login_alumno') {
         // B) Intento de Login manual (Matrícula/Nombre + PIN)
         else if (isset($input['identificador']) && isset($input['pin'])) {
             // Buscamos a los alumnos que tengan esa matrícula o ese nombre exacto
-            $stmt = $pdo->prepare("SELECT * FROM alumnos WHERE matricula = :id OR nombre = :id");
-            $stmt->execute([':id' => trim($input['identificador'])]);
+            $stmt = $pdo->prepare("SELECT a.* FROM alumnos a JOIN grupos g ON a.id_grupo = g.id_grupo WHERE a.matricula = ? OR a.nombre = ? ORDER BY g.activo DESC, g.id_grupo DESC");
+            $stmt->execute([trim($input['identificador']), trim($input['identificador'])]);
             $posibles_alumnos = $stmt->fetchAll();
             
             foreach ($posibles_alumnos as $a) {

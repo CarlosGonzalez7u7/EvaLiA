@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Portal del Alumno - EvaLiA</title>
+    <link rel="icon" type="image/x-icon" href="../../assets/Logo.ico" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../../css/styles.css" />
+    <style>
+      .panel-container {
+        padding: 40px 5%;
+        max-width: 1200px;
+        margin: 0 auto;
+        animation: fadeInUp 0.8s ease-out;
+      }
+      .header-panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+      .stat-card {
+        background: rgba(30, 27, 75, 0.6);
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .stat-card h3 {
+        font-size: 2.5rem;
+        margin-bottom: 5px;
+      }
+      .stat-card p {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+      .status-aprobado {
+        color: #10b981;
+      }
+      .status-reprobado {
+        color: #ef4444;
+      }
+
+      .actividad-item {
+        background: rgba(15, 23, 42, 0.6);
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="logo-container">
+        <img src="../../assets/Logo.png" alt="Logo EvaLiA" class="nav-logo" />
+        EvaLiA
+      </div>
+      <a
+        href="#"
+        id="btn-logout"
+        class="btn-cancel"
+        style="
+          padding: 10px 20px;
+          border-radius: 50px;
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+        "
+      >
+        <i class="fas fa-sign-out-alt"></i> Salir
+      </a>
+    </nav>
+
+    <div class="panel-container">
+      <div class="header-panel">
+        <div>
+          <h1
+            style="
+              font-size: clamp(1.5rem, 5vw, 2.5rem);
+              color: var(--text-light);
+              line-height: 1.2;
+            "
+          >
+            Hola, <span id="nombre-alumno">Cargando...</span>
+          </h1>
+          <p
+            style="color: var(--text-muted); font-size: 1.1rem; margin-top: 5px"
+            id="info-grupo"
+          >
+            Cargando grupo...
+          </p>
+        </div>
+        <select
+          id="select-periodo"
+          class="form-control"
+          style="width: auto; background: rgba(15, 23, 42, 0.8)"
+        >
+          <option value="all">🏆 Resumen Global</option>
+        </select>
+      </div>
+
+      <div
+        class="grid"
+        style="
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          margin-bottom: 30px;
+        "
+      >
+        <div class="stat-card">
+          <h3 id="promedio-general" style="color: white">0.0</h3>
+          <p>Promedio Seleccionado</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="porcentaje-asistencia" style="color: var(--primary)">0%</h3>
+          <p>Asistencia General</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="tareas-entregadas" style="color: var(--secondary)">0/0</h3>
+          <p>Actividades Entregadas</p>
+        </div>
+        <div class="stat-card" id="estado-final-card">
+          <h3 id="estado-final" class="status-aprobado">N/A</h3>
+          <p>Estado</p>
+        </div>
+      </div>
+
+      <!-- Pestañas de Navegación -->
+      <div class="tabs-container" style="width: 100%; margin-bottom: 20px;">
+        <button type="button" class="tab-btn active" onclick="switchTabAlumno('tab-calificaciones', this)">
+          <i class="fas fa-table"></i> Tabla de Calificaciones
+        </button>
+        <button type="button" class="tab-btn" onclick="switchTabAlumno('tab-asistencias', this)">
+          <i class="fas fa-clipboard-list"></i> Historial de Asistencia
+        </button>
+      </div>
+
+      <!-- Calificaciones Detalladas -->
+      <div id="tab-calificaciones" class="card tab-content active" style="padding: 0; max-width: 100%;">
+        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+          <h3 style="color: white; margin: 0;">
+            <i class="fas fa-tasks"></i> Desglose de Calificaciones
+          </h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Revisa las actividades entregadas y el puntaje asignado por tu profesor en la misma vista que él.</p>
+        </div>
+        <div class="excel-container" style="border-radius: 0 0 10px 10px; border: none;">
+          <table class="table" id="tabla-calificaciones-alumno" style="margin: 0;">
+            <!-- JS Inyecta la tabla -->
+          </table>
+        </div>
+      </div>
+
+      <!-- Asistencias Detalladas -->
+      <div id="tab-asistencias" class="card tab-content" style="padding: 0;">
+        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+          <h3 style="color: white; margin: 0;">
+            <i class="fas fa-calendar-check"></i> Historial de Asistencia
+          </h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Tu registro de entradas de acuerdo al periodo seleccionado.</p>
+        </div>
+        <div
+          class="table-container"
+          style="max-height: 500px; overflow-y: auto; border-radius: 0 0 10px 10px;"
+        >
+          <table class="table" style="margin: 0">
+            <thead style="position: sticky; top: 0; background: #0f172a; z-index: 10;">
+              <tr>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Comentario / Justificación</th>
+              </tr>
+            </thead>
+            <tbody id="lista-asistencias">
+              <tr>
+                <td
+                  colspan="3"
+                  style="text-align: center; color: var(--text-muted)"
+                >
+                  Cargando...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    <!-- Modal de Alerta -->
+    <div id="modal-alerta" class="modal-overlay">
+      <div class="modal-content" style="max-width: 400px; text-align: center">
+        <i
+          class="fas fa-exclamation-circle"
+          style="font-size: 4rem; color: #ef4444; margin-bottom: 20px"
+        ></i>
+        <h2 style="color: var(--text-light); margin-bottom: 10px">Atención</h2>
+        <p
+          id="alerta-mensaje"
+          style="color: var(--text-muted); line-height: 1.5"
+        ></p>
+        <button
+          onclick="
+            document.getElementById('modal-alerta').classList.remove('active')
+          "
+          class="btn btn-maestro"
+          style="margin-top: 25px; width: 100%; justify-content: center"
+        >
+          Aceptar
+        </button>
+      </div>
+    </div>
+
+    <script type="module" src="../../js/panel_alumno.js"></script>
+  </body>
+</html>

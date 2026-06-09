@@ -21,7 +21,7 @@ try {
         $id_periodo = $_GET['id_periodo']; // Solo cargamos el periodo seleccionado
         
         // Obtener Alumnos
-        $stmt = $pdo->prepare("SELECT id_alumno, nombre FROM alumnos WHERE id_grupo = ? ORDER BY nombre ASC");
+        $stmt = $pdo->prepare("SELECT id_alumno, nombre FROM alumnos WHERE id_grupo = ? ORDER BY orden ASC, nombre ASC");
         $stmt->execute([$id_grupo]);
         $alumnos = $stmt->fetchAll();
 

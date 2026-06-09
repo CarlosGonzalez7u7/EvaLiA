@@ -84,20 +84,45 @@
         body * {
           visibility: hidden;
         }
+        /* Ocultar elementos estorbosos y quitar scrolls */
+        .modal-header,
+        button,
+        nav,
+        .header-panel {
+          display: none !important;
+        }
+        body.print-single .panel-container,
+        body.print-single .rotate-prompt {
+          display: none !important;
+        }
+        body.print-single .modal-overlay,
+        body.print-single .modal-content {
+          position: static !important;
+          transform: none !important;
+          max-height: none !important;
+          overflow: visible !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
         body.print-single #credencial-print,
         body.print-single #credencial-print * {
           visibility: visible;
         }
         body.print-single #credencial-print {
-          position: absolute;
-          left: 0;
-          top: 0;
-          margin: 0;
-          padding: 20px;
-          box-shadow: none;
-          border: 1px solid #ccc;
-          width: 100%;
-          max-width: 400px;
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          margin: 0 !important;
+          padding: 20px !important;
+          box-shadow: none !important;
+          border: 1px solid #ccc !important;
+          width: 100% !important;
+          max-width: 400px !important;
+          background: white !important;
+          page-break-inside: avoid;
         }
         body.print-multiple #print-all-container,
         body.print-multiple #print-all-container * {
@@ -119,6 +144,31 @@
     </style>
   </head>
   <body>
+    <!-- Prompt Girar Dispositivo (Solo visible en móviles verticales) -->
+    <div id="rotate-prompt" class="rotate-prompt">
+      <i class="fas fa-mobile-alt rotate-icon"></i>
+      <h2 style="color: white; margin-bottom: 10px">Gira tu teléfono</h2>
+      <p
+        style="
+          color: var(--text-muted);
+          margin-bottom: 25px;
+          font-size: 1.1rem;
+          max-width: 300px;
+        "
+      >
+        Para ver la lista de clase cómodamente, te recomendamos usar tu
+        dispositivo en horizontal.
+      </p>
+      <button
+        onclick="
+          document.getElementById('rotate-prompt').style.display = 'none'
+        "
+        class="btn btn-maestro"
+      >
+        Continuar de todos modos
+      </button>
+    </div>
+
     <nav>
       <div class="logo-container">
         <img src="../../assets/Logo.png" class="nav-logo" /> EvaLiA
@@ -184,6 +234,7 @@
           <table class="table">
             <thead>
               <tr>
+                <th style="width: 80px; text-align: center">Orden</th>
                 <th style="width: 50px; text-align: center">N°</th>
                 <th>Matrícula</th>
                 <th>Nombre del Alumno</th>
@@ -194,7 +245,7 @@
             <tbody id="lista-alumnos">
               <tr>
                 <td
-                  colspan="5"
+                  colspan="6"
                   style="text-align: center; color: var(--text-muted)"
                 >
                   Cargando alumnos...
@@ -291,9 +342,9 @@
     <div id="modal-credencial" class="modal-overlay">
       <div
         class="modal-content"
-        style="max-width: 400px; text-align: center; padding: 20px"
+        style="width: 95%; max-width: 650px; text-align: center; padding: 40px"
       >
-        <div class="modal-header" style="margin-bottom: 0">
+        <div class="modal-header" style="margin-bottom: 20px">
           <h2 style="color: var(--secondary)">
             <i class="fas fa-id-badge"></i> Credencial Generada
           </h2>
@@ -310,20 +361,59 @@
             <i class="fas fa-times"></i>
           </button>
         </div>
-        <div id="credencial-print" class="credencial-card">
+        <div
+          id="credencial-print"
+          class="credencial-card"
+          style="
+            margin: 0 auto;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            box-sizing: border-box;
+          "
+        >
           <img
             src="../../assets/Logo.png"
             style="width: 50px; margin-bottom: 10px"
           />
-          <h3 id="cred_nombre">Nombre</h3>
+          <h3 id="cred_nombre" style="color: black; margin-bottom: 5px">
+            Nombre
+          </h3>
           <p style="color: #666; font-size: 0.9rem">
             Matrícula: <strong id="cred_matricula">A0000</strong>
           </p>
-          <div class="qr-wrapper" id="qrcode-container"></div>
+          <div
+            class="qr-wrapper"
+            id="qrcode-container"
+            style="
+              margin: 15px auto;
+              padding: 15px;
+              background: white;
+              display: inline-block;
+              border-radius: 10px;
+              border: 2px solid #f1f1f1;
+            "
+          ></div>
           <p style="color: #666; font-size: 0.8rem; margin-top: 10px">
             PIN de Acceso a EvaLiA:
           </p>
-          <div class="pin-box" id="cred_pin">123456</div>
+          <div
+            class="pin-box"
+            id="cred_pin"
+            style="
+              color: var(--secondary);
+              background: #f8fafc;
+              border: 1px solid #ccc;
+              padding: 10px;
+              margin-top: 15px;
+              border-radius: 8px;
+              font-size: 1.5rem;
+              font-weight: 800;
+              letter-spacing: 5px;
+            "
+          >
+            123456
+          </div>
         </div>
         <button
           onclick="window.print()"
