@@ -59,7 +59,7 @@ document.addEventListener("change", (e) => {
     document.getElementById("container-select-periodo-rubrica").style.display =
       isPerPeriod ? "block" : "none";
     if (document.getElementById("id_grupo").value) {
-      cargarRubricasModal(document.getElementById("id_grupo").value);
+      window.cargarRubricasModal(document.getElementById("id_grupo").value);
     }
   }
 });
@@ -314,7 +314,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         document
           .getElementById("modal-editar-rubrica")
           .classList.remove("active");
-        cargarRubricasModal(idGrupo);
+        window.cargarRubricasModal(idGrupo);
       } else {
         mostrarAlerta("Error al editar rúbrica: " + data.message);
       }
@@ -431,7 +431,7 @@ window.abrirModalEdicion = function (id) {
   document.getElementById("btn-tab-periodos").style.display = "block";
 
   cargarPeriodosModal(id).then(() => {
-    cargarRubricasModal(id); // Primero cargamos los periodos, luego las rúbricas
+    window.cargarRubricasModal(id); // Primero cargamos los periodos, luego las rúbricas
   });
 
   document.getElementById("modal-title").innerText = "Editar Grupo";
@@ -532,7 +532,7 @@ function renderGrupoCard(grupo, isNew = false) {
 
 let totalPorcentajeActual = 0;
 
-async function cargarRubricasModal(idGrupo) {
+window.cargarRubricasModal = async function (idGrupo) {
   const tipoRubrica = document.getElementById("tipo_rubrica").value;
   const idPeriodo = document.getElementById("select-periodo-rubrica").value;
   let url = `/api/controllers/RubricaController.php?action=list&id_grupo=${idGrupo}`;
@@ -548,7 +548,7 @@ async function cargarRubricasModal(idGrupo) {
   if (data.success) {
     data.data.forEach((r) => renderRubricaEnModal(r));
   }
-}
+};
 
 function renderRubricaEnModal(rubrica) {
   const lista = document.getElementById("lista-rubricas-modal");
@@ -598,7 +598,7 @@ window.duplicarRubricaModal = async function (idRubrica) {
   });
   const data = await res.json();
   if (data.success) {
-    cargarRubricasModal(idGrupo);
+    window.cargarRubricasModal(idGrupo);
   } else {
     mostrarAlerta("Error al duplicar rúbrica: " + data.message);
   }
@@ -645,7 +645,7 @@ window.eliminarRubricaModal = async function (idRubrica) {
     });
     const data = await res.json();
     if (data.success) {
-      cargarRubricasModal(document.getElementById("id_grupo").value);
+      window.cargarRubricasModal(document.getElementById("id_grupo").value);
     }
   });
 };

@@ -25,9 +25,19 @@ try {
         $stmt->execute([$id_grupo]);
         $alumnos = $stmt->fetchAll();
 
+        // Obtener Grupo para saber tipo_rubrica
+        $stmtG = $pdo->prepare("SELECT tipo_rubrica FROM grupos WHERE id_grupo = ?");
+        $stmtG->execute([$id_grupo]);
+        $grupo = $stmtG->fetch();
+
         // Obtener Rúbricas
-        $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_grupo = ? AND (id_periodo = ? OR id_periodo IS NULL)");
-        $stmt->execute([$id_grupo, $id_periodo]);
+        if ($grupo['tipo_rubrica'] === 'Por Periodo') {
+            $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_grupo = ? AND id_periodo = ?");
+            $stmt->execute([$id_grupo, $id_periodo]);
+        } else {
+            $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_grupo = ? AND id_periodo IS NULL");
+            $stmt->execute([$id_grupo]);
+        }
         $rubricas = $stmt->fetchAll();
 
         // Obtener Actividades del Periodo

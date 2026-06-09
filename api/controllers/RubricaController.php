@@ -21,7 +21,7 @@ try {
         $id_periodo = $_GET['id_periodo'] ?? null;
         
         if ($id_periodo) {
-            $stmt = $pdo->prepare("SELECT r.*, p.nombre_periodo FROM rubricas r LEFT JOIN periodos p ON r.id_periodo = p.id_periodo WHERE r.id_grupo = ? AND (r.id_periodo = ? OR r.id_periodo IS NULL) ORDER BY r.id_rubrica ASC");
+            $stmt = $pdo->prepare("SELECT r.*, p.nombre_periodo FROM rubricas r JOIN periodos p ON r.id_periodo = p.id_periodo WHERE r.id_grupo = ? AND r.id_periodo = ? ORDER BY r.id_rubrica ASC");
             $stmt->execute([$id_grupo, $id_periodo]);
         } else {
             $stmt = $pdo->prepare("SELECT r.*, 'Global' as nombre_periodo FROM rubricas r WHERE r.id_grupo = ? AND r.id_periodo IS NULL ORDER BY r.id_rubrica ASC");

@@ -90,8 +90,10 @@ function renderDashboard(idPeriodo) {
   let tbodyHtml = `<tr><td style="text-align: center; color: var(--text-muted); font-weight: bold;">${rawData.alumno.numero_lista || "-"}</td><th>${rawData.alumno.nombre}</th>`;
 
   periodosAProcesar.forEach((periodo) => {
-    const rubricasPeriodo = rubricas.filter(
-      (r) => r.id_periodo == periodo.id_periodo || r.id_periodo == null,
+    const rubricasPeriodo = rubricas.filter((r) =>
+      grupo.tipo_rubrica === "Por Periodo"
+        ? r.id_periodo == periodo.id_periodo
+        : r.id_periodo == null,
     );
     let sumaPeriodo = 0;
 
