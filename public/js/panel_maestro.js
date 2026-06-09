@@ -719,17 +719,28 @@ async function cargarPeriodosModal(idGrupo) {
     const editPeriodo = document.getElementById("edit_id_periodo");
     listaPeriodos.innerHTML = "";
     selectPeriodoRub.innerHTML = "";
-    if (editPeriodo)
-      editPeriodo.innerHTML =
-        '<option value="null">Global (Todos los periodos)</option>';
+    if (editPeriodo) {
+      editPeriodo.innerHTML = "";
+      const optG = document.createElement("option");
+      optG.value = "null";
+      optG.textContent = "Global (Todos los periodos)";
+      editPeriodo.appendChild(optG);
+    }
     let periodoActivoName = "Ninguno";
 
     data.periodos.forEach((p) => {
       const isActivo = p.activo == 1;
       if (isActivo) periodoActivoName = p.nombre_periodo;
-      selectPeriodoRub.innerHTML += `<option value="${p.id_periodo}">${p.nombre_periodo}</option>`;
-      if (editPeriodo)
-        editPeriodo.innerHTML += `<option value="${p.id_periodo}">${p.nombre_periodo}</option>`;
+      const opt1 = document.createElement("option");
+      opt1.value = p.id_periodo;
+      opt1.textContent = p.nombre_periodo;
+      selectPeriodoRub.appendChild(opt1);
+      if (editPeriodo) {
+        const opt2 = document.createElement("option");
+        opt2.value = p.id_periodo;
+        opt2.textContent = p.nombre_periodo;
+        editPeriodo.appendChild(opt2);
+      }
       listaPeriodos.innerHTML += `
               <li style="background: rgba(15, 23, 42, 0.6); padding: 10px 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; align-items: stretch;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">

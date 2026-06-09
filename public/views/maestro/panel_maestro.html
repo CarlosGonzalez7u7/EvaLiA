@@ -737,7 +737,9 @@
                 id="select-periodo-rubrica"
                 class="form-control"
                 onchange="
-                  cargarRubricasModal(document.getElementById('id_grupo').value)
+                  window.cargarRubricasModal(
+                    document.getElementById('id_grupo').value,
+                  )
                 "
               >
                 <!-- Llenado por JS -->

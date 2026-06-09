@@ -523,7 +523,7 @@ async function cargarTablaExcel(idGrupo) {
         "Clic para cambiar estado | Shift+Clic para justificar | Teclas: 1 (Asistencia), 0 (Falta), / (Retardo)";
       if (comentario) titleTxt += `\nComentario: ${comentario}`;
 
-      tbody += `<td tabindex="0" data-alumno="${al.id_alumno}" data-fecha="${fecha}" data-estado="${estadoTxt}" data-comentario="${comentario}" class="cell-asistencia ${cssClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')">
+      tbody += `<td tabindex="0" data-alumno="${al.id_alumno}" data-fecha="${fecha}" data-estado="${estadoTxt}" data-comentario="${comentario}" class="cell-asistencia ${cssClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')" oncontextmenu="abrirComentarioAsistencia(event, ${al.id_alumno}, '${fecha}', '${comentario}')">
           ${symbol} ${comentario ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}
       </td>`;
     });
@@ -571,6 +571,11 @@ window.setEstadoAsistenciaDirecto = async function (
     `cambiarEstadoAsistencia(event, ${idAlumno}, '${fecha}', '${nuevoEstado}', '${hasComment ? "Comentario guardado" : ""}')`,
   );
 
+  td.setAttribute(
+    "oncontextmenu",
+    `abrirComentarioAsistencia(event, ${idAlumno}, '${fecha}', '${hasComment ? "Comentario guardado" : ""}')`,
+  );
+
   // 2. Enviar a BD en segundo plano
   try {
     await fetch("/api/controllers/AsistenciaController.php", {
@@ -585,6 +590,32 @@ window.setEstadoAsistenciaDirecto = async function (
     });
   } catch (e) {
     console.error("Error al guardar asistencia");
+  }
+};
+
+window.abrirComentarioAsistencia = async function (
+  event,
+  idAlumno,
+  fecha,
+  comentarioActual,
+) {
+  event.preventDefault(); // Evitar que salga el menú normal del navegador
+  const com = prompt(
+    "Escribe un comentario o justificación (ej. 'Llegó tarde por tráfico'):",
+    comentarioActual,
+  );
+  if (com !== null) {
+    await fetch("/api/controllers/AsistenciaController.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "add_comment",
+        id_alumno: idAlumno,
+        fecha: fecha,
+        comentario: com,
+      }),
+    });
+    cargarTablaExcel(new URLSearchParams(window.location.search).get("id"));
   }
 };
 
