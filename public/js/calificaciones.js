@@ -172,25 +172,171 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
   // LÓGICA DE EXPORTACIÓN A EXCEL Y PDF
-  document.getElementById("btn-export-excel")?.addEventListener("click", () => {
-    if (typeof XLSX === "undefined") {
-      mostrarAlerta(
-        "El bloqueador de anuncios de tu navegador impidió cargar el motor de Excel. Desactívalo temporalmente en este sitio y recarga la página.",
-      );
-      return;
-    }
+  document
+    .getElementById("btn-export-excel")
+    ?.addEventListener("click", async () => {
+      if (typeof ExcelJS === "undefined") {
+        mostrarAlerta(
+          "El bloqueador de anuncios de tu navegador impidió cargar el motor de Excel. Desactívalo temporalmente en este sitio y recarga la página.",
+        );
+        return;
+      }
 
-    const table = document.getElementById("tabla-calificaciones");
-    // Convertir tabla a Excel ignorando estilos complejos
-    const wb = XLSX.utils.table_to_book(table, {
-      sheet: "Calificaciones",
-      raw: true,
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Calificaciones");
+
+      const nombrePeriodo =
+        document.getElementById("select-periodo").options[
+          document.getElementById("select-periodo").selectedIndex
+        ].text;
+
+      // 1. Cabeceras del archivo (Logo y Títulos)
+      try {
+        const logoRes = await fetch("../../assets/Logo.png");
+        const logoBlob = await logoRes.blob();
+        const logoBuffer = await logoBlob.arrayBuffer();
+        const logoId = workbook.addImage({
+          buffer: logoBuffer,
+          extension: "png",
+        });
+        sheet.addImage(logoId, {
+          tl: { col: 0, row: 0 },
+          ext: { width: 45, height: 45 },
+        });
+      } catch (e) {
+        console.log("No se pudo cargar el logo");
+      }
+
+      sheet.getRow(1).height = 40;
+      sheet.mergeCells("B1:E1");
+      const titleCell = sheet.getCell("B1");
+      titleCell.value = "Reporte de Calificaciones - EvaLiA";
+      titleCell.font = { size: 16, bold: true, color: { argb: "FF8B5CF6" } };
+      titleCell.alignment = { vertical: "middle", horizontal: "left" };
+
+      sheet.mergeCells("B2:E2");
+      sheet.getCell("B2").value =
+        `Grupo: ${grupoDatos.nombre_grupo} | Ciclo: ${grupoDatos.ciclo_escolar}`;
+      sheet.getCell("B2").font = { size: 12, bold: true };
+
+      sheet.mergeCells("B3:E3");
+      sheet.getCell("B3").value = `Periodo Seleccionado: ${nombrePeriodo}`;
+      sheet.getCell("B3").font = {
+        size: 11,
+        italic: true,
+        color: { argb: "FF666666" },
+      };
+
+      sheet.addRow([]); // Fila vacía para separar
+
+      // Convertidor de color RGB (del HTML) a ARGB (Para Excel)
+      const rgbToArgb = (rgb) => {
+        const rgbValues = rgb.match(/\d+/g);
+        if (!rgbValues) return "FF8B5CF6"; // Morado por defecto
+        const r = parseInt(rgbValues[0]).toString(16).padStart(2, "0");
+        const g = parseInt(rgbValues[1]).toString(16).padStart(2, "0");
+        const b = parseInt(rgbValues[2]).toString(16).padStart(2, "0");
+        return `FF${r}${g}${b}`.toUpperCase();
+      };
+
+      const table = document.getElementById("tabla-calificaciones");
+      const theadTr = table.querySelector("thead tr");
+      const headerRow = sheet.addRow([]);
+
+      // 2. Construir Columnas y Pintar Colores de las Rúbricas
+      Array.from(theadTr.cells).forEach((th, index) => {
+        let text = th.innerText
+          .replace(/\n/g, " - ")
+          .replace("Total (Calc)", "Total")
+          .trim();
+        const cell = headerRow.getCell(index + 1);
+        cell.value = text;
+
+        const span = th.querySelector("span");
+        if (span && span.style.color) {
+          const argb = rgbToArgb(span.style.color);
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: argb },
+          };
+        } else {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF0F172A" },
+          };
+        }
+
+        cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        cell.alignment = {
+          vertical: "middle",
+          horizontal: "center",
+          wrapText: true,
+        };
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+
+        if (index === 0)
+          sheet.getColumn(index + 1).width = 5; // N°
+        else if (index === 1)
+          sheet.getColumn(index + 1).width = 35; // Nombre
+        else sheet.getColumn(index + 1).width = 20; // Calificaciones
+      });
+      headerRow.height = 35;
+
+      // 3. Insertar Datos de los Alumnos, alinear y poner bordes
+      const tbody = table.querySelector("tbody");
+      Array.from(tbody.rows).forEach((tr) => {
+        const row = sheet.addRow([]);
+        Array.from(tr.cells).forEach((td, index) => {
+          const cell = row.getCell(index + 1);
+
+          let val = "";
+          const input = td.querySelector("input");
+          if (input) val = input.value;
+          else
+            val = td.innerText
+              .replace(/\n/g, " ")
+              .replace(" (Nota:", " - Nota:")
+              .replace(")", "")
+              .trim();
+
+          if (val !== "" && !isNaN(val) && index !== 1)
+            cell.value = parseFloat(val);
+          else cell.value = val;
+
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: index === 1 ? "left" : "center",
+          };
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+
+          // Colorear verde o rojo si aprobó o reprobó
+          if (td.classList.contains("text-danger")) {
+            cell.font = { color: { argb: "FFEF4444" }, bold: true };
+          } else if (td.classList.contains("text-success")) {
+            cell.font = { color: { argb: "FF10B981" }, bold: true };
+          }
+        });
+      });
+
+      // 4. Descargar Archivo Físico
+      const buffer = await workbook.xlsx.writeBuffer();
+      const safeName = grupoDatos.nombre_grupo
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase();
+      saveAs(new Blob([buffer]), `Calificaciones_${safeName}.xlsx`);
     });
-    const safeName = grupoDatos.nombre_grupo
-      .replace(/[^a-z0-9]/gi, "_")
-      .toLowerCase();
-    XLSX.writeFile(wb, `Calificaciones_${safeName}.xlsx`);
-  });
 
   document.getElementById("btn-export-pdf")?.addEventListener("click", () => {
     window.print();
