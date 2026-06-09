@@ -108,9 +108,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
     document.getElementById("nombre-maestro").innerText = session.nombre;
-    document.getElementById("ajuste-nombre").innerText = session.nombre;
-    document.getElementById("ajuste-email").innerText =
-      session.email || "Vinculado a Google";
   } catch (error) {
     console.error("Error al obtener perfil:", error);
   }
@@ -126,14 +123,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Opcional: Podrías desloguear de Firebase aquí importando auth y signOut
     window.location.href = "../../index.html";
   });
-
-  // Modal Ajustes Globales
-  document
-    .getElementById("btn-config-global")
-    .addEventListener("click", (e) => {
-      e.preventDefault();
-      document.getElementById("modal-config-global").classList.add("active");
-    });
 
   // 4. Lógica del Modal
   const modal = document.getElementById("modal-grupo");
@@ -235,6 +224,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         tipo_rubrica: document.getElementById("tipo_rubrica").value,
         color_grupo: document.getElementById("color_grupo").value,
         icono_grupo: document.getElementById("icono_grupo").value,
+        avisos: document.getElementById("avisos_grupo").value,
         calificacion_minima: document.getElementById("calificacion_minima")
           .value,
         horario: JSON.stringify(horarioArray),
@@ -281,37 +271,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Error en petición:", error);
       }
     });
-
-  // Promover Grupo Formulario
-  document
-    .getElementById("form-clonar-grupo")
-    .addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const payload = {
-        action: "clone",
-        id_grupo: document.getElementById("clone_id_grupo").value,
-        nuevo_nombre: document.getElementById("clone_nombre").value,
-        nuevo_ciclo: document.getElementById("clone_ciclo").value,
-      };
-      const res = await fetch("/api/controllers/GrupoController.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (data.success) {
-        document
-          .getElementById("modal-clonar-grupo")
-          .classList.remove("active");
-        mostrarAlerta(
-          "Grupo promovido con éxito. El grupo anterior fue ocultado.",
-        );
-        document.getElementById("grupos-container").innerHTML = "";
-        cargarGrupos();
-      } else {
-        mostrarAlerta("Error: " + data.message);
-      }
-    });
 });
 
 // Función para pedir grupos al servidor
@@ -356,6 +315,7 @@ window.abrirModalEdicion = function (id) {
   document.getElementById("color_grupo").value = grupo.color_grupo || "#8b5cf6";
   document.getElementById("icono_grupo").value =
     grupo.icono_grupo || "fas fa-users";
+  document.getElementById("avisos_grupo").value = grupo.avisos || "";
 
   // Activar o desactivar el contenedor de periodos visualmente
   document.getElementById("container-select-periodo-rubrica").style.display =
@@ -459,13 +419,6 @@ window.toggleEstadoGrupo = async function (id, estadoActual) {
   });
 };
 
-window.abrirModalClonar = function (id) {
-  document.getElementById("clone_id_grupo").value = id;
-  document.getElementById("clone_nombre").value = "";
-  document.getElementById("clone_ciclo").value = "";
-  document.getElementById("modal-clonar-grupo").classList.add("active");
-};
-
 // Función de Renderizado (Pinta la UI mágicamente)
 function renderGrupoCard(grupo, isNew = false) {
   const container = document.getElementById("grupos-container");
@@ -485,17 +438,12 @@ function renderGrupoCard(grupo, isNew = false) {
     try {
       const hArr = JSON.parse(grupo.horario);
       if (hArr.length > 0) {
-        const grouped = {};
-        hArr.forEach((h) => {
-          const timeKey = `${h.inicio.substring(0, 5)} - ${h.fin.substring(0, 5)}`;
-          if (!grouped[timeKey]) grouped[timeKey] = [];
-          grouped[timeKey].push(h.dia.substring(0, 2));
-        });
-        horarioText = Object.keys(grouped)
+        horarioText = hArr
           .map(
-            (time) => `<strong>${grouped[time].join(", ")}</strong> (${time})`,
+            (h) =>
+              `${h.dia.substring(0, 2)}: ${h.inicio.substring(0, 5)}-${h.fin.substring(0, 5)}`,
           )
-          .join(" | ");
+          .join(", ");
       }
     } catch (e) {}
   }
@@ -509,7 +457,6 @@ function renderGrupoCard(grupo, isNew = false) {
             <div style="display: flex; gap: 10px;">
                 <button onclick="abrirModalEdicion(${grupo.id_grupo})" class="btn-icon" title="Configurar Grupo"><i class="fas fa-cog"></i></button>
                 <button onclick="toggleEstadoGrupo(${grupo.id_grupo}, ${grupo.activo})" class="btn-icon" title="${btnToggleTitle}" style="color: ${btnToggleColor};"><i class="fas ${btnToggleIcon}"></i></button>
-                <button onclick="abrirModalClonar(${grupo.id_grupo})" class="btn-icon" title="Promover Grupo al siguiente ciclo" style="color: var(--primary);"><i class="fas fa-copy"></i></button>
             </div>
         </div>
         <h3 style="margin-bottom: 10px;">${grupo.nombre_grupo}</h3>

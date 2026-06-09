@@ -173,6 +173,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Error en fetch:", error);
       }
     });
+
+  // LÓGICA DE EXPORTACIÓN A EXCEL Y PDF
+  document.getElementById("btn-export-excel")?.addEventListener("click", () => {
+    const table = document.getElementById("tabla-calificaciones");
+    // Convertir tabla a Excel ignorando estilos complejos
+    const wb = XLSX.utils.table_to_book(table, {
+      sheet: "Calificaciones",
+      raw: true,
+    });
+    const safeName = grupoDatos.nombre_grupo
+      .replace(/[^a-z0-9]/gi, "_")
+      .toLowerCase();
+    XLSX.writeFile(wb, `Calificaciones_${safeName}.xlsx`);
+  });
+
+  document.getElementById("btn-export-pdf")?.addEventListener("click", () => {
+    window.print();
+  });
 });
 
 function cerrarModalActividad() {

@@ -72,7 +72,7 @@ try {
         $pdo->beginTransaction(); // Iniciamos transacción segura
 
         // 1. Insertar el Grupo
-        $insertGrp = $pdo->prepare("INSERT INTO grupos (id_maestro, nombre_grupo, ciclo_escolar, nivel_educativo, tipo_periodo, modo_calificacion, tipo_rubrica, color_grupo, icono_grupo, calificacion_minima, horario, tolerancia_minutos, minutos_alarma, sonido_alarma) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $insertGrp = $pdo->prepare("INSERT INTO grupos (id_maestro, nombre_grupo, ciclo_escolar, nivel_educativo, tipo_periodo, modo_calificacion, tipo_rubrica, color_grupo, icono_grupo, avisos, calificacion_minima, horario, tolerancia_minutos, minutos_alarma, sonido_alarma) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $insertGrp->execute([
             $id_maestro, 
             $input['nombre_grupo'], 
@@ -83,6 +83,7 @@ try {
             $input['tipo_rubrica'] ?? 'Global',
             $input['color_grupo'] ?? '#8b5cf6',
             $input['icono_grupo'] ?? 'fas fa-users',
+            $input['avisos'] ?? null,
             $input['calificacion_minima'],
             $input['horario'] ?? null,
             $input['tolerancia_minutos'] ?? 15,
@@ -126,7 +127,7 @@ try {
              exit;
         }
 
-        $updGrp = $pdo->prepare("UPDATE grupos SET nombre_grupo = ?, ciclo_escolar = ?, nivel_educativo = ?, tipo_periodo = ?, modo_calificacion = ?, tipo_rubrica = ?, color_grupo = ?, icono_grupo = ?, calificacion_minima = ?, horario = ?, tolerancia_minutos = ?, minutos_alarma = ?, sonido_alarma = ? WHERE id_grupo = ?");
+        $updGrp = $pdo->prepare("UPDATE grupos SET nombre_grupo = ?, ciclo_escolar = ?, nivel_educativo = ?, tipo_periodo = ?, modo_calificacion = ?, tipo_rubrica = ?, color_grupo = ?, icono_grupo = ?, avisos = ?, calificacion_minima = ?, horario = ?, tolerancia_minutos = ?, minutos_alarma = ?, sonido_alarma = ? WHERE id_grupo = ?");
         $updGrp->execute([
             $input['nombre_grupo'], 
             $input['ciclo_escolar'], 
@@ -136,6 +137,7 @@ try {
             $input['tipo_rubrica'],
             $input['color_grupo'],
             $input['icono_grupo'],
+            $input['avisos'] ?? null,
             $input['calificacion_minima'],
             $input['horario'] ?? null,
             $input['tolerancia_minutos'] ?? 15,
@@ -186,8 +188,8 @@ try {
         if (!$oldGrupo) { echo json_encode(["success"=>false, "message"=>"Grupo no encontrado."]); exit; }
 
         // 2. Insertar nuevo grupo calcado
-        $insertGrp = $pdo->prepare("INSERT INTO grupos (id_maestro, nombre_grupo, ciclo_escolar, nivel_educativo, tipo_periodo, modo_calificacion, tipo_rubrica, color_grupo, icono_grupo, calificacion_minima, horario, tolerancia_minutos, minutos_alarma, sonido_alarma) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $insertGrp->execute([$id_maestro, $nuevo_nombre, $nuevo_ciclo, $oldGrupo['nivel_educativo'], $oldGrupo['tipo_periodo'], $oldGrupo['modo_calificacion'], $oldGrupo['tipo_rubrica'], $oldGrupo['color_grupo'], $oldGrupo['icono_grupo'], $oldGrupo['calificacion_minima'], $oldGrupo['horario'], $oldGrupo['tolerancia_minutos'], $oldGrupo['minutos_alarma'], $oldGrupo['sonido_alarma']]);
+        $insertGrp = $pdo->prepare("INSERT INTO grupos (id_maestro, nombre_grupo, ciclo_escolar, nivel_educativo, tipo_periodo, modo_calificacion, tipo_rubrica, color_grupo, icono_grupo, avisos, calificacion_minima, horario, tolerancia_minutos, minutos_alarma, sonido_alarma) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $insertGrp->execute([$id_maestro, $nuevo_nombre, $nuevo_ciclo, $oldGrupo['nivel_educativo'], $oldGrupo['tipo_periodo'], $oldGrupo['modo_calificacion'], $oldGrupo['tipo_rubrica'], $oldGrupo['color_grupo'], $oldGrupo['icono_grupo'], $oldGrupo['avisos'], $oldGrupo['calificacion_minima'], $oldGrupo['horario'], $oldGrupo['tolerancia_minutos'], $oldGrupo['minutos_alarma'], $oldGrupo['sonido_alarma']]);
         $nuevo_id_grupo = $pdo->lastInsertId();
 
         // 3. Crear el primer Periodo

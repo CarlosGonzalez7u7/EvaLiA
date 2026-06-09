@@ -35,6 +35,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("info-grupo").innerText =
       `${data.grupo.nombre_grupo} - ${data.grupo.ciclo_escolar}`;
 
+    if (data.grupo.avisos) {
+      document.getElementById("muro-avisos").style.display = "block";
+      document.getElementById("texto-avisos").innerText = data.grupo.avisos;
+    }
+
     const selectPeriodo = document.getElementById("select-periodo");
     data.periodos.forEach((p) => {
       selectPeriodo.innerHTML += `<option value="${p.id_periodo}">${p.nombre_periodo} ${p.activo == 1 ? "(ACTIVO)" : ""}</option>`;
