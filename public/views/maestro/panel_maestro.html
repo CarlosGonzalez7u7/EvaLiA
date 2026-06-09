@@ -382,26 +382,6 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Aplicación de las Rúbricas de Evaluación</label>
-              <select id="tipo_rubrica" class="form-control" required>
-                <option value="Global">
-                  Mismas rúbricas para todos los periodos
-                </option>
-                <option value="Por Periodo">
-                  Rúbricas independientes para cada periodo
-                </option>
-              </select>
-              <small
-                style="
-                  color: var(--text-muted);
-                  display: block;
-                  margin-top: 5px;
-                "
-                >Elige si el % de evaluación cambia dependiendo el
-                bimestre/parcial.</small
-              >
-            </div>
-            <div class="form-group">
               <label
                 >Calificación Mínima
                 <small
@@ -676,16 +656,60 @@
 
           <!-- PESTAÑA 4: RÚBRICAS -->
           <div id="tab-rubricas" class="tab-content">
-            <p
+            <div
+              class="form-group"
               style="
-                color: var(--text-muted);
-                font-size: 0.9rem;
-                margin-bottom: 15px;
+                background: rgba(15, 23, 42, 0.4);
+                padding: 15px;
+                border-radius: 10px;
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                margin-bottom: 20px;
               "
             >
-              Define los parámetros de calificación. Recuerda que debe sumar
-              100%.
-            </p>
+              <label>Aplicación de las Rúbricas de Evaluación</label>
+              <select id="tipo_rubrica" class="form-control" required>
+                <option value="Global">
+                  Mismas rúbricas para todos los periodos
+                </option>
+                <option value="Por Periodo">
+                  Rúbricas independientes para cada periodo
+                </option>
+              </select>
+              <small
+                style="
+                  color: var(--text-muted);
+                  display: block;
+                  margin-top: 5px;
+                "
+                >Elige si el % de evaluación cambia dependiendo el
+                bimestre/parcial.</small
+              >
+            </div>
+
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+                flex-wrap: wrap;
+                gap: 10px;
+              "
+            >
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0">
+                Define los parámetros de calificación. Recuerda que debe sumar
+                100%.
+              </p>
+              <button
+                type="button"
+                class="btn btn-cancel"
+                onclick="abrirModalTransferirRubricas()"
+                style="padding: 6px 12px; font-size: 0.85rem"
+                title="Copiar o Mover todas las rúbricas actuales a otro periodo"
+              >
+                <i class="fas fa-exchange-alt"></i> Mover / Copiar Todo
+              </button>
+            </div>
 
             <div
               id="container-select-periodo-rubrica"
@@ -1255,7 +1279,77 @@
       </div>
     </div>
 
+    <!-- Modal para Transferir Rúbricas Masivamente -->
+    <div
+      id="modal-transferir-rubricas"
+      class="modal-overlay"
+      style="z-index: 2020"
+    >
+      <div class="modal-content" style="max-width: 400px">
+        <div class="modal-header">
+          <h2>Transferir Rúbricas</h2>
+          <button
+            type="button"
+            onclick="
+              document
+                .getElementById('modal-transferir-rubricas')
+                .classList.remove('active')
+            "
+            class="btn-close"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="form-transferir-rubricas">
+          <p
+            style="
+              color: var(--text-muted);
+              font-size: 0.9rem;
+              margin-bottom: 15px;
+            "
+          >
+            Copia o mueve <strong>todas</strong> las rúbricas que estás viendo
+            actualmente hacia otro periodo o hazlas globales.
+          </p>
+          <div class="form-group">
+            <label>Acción a realizar</label>
+            <select id="transfer_op_type" class="form-control">
+              <option value="copy">Copiar (Duplicar)</option>
+              <option value="move">Mover (Cortar y pegar)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Destino</label>
+            <select id="transfer_target_period" class="form-control">
+              <!-- JS Inyecta periodos y Global -->
+            </select>
+          </div>
+          <div class="modal-actions" style="margin-top: 10px">
+            <button
+              type="button"
+              onclick="
+                document
+                  .getElementById('modal-transferir-rubricas')
+                  .classList.remove('active')
+              "
+              class="btn btn-cancel"
+              style="flex: 1; justify-content: center"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn btn-maestro"
+              style="flex: 1; justify-content: center"
+            >
+              Aplicar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Lógica de la Interfaz -->
-    <script type="module" src="../../js/panel_maestro.js?v=2"></script>
+    <script type="module" src="../../js/panel_maestro.js?v=3"></script>
   </body>
 </html>

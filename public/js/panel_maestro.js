@@ -319,6 +319,44 @@ document.addEventListener("DOMContentLoaded", async () => {
         mostrarAlerta("Error al editar rúbrica: " + data.message);
       }
     });
+
+  // Modal Transferir Rúbricas Masivamente
+  document
+    .getElementById("form-transferir-rubricas")
+    ?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const idGrupo = document.getElementById("id_grupo").value;
+      const tipoRubrica = document.getElementById("tipo_rubrica").value;
+      const sourcePeriod =
+        tipoRubrica === "Por Periodo"
+          ? document.getElementById("select-periodo-rubrica").value
+          : null;
+      const targetPeriod = document.getElementById(
+        "transfer_target_period",
+      ).value;
+      const opType = document.getElementById("transfer_op_type").value;
+
+      const res = await fetch("/api/controllers/RubricaController.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "bulk_transfer",
+          id_grupo: idGrupo,
+          source_period: sourcePeriod,
+          target_period: targetPeriod,
+          op_type: opType,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        document
+          .getElementById("modal-transferir-rubricas")
+          .classList.remove("active");
+        window.cargarRubricasModal(idGrupo);
+      } else {
+        mostrarAlerta("Error: " + data.message);
+      }
+    });
 });
 
 // Función para pedir grupos al servidor
@@ -602,6 +640,26 @@ window.duplicarRubricaModal = async function (idRubrica) {
   } else {
     mostrarAlerta("Error al duplicar rúbrica: " + data.message);
   }
+};
+
+window.abrirModalTransferirRubricas = function () {
+  const idGrupo = document.getElementById("id_grupo").value;
+  if (!idGrupo) {
+    mostrarAlerta(
+      "Debes guardar el grupo al menos una vez antes de realizar esta acción.",
+    );
+    return;
+  }
+
+  const targetSelect = document.getElementById("transfer_target_period");
+  targetSelect.innerHTML =
+    '<option value="null">Global (Todos los periodos)</option>';
+  const selectPeriodoRub = document.getElementById("select-periodo-rubrica");
+  Array.from(selectPeriodoRub.options).forEach((opt) => {
+    targetSelect.innerHTML += `<option value="${opt.value}">${opt.text}</option>`;
+  });
+
+  document.getElementById("modal-transferir-rubricas").classList.add("active");
 };
 
 window.abrirModalEdicionRubrica = function (

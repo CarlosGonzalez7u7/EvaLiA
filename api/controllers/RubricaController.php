@@ -76,6 +76,47 @@ try {
         exit;
     }
 
+    // OPERACIÓN MASIVA: COPIAR O MOVER RÚBRICAS
+    if ($action === 'bulk_transfer') {
+        $id_grupo = $input['id_grupo'];
+        $source_period = $input['source_period'] ?? null;
+        if ($source_period === 'null' || $source_period === '') $source_period = null;
+        
+        $target_period = $input['target_period'] ?? null;
+        if ($target_period === 'null' || $target_period === '') $target_period = null;
+        
+        $op_type = $input['op_type'];
+
+        $pdo->beginTransaction();
+
+        if ($op_type === 'move') {
+            if ($source_period) {
+                $stmt = $pdo->prepare("UPDATE rubricas SET id_periodo = ? WHERE id_grupo = ? AND id_periodo = ?");
+                $stmt->execute([$target_period, $id_grupo, $source_period]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE rubricas SET id_periodo = ? WHERE id_grupo = ? AND id_periodo IS NULL");
+                $stmt->execute([$target_period, $id_grupo]);
+            }
+        } else if ($op_type === 'copy') {
+            if ($source_period) {
+                $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_grupo = ? AND id_periodo = ?");
+                $stmt->execute([$id_grupo, $source_period]);
+            } else {
+                $stmt = $pdo->prepare("SELECT * FROM rubricas WHERE id_grupo = ? AND id_periodo IS NULL");
+                $stmt->execute([$id_grupo]);
+            }
+            $rubs = $stmt->fetchAll();
+            $stmtIns = $pdo->prepare("INSERT INTO rubricas (id_grupo, id_periodo, categoria, porcentaje, color) VALUES (?, ?, ?, ?, ?)");
+            foreach($rubs as $r) {
+                $stmtIns->execute([$id_grupo, $target_period, $r['categoria'], $r['porcentaje'], $r['color']]);
+            }
+        }
+
+        $pdo->commit();
+        echo json_encode(["success" => true]);
+        exit;
+    }
+
     // BORRAR UNA RÚBRICA
     if ($action === 'delete') {
         $stmt = $pdo->prepare("DELETE FROM rubricas WHERE id_rubrica = ?");
