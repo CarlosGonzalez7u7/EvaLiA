@@ -6,6 +6,7 @@ window.mostrarAlerta = function (mensaje) {
 let grupoDatos = null;
 let alarmPlayed = false;
 let fechasAgregadasManualmente = [];
+let periodosGlobal = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -22,6 +23,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const data = await res.json();
     if (data.success) {
       grupoDatos = data.grupo;
+      periodosGlobal = data.periodos;
       document.getElementById("lbl-nombre-grupo").innerText =
         grupoDatos.nombre_grupo;
 
@@ -44,6 +46,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         } catch (e) {}
       }
       iniciarAlarma();
+
+      // Llenar el selector de periodos
+      const selectPeriodo = document.getElementById("select-periodo-asis");
+      if (selectPeriodo) {
+        selectPeriodo.innerHTML =
+          '<option value="all">🏆 Todos los periodos</option>';
+        periodosGlobal.forEach((p) => {
+          selectPeriodo.innerHTML += `<option value="${p.id_periodo}">${p.nombre_periodo}${p.activo == 1 ? " (ACTIVO)" : ""}</option>`;
+        });
+        const activo = periodosGlobal.find((p) => p.activo == 1);
+        if (activo) selectPeriodo.value = activo.id_periodo;
+
+        selectPeriodo.addEventListener("change", () => {
+          cargarTablaExcel(idGrupo);
+        });
+      }
     } else {
       mostrarAlerta(data.message);
       window.location.href = "panel_maestro.html";
@@ -221,6 +239,34 @@ document.addEventListener("DOMContentLoaded", async () => {
           setEstadoAsistenciaDirecto(currentTd, idAlumno, fecha, newEstado);
         }
       }
+
+      // Atajo C para Comentarios
+      if (e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        let idAlumno = currentTd.getAttribute("data-alumno");
+        let fecha = currentTd.getAttribute("data-fecha");
+        let comentarioActual = currentTd.getAttribute("data-comentario") || "";
+        const com = prompt(
+          "Escribe un comentario o justificación (ej. Retardo por lluvia):",
+          comentarioActual,
+        );
+        if (com !== null) {
+          fetch("/api/controllers/AsistenciaController.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "add_comment",
+              id_alumno: idAlumno,
+              fecha: fecha,
+              comentario: com,
+            }),
+          }).then(() => {
+            cargarTablaExcel(
+              new URLSearchParams(window.location.search).get("id"),
+            );
+          });
+        }
+      }
     }
   });
 
@@ -266,6 +312,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       sheet.getCell("B2").value =
         `Grupo: ${grupoDatos.nombre_grupo} | Ciclo: ${grupoDatos.ciclo_escolar}`;
       sheet.getCell("B2").font = { size: 12, bold: true };
+
+      const selectAsis = document.getElementById("select-periodo-asis");
+      const nombrePeriodoAsis = selectAsis
+        ? selectAsis.options[selectAsis.selectedIndex].text
+        : "Todos";
+      sheet.mergeCells("B3:E3");
+      sheet.getCell("B3").value = `Periodo Seleccionado: ${nombrePeriodoAsis}`;
+      sheet.getCell("B3").font = {
+        size: 11,
+        italic: true,
+        color: { argb: "FF666666" },
+      };
 
       sheet.addRow([]);
 
@@ -409,18 +467,30 @@ async function cargarTablaExcel(idGrupo) {
   let allFechas = Array.from(
     new Set([...data.fechas, ...fechasAgregadasManualmente]),
   );
+
+  const idPeriodo =
+    document.getElementById("select-periodo-asis")?.value || "all";
+  if (idPeriodo !== "all") {
+    const per = periodosGlobal.find((p) => p.id_periodo == idPeriodo);
+    if (per && per.fecha_inicio && per.fecha_fin) {
+      const start = per.fecha_inicio;
+      const end = per.fecha_fin;
+      allFechas = allFechas.filter((f) => f >= start && f <= end);
+    }
+  }
   allFechas.sort();
 
   allFechas.forEach((fecha) => {
     thead += `<th>${fecha.split("-").reverse().join("/")}</th>`;
   });
-  thead += `</tr></thead>`;
+  thead += `<th style="color: var(--primary);">Total Asist.</th></tr></thead>`;
   tabla.innerHTML = thead;
 
   let tbody = `<tbody>`;
   let nLista = 1;
   data.alumnos.forEach((al) => {
     tbody += `<tr><td>${nLista++}</td><th>${al.nombre}</th>`;
+    let asisScore = 0;
     allFechas.forEach((fecha) => {
       const asis = data.asistencias.find(
         (a) => a.id_alumno == al.id_alumno && a.fecha === fecha,
@@ -436,6 +506,7 @@ async function cargarTablaExcel(idGrupo) {
           symbol = "1";
           cssClass = "st-asi";
           estadoTxt = "Asistencia";
+          asisScore += 1;
         } else if (asis.estado === "Falta") {
           symbol = "0";
           cssClass = "st-fal";
@@ -444,6 +515,7 @@ async function cargarTablaExcel(idGrupo) {
           symbol = "/";
           cssClass = "st-ret";
           estadoTxt = "Retardo";
+          asisScore += 0.5;
         }
       }
 
@@ -451,11 +523,18 @@ async function cargarTablaExcel(idGrupo) {
         "Clic para cambiar estado | Shift+Clic para justificar | Teclas: 1 (Asistencia), 0 (Falta), / (Retardo)";
       if (comentario) titleTxt += `\nComentario: ${comentario}`;
 
-      tbody += `<td tabindex="0" data-alumno="${al.id_alumno}" data-fecha="${fecha}" data-estado="${estadoTxt}" class="cell-asistencia ${cssClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')">
+      tbody += `<td tabindex="0" data-alumno="${al.id_alumno}" data-fecha="${fecha}" data-estado="${estadoTxt}" data-comentario="${comentario}" class="cell-asistencia ${cssClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')">
           ${symbol} ${comentario ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}
       </td>`;
     });
-    tbody += `</tr>`;
+
+    let maxAsis = allFechas.length || 1;
+    let percent = Math.round((asisScore / maxAsis) * 100);
+    let califMin = grupoDatos ? grupoDatos.calificacion_minima * 10 : 60;
+    tbody += `<td style="text-align: center; vertical-align: middle; background: rgba(0,0,0,0.2);">
+        <strong style="color: var(--primary); font-size: 1.1rem;">${asisScore}</strong> <span style="font-size: 0.8rem; color: var(--text-muted);">/ ${maxAsis}</span>
+        <br><span style="font-size: 0.8rem; color: ${percent >= califMin ? "#10b981" : "#ef4444"}; font-weight: bold;">${percent}%</span>
+    </td></tr>`;
   });
   tbody += `</tbody>`;
   tabla.innerHTML += tbody;

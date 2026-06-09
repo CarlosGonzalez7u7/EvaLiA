@@ -13,7 +13,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="../../css/styles.css?v=3" />
+    <link rel="stylesheet" href="../../css/styles.css?v=4" />
     <style>
       .panel-container {
         padding: 40px 5%;
@@ -110,13 +110,6 @@
             Cargando grupo...
           </p>
         </div>
-        <select
-          id="select-periodo"
-          class="form-control"
-          style="width: auto; background: rgba(15, 23, 42, 0.8)"
-        >
-          <option value="all">🏆 Resumen Global</option>
-        </select>
       </div>
 
       <div id="muro-avisos" class="card" style="display: none; background: rgba(236, 72, 153, 0.15); border-color: var(--secondary); margin-bottom: 30px;">
@@ -167,10 +160,8 @@
           </h3>
           <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Revisa las actividades entregadas y el puntaje asignado por tu profesor en la misma vista que él.</p>
         </div>
-        <div class="excel-container" style="border-radius: 0 0 10px 10px; border: none;">
-          <table class="table" id="tabla-calificaciones-alumno" style="margin: 0;">
-            <!-- JS Inyecta la tabla -->
-          </table>
+        <div id="contenedor-calificaciones" style="padding: 20px;">
+          <!-- JS Inyectará las tablas separadas por periodo aquí -->
         </div>
       </div>
 
@@ -182,29 +173,8 @@
           </h3>
           <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Tu registro de entradas de acuerdo al periodo seleccionado.</p>
         </div>
-        <div
-          class="table-container"
-          style="max-height: 500px; overflow-y: auto; border-radius: 0 0 10px 10px;"
-        >
-          <table class="table" style="margin: 0">
-            <thead style="position: sticky; top: 0; background: #0f172a; z-index: 10;">
-              <tr>
-                <th>Fecha</th>
-                <th>Estado</th>
-                <th>Comentario / Justificación</th>
-              </tr>
-            </thead>
-            <tbody id="lista-asistencias">
-              <tr>
-                <td
-                  colspan="3"
-                  style="text-align: center; color: var(--text-muted)"
-                >
-                  Cargando...
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div id="contenedor-asistencias" style="padding: 20px;">
+          <!-- JS Inyectará las tablas separadas por periodo aquí -->
         </div>
       </div>
 
@@ -232,6 +202,6 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/panel_alumno.js?v=2"></script>
+    <script type="module" src="../../js/panel_alumno.js?v=3"></script>
   </body>
 </html>

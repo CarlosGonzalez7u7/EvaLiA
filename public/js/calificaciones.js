@@ -410,7 +410,8 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
   data.rubricas.forEach((r) => {
     // Filtrar para no mostrar rúbricas de Asistencia como actividades manuales
     if (!r.categoria.toLowerCase().includes("asistencia")) {
-      selectRub.innerHTML += `<option value="${r.id_rubrica}">${r.categoria} (${r.porcentaje}%)</option>`;
+      const color = r.color || "#8b5cf6";
+      selectRub.innerHTML += `<option value="${r.id_rubrica}" style="color: ${color}; font-weight: bold;">&#9632; ${r.categoria} (${r.porcentaje}%)</option>`;
     }
   });
 
