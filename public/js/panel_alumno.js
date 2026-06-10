@@ -470,15 +470,13 @@ window.exportarPDFPeriodo = function (idPeriodo, event) {
   const periodoObj = rawData.periodos.find((p) => p.id_periodo == idPeriodo);
   if (!periodoObj) return;
 
-  const {
-    grupo,
-    rubricas,
-    actividades,
-    calificaciones,
-    asistencias,
-    fechas_grupo,
-    alumno,
-  } = rawData;
+  const grupo = rawData.grupo || {};
+  const rubricas = rawData.rubricas || [];
+  const actividades = rawData.actividades || [];
+  const calificaciones = rawData.calificaciones || [];
+  const asistencias = rawData.asistencias || [];
+  const fechas_grupo = rawData.fechas_grupo || [];
+  const alumno = rawData.alumno || {};
 
   // Filtrar datos del periodo
   const actividadesPeriodo = actividades.filter(
@@ -1042,16 +1040,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 // ================================================================
 function renderDashboard() {
   if (!rawData) return;
-  const {
-    grupo,
-    periodos,
-    rubricas,
-    actividades,
-    calificaciones,
-    asistencias,
-    max_asistencias,
-    fechas_grupo,
-  } = rawData;
+  const grupo = rawData.grupo || {};
+  const periodos = rawData.periodos || [];
+  const rubricas = rawData.rubricas || [];
+  const actividades = rawData.actividades || [];
+  const calificaciones = rawData.calificaciones || [];
+  const asistencias = rawData.asistencias || [];
+  const fechas_grupo = rawData.fechas_grupo || [];
+  let max_asistencias = rawData.max_asistencias || 1;
 
   if (!document.getElementById("student-mobile-styles")) {
     const style = document.createElement("style");

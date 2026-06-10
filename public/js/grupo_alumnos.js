@@ -148,7 +148,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const card = document.createElement("div");
         card.className = "credencial-card";
         card.style.pageBreakInside = "avoid";
-        card.style.border = "1px solid #ccc";
+        card.style.border = "6px solid #8b5cf6";
         card.style.boxShadow = "none";
         card.style.margin = "0";
         card.style.textAlign = "center";
@@ -177,6 +177,42 @@ document.addEventListener("DOMContentLoaded", async () => {
         container.style.display = "none";
         document.body.className = "";
       }, 500);
+    });
+
+  // Botón Descargar PDF Directo de Credencial Individual
+  document
+    .getElementById("btn-descargar-credencial-pdf")
+    ?.addEventListener("click", () => {
+      const element = document.getElementById("credencial-print");
+
+      // Convertimos los píxeles a Milímetros exactos (1px = 0.264583 mm)
+      // Añadimos +1 para evitar desbordes milimétricos que crean una hoja en blanco extra
+      const pxToMm = 0.264583;
+      const pdfWidth = (element.offsetWidth || 400) * pxToMm + 1;
+      const pdfHeight = (element.offsetHeight || 600) * pxToMm + 1;
+
+      const opt = {
+        margin: 0,
+        filename: `Credencial_${currentCredencialName.replace(/\s+/g, "_")}.pdf`,
+        image: { type: "jpeg", quality: 1 },
+        html2canvas: { scale: 4, useCORS: true, backgroundColor: "#ffffff" },
+        jsPDF: {
+          unit: "mm",
+          format: [pdfWidth, pdfHeight],
+          orientation: "portrait",
+        },
+      };
+
+      const originalShadow = element.style.boxShadow;
+      element.style.boxShadow = "none";
+
+      html2pdf()
+        .set(opt)
+        .from(element)
+        .save()
+        .then(() => {
+          element.style.boxShadow = originalShadow;
+        });
     });
 });
 
@@ -291,10 +327,13 @@ window.verCredencial = function (idAlumno) {
   }
 };
 
+let currentCredencialName = "Alumno";
+
 // Genera la credencial visual al momento de registrarlo
 function mostrarCredencial(alumno) {
   document.body.className = "print-single"; // Avisarle a CSS que imprimiremos solo una
   document.getElementById("cred_nombre").innerText = alumno.nombre;
+  currentCredencialName = alumno.nombre;
   document.getElementById("cred_matricula").innerText = alumno.matricula;
   document.getElementById("cred_pin").innerText = alumno.pin;
 
@@ -309,6 +348,20 @@ function mostrarCredencial(alumno) {
     colorLight: "#ffffff",
     correctLevel: QRCode.CorrectLevel.H,
   });
+
+  // Convertir el Canvas a Imagen estática de forma silenciosa para que html2pdf lo reconozca
+  setTimeout(() => {
+    const canvas = qrContainer.querySelector("canvas");
+    const img = qrContainer.querySelector("img");
+    if (canvas && img) {
+      if (!img.src || img.src === "") {
+        img.src = canvas.toDataURL("image/png");
+      }
+      img.style.display = "inline-block";
+      canvas.style.display = "none";
+    }
+  }, 150);
+
   document.getElementById("modal-credencial").classList.add("active");
 }
 

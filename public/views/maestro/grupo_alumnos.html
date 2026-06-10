@@ -14,9 +14,11 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="../../css/styles.css?v=4" />
+    <link rel="stylesheet" href="../../css/styles.css?v=6" />
     <!-- Librería para generar Código QR en Frontend -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Librería para generar PDF directamente sin ventana de impresión -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
       .panel-container {
         padding: 40px 5%;
@@ -370,6 +372,7 @@
             max-width: 400px;
             width: 100%;
             box-sizing: border-box;
+            border: 6px solid #8b5cf6;
           "
         >
           <img
@@ -416,11 +419,11 @@
           </div>
         </div>
         <button
-          onclick="window.print()"
+          id="btn-descargar-credencial-pdf"
           class="btn btn-maestro"
           style="margin-top: 20px; width: 100%; justify-content: center"
         >
-          <i class="fas fa-print"></i> Imprimir a PDF
+          <i class="fas fa-download"></i> Descargar Credencial (PDF)
         </button>
       </div>
     </div>
@@ -486,6 +489,6 @@
     <!-- Contenedor Oculto para Imprimir Todos a la vez -->
     <div id="print-all-container" style="display: none"></div>
 
-    <script type="module" src="../../js/grupo_alumnos.js"></script>
+    <script type="module" src="../../js/grupo_alumnos.js?v=5"></script>
   </body>
 </html>

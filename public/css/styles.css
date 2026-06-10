@@ -1171,4 +1171,16 @@ textarea.form-control {
     margin-right: 15px;
     font-size: 0.85rem;
   }
+
+  /* ================================================================
+     MEJORAS DE RENDIMIENTO MÓVIL (BATERÍA Y LAG)
+     ================================================================ */
+  body {
+    animation: none !important; /* Desactiva el movimiento del fondo */
+  }
+  body::before,
+  body::after {
+    display: none !important; /* Oculta los orbes gigantes borrosos que traban la GPU */
+    animation: none !important;
+  }
 }

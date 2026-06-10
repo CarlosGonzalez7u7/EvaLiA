@@ -13,7 +13,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="../../css/styles.css?v=5" />
+    <link rel="stylesheet" href="../../css/styles.css?v=7" />
     <!-- Librería Chart.js para el gráfico de rendimiento -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -96,8 +96,9 @@
       /* En pantallas grandes siempre tabla normal */
       @media (min-width: 769px) {
         .table thead { display: table-header-group !important; }
-        .table tbody, .table tr, .table td, .table th { display: revert !important; }
-        .table td, .table th { white-space: nowrap; }
+        .table tbody { display: table-row-group !important; }
+        .table tr { display: table-row !important; }
+        .table td, .table th { display: table-cell !important; white-space: nowrap; }
         .excel-container { overflow-x: auto; }
         .excel-container table { min-width: max-content; }
       }
@@ -141,11 +142,11 @@
         }
         /* La tabla de calificaciones en móvil: scroll horizontal */
         .excel-container { overflow-x: auto; }
-        .excel-container table, .excel-container tbody,
-        .excel-container tr,  .excel-container td,
-        .excel-container th  { display: revert !important; }
+        .excel-container table { display: table !important; min-width: 600px; }
+        .excel-container tbody { display: table-row-group !important; }
+        .excel-container tr { display: table-row !important; }
+        .excel-container td, .excel-container th { display: table-cell !important; }
         .excel-container thead { display: table-header-group !important; }
-        .excel-container table { min-width: 600px; }
       }
 
       @media print {
@@ -364,6 +365,6 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/panel_alumno.js?v=13"></script>
+    <script type="module" src="../../js/panel_alumno.js?v=15"></script>
   </body>
 </html>
