@@ -68,9 +68,10 @@ try {
         $comentario = $input['comentario'] ?? null;
         if (empty(trim($comentario))) $comentario = null;
 
-        // Registrar Asistencia (Usando CURRENT_TIMESTAMP de la BD por seguridad)
-        $insert = $pdo->prepare("INSERT INTO asistencias (id_alumno, fecha_hora, estado, comentario) VALUES (?, CURRENT_TIMESTAMP, ?, ?)");
-        $insert->execute([$alumno['id_alumno'], $estado, $comentario]);
+        // Registrar Asistencia (Usando la hora de PHP con zona horaria correcta)
+        $ahora = date('Y-m-d H:i:s');
+        $insert = $pdo->prepare("INSERT INTO asistencias (id_alumno, fecha_hora, estado, comentario) VALUES (?, ?, ?, ?)");
+        $insert->execute([$alumno['id_alumno'], $ahora, $estado, $comentario]);
 
         // Obtener la hora registrada para mandarla de vuelta
         $fecha_hora = date('d/m/Y h:i A');

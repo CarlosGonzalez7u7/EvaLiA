@@ -45,14 +45,33 @@ document.addEventListener("DOMContentLoaded", () => {
     detenerEscaner();
   });
 
+  function playScannerBeep() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.type = "square";
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Frecuencia intensa
+
+      gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioCtx.currentTime + 1.0,
+      ); // 1.0 segundo de duración
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 1.0);
+    } catch (e) {}
+  }
+
   // Cuando detecta un QR exitosamente
   async function onScanSuccess(decodedText, decodedResult) {
     // Sonido de Escáner Fuerte
-    const scanSound = new Audio(
-      "https://www.myinstants.com/media/sounds/scanner-beep.mp3",
-    );
-    scanSound.volume = 1.0;
-    scanSound.play().catch((e) => console.log(e));
+    playScannerBeep();
 
     detenerEscaner();
 
