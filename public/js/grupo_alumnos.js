@@ -200,43 +200,64 @@ document.addEventListener("DOMContentLoaded", async () => {
     .getElementById("btn-descargar-credencial-pdf")
     ?.addEventListener("click", () => {
       const element = document.getElementById("credencial-print");
+      const modalContent = element.closest(".modal-content"); // El padre con scroll
 
       // Fix para evitar que html2canvas corte la imagen si hay scroll
       window.scrollTo(0, 0);
 
+      // Guardar estilos originales para restaurarlos después
+      const originalShadow = element.style.boxShadow;
+      const originalBorder = element.style.border;
+      const originalMaxWidth = element.style.maxWidth;
+      const originalWidth = element.style.width;
+      const originalMargin = element.style.margin;
+      const originalModalOverflow = modalContent.style.overflowY;
+      const originalModalMaxHeight = modalContent.style.maxHeight;
+
+      // Modificar estilos temporalmente para una captura correcta
+      element.style.boxShadow = "none";
+      element.style.border = "2px solid #8b5cf6";
+      element.style.maxWidth = "none";
+      element.style.width = "350px"; // Un ancho fijo consistente para la captura
+      element.style.margin = "0"; // CLAVE: Eliminar margin auto que desvía la captura a la derecha
+
+      modalContent.style.overflowY = "visible"; // Evita que el modal corte el contenido
+      modalContent.style.maxHeight = "none"; // Permite que el modal crezca para mostrar todo
+
+      // Calculamos las medidas exactas en Milímetros (1px = 0.264583 mm)
+      const pxToMm = 0.264583;
+      const pdfWidth = element.offsetWidth * pxToMm;
+      const pdfHeight = element.offsetHeight * pxToMm;
+
       const opt = {
-        margin: [10, 10, 10, 10], // Agregar márgenes para evitar cortes
+        margin: 0,
         filename: `Credencial_${currentCredencialName.replace(/\s+/g, "_")}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: {
           scale: 2,
           useCORS: true,
           backgroundColor: "#ffffff",
-          windowWidth: 800,
-        }, // Escala 2 reduce uso de memoria y evita fallos en móvil
+        },
         jsPDF: {
           unit: "mm",
-          format: "a4", // Usar A4 estándar para mayor compatibilidad
+          format: [pdfWidth + 1, pdfHeight + 1], // +1 para evitar recortes invisibles en los bordes
           orientation: "portrait",
         },
       };
-
-      const originalShadow = element.style.boxShadow;
-      const originalBorder = element.style.border;
-      const originalMaxWidth = element.style.maxWidth;
-
-      element.style.boxShadow = "none";
-      element.style.border = "2px solid #8b5cf6";
-      element.style.maxWidth = "350px"; // Limitar ancho para que quepa bien en el PDF
 
       html2pdf()
         .set(opt)
         .from(element)
         .save()
         .then(() => {
+          // Restaurar todos los estilos a su estado original
           element.style.boxShadow = originalShadow;
           element.style.border = originalBorder;
           element.style.maxWidth = originalMaxWidth;
+          element.style.width = originalWidth;
+          element.style.margin = originalMargin;
+          modalContent.style.overflowY = originalModalOverflow;
+          modalContent.style.maxHeight = originalModalMaxHeight;
         });
     });
 });
