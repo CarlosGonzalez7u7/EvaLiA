@@ -66,15 +66,49 @@
         gap: 15px;
       }
 
-      /* Estilos para volver la tabla en formato de lista en móviles */
+      .accordion-header {
+        background: rgba(30, 27, 75, 0.6);
+        padding: 15px 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+      }
+      .accordion-header:hover {
+        background: rgba(30, 27, 75, 0.8);
+        border-color: var(--secondary);
+      }
+      .accordion-content {
+        transition: all 0.3s ease;
+      }
+      .accordion-content.collapsed {
+        display: none;
+      }
+
+      /* ============================================================
+         TABLA RESPONSIVA — mobile: lista, tablet/pc: tabla real
+         ============================================================ */
+
+      /* En pantallas grandes siempre tabla normal */
+      @media (min-width: 769px) {
+        .table thead { display: table-header-group !important; }
+        .table tbody, .table tr, .table td, .table th { display: revert !important; }
+        .table td, .table th { white-space: nowrap; }
+        .excel-container { overflow-x: auto; }
+        .excel-container table { min-width: max-content; }
+      }
+
+      /* En móvil: tarjetas apiladas */
       @media (max-width: 768px) {
         .table, .table tbody, .table tr, .table td {
           display: block;
           width: 100%;
         }
-        .table thead {
-          display: none; /* Oculta la cabecera en móviles */
-        }
+        .table thead { display: none; }
         .table tr {
           margin-bottom: 15px;
           background: rgba(0, 0, 0, 0.2);
@@ -84,31 +118,49 @@
         }
         .table td {
           display: flex !important;
-          justify-content: space-between !important;
-          align-items: center !important;
-          text-align: right !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          text-align: left !important;
           padding: 12px 15px !important;
           border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-          gap: 10px;
+          gap: 5px;
           white-space: normal !important;
           word-wrap: break-word !important;
         }
-        .table td:last-child {
-          border-bottom: none;
-        }
+        .table td:last-child { border-bottom: none; }
         .table td::before {
           content: attr(data-label);
-          position: relative !important;
-          left: auto !important;
-          text-align: left;
           font-weight: bold;
-          color: var(--text-muted);
-          flex: 1;
-          padding-right: 10px;
+          color: var(--secondary);
+          font-size: 0.85rem;
+          display: block;
+          width: 100%;
+          border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+          padding-bottom: 5px;
+          margin-bottom: 5px;
         }
-        .table td > * {
-          flex-shrink: 0;
+        /* La tabla de calificaciones en móvil: scroll horizontal */
+        .excel-container { overflow-x: auto; }
+        .excel-container table, .excel-container tbody,
+        .excel-container tr,  .excel-container td,
+        .excel-container th  { display: revert !important; }
+        .excel-container thead { display: table-header-group !important; }
+        .excel-container table { min-width: 600px; }
+      }
+
+      @media print {
+        body > :not(#print-area) { display: none !important; }
+        #print-area {
+          display: block !important;
+          position: relative !important;
+          width: 100% !important;
+          background: white !important;
+          color: black !important;
         }
+        #print-area * { color: black !important; background: white !important; box-shadow: none !important; }
+        #print-area table { width: 100%; border-collapse: collapse; }
+        #print-area th, #print-area td { border: 1px solid #ccc !important; padding: 8px !important; text-align: left !important; }
+        @page { margin: 1cm; }
       }
     </style>
   </head>
@@ -118,24 +170,50 @@
         <img src="../../assets/Logo.png" alt="Logo EvaLiA" class="nav-logo" />
         EvaLiA
       </div>
-      <a
-        href="#"
-        id="btn-logout"
-        class="btn-cancel"
-        style="
-          padding: 10px 20px;
-          border-radius: 50px;
-          color: white;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          text-decoration: none;
-        "
-      >
-        <i class="fas fa-sign-out-alt"></i> Salir
-      </a>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button
+          onclick="iniciarTutorial()"
+          title="Iniciar tutorial guiado"
+          style="
+            padding: 10px 18px;
+            border-radius: 50px;
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.08);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: background 0.2s, border-color 0.2s;
+          "
+          onmouseover="this.style.background='rgba(245,158,11,0.18)'"
+          onmouseout="this.style.background='rgba(245,158,11,0.08)'"
+        >
+          <i class="fas fa-graduation-cap"></i>
+          <span class="hide-mobile">Tutorial</span>
+        </button>
+        <a
+          href="#"
+          id="btn-logout"
+          class="btn-cancel"
+          style="
+            padding: 10px 20px;
+            border-radius: 50px;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+          "
+        >
+          <i class="fas fa-sign-out-alt"></i> <span class="hide-mobile">Salir</span>
+        </a>
+      </div>
     </nav>
 
     <div class="panel-container">
@@ -286,6 +364,6 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/panel_alumno.js?v=8"></script>
+    <script type="module" src="../../js/panel_alumno.js?v=11"></script>
   </body>
 </html>
