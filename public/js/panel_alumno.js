@@ -1041,6 +1041,103 @@ function renderDashboard() {
     fechas_grupo,
   } = rawData;
 
+  if (!document.getElementById("student-mobile-styles")) {
+    const style = document.createElement("style");
+    style.id = "student-mobile-styles";
+    style.innerHTML = `
+        .mobile-only { display: none; }
+        .mobile-activity-card {
+            background: rgba(30, 27, 75, 0.5);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .mobile-activity-card:active {
+            transform: scale(0.98);
+            background: rgba(30, 27, 75, 0.8);
+        }
+        .mobile-activity-card .rubric-badge {
+            font-size: 0.72rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: white;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        @media (max-width: 768px) {
+            .mobile-only { display: block; }
+            .desktop-only { display: none !important; }
+        }
+    `;
+    document.head.appendChild(style);
+  }
+
+  let currentFiltro = window.currentFiltroPeriodo;
+  if (currentFiltro === undefined) {
+    const pActivo = periodos.find((p) => p.activo == 1);
+    window.currentFiltroPeriodo = pActivo
+      ? pActivo.id_periodo.toString()
+      : "all";
+    currentFiltro = window.currentFiltroPeriodo;
+  }
+
+  let selectorDiv = document.getElementById("periodo-selector-container");
+  if (!selectorDiv) {
+    selectorDiv = document.createElement("div");
+    selectorDiv.id = "periodo-selector-container";
+    selectorDiv.style.marginBottom = "20px";
+    selectorDiv.style.display = "flex";
+    selectorDiv.style.alignItems = "center";
+    selectorDiv.style.flexWrap = "wrap";
+    selectorDiv.style.gap = "15px";
+    selectorDiv.style.background = "rgba(15, 23, 42, 0.6)";
+    selectorDiv.style.padding = "15px 20px";
+    selectorDiv.style.borderRadius = "12px";
+    selectorDiv.style.border = "1px solid rgba(255,255,255,0.1)";
+
+    selectorDiv.innerHTML = `
+        <label style="color: var(--text-muted); font-weight: 600; margin: 0;"><i class="fas fa-filter"></i> Mostrar vista de:</label>
+        <select id="filtro-periodo-select" class="form-control" style="width: auto; flex: 1; max-width: 300px; padding: 10px; background: #1e1b4b; cursor: pointer;">
+            <option value="all">🌐 Global (Todos los periodos)</option>
+            ${periodos.map((p) => `<option value="${p.id_periodo}">📅 ${p.nombre_periodo} ${p.activo == 1 ? "(ACTIVO)" : ""}</option>`).join("")}
+        </select>
+    `;
+    const promGen = document.getElementById("promedio-general");
+    if (promGen) {
+      const statsContainer =
+        promGen.closest(".grid") ||
+        promGen.closest(".stats-row") ||
+        promGen.parentNode.parentNode;
+      statsContainer.parentNode.insertBefore(selectorDiv, statsContainer);
+    }
+    document.getElementById("filtro-periodo-select").value = currentFiltro;
+    document
+      .getElementById("filtro-periodo-select")
+      .addEventListener("change", (e) => {
+        window.currentFiltroPeriodo = e.target.value;
+        renderDashboard();
+      });
+  }
+
+  let btnAsisPdf = document.getElementById("btn-pdf-asistencias-global");
+  if (!btnAsisPdf) {
+    const asisTab = document.getElementById("tab-asistencias");
+    if (asisTab) {
+      const btnContainer = document.createElement("div");
+      btnContainer.style.marginBottom = "15px";
+      btnContainer.style.textAlign = "right";
+      btnContainer.innerHTML = `
+            <button id="btn-pdf-asistencias-global" class="btn btn-cancel" style="border-color: #8b5cf6; color: #8b5cf6; background: rgba(139, 92, 246, 0.1);" onclick="exportarPDFAsistenciasGlobal()">
+                <i class="fas fa-file-pdf"></i> Descargar Historial Completo PDF
+            </button>
+        `;
+      asisTab.insertBefore(btnContainer, asisTab.firstChild);
+    }
+  }
+
   const containerCalif = document.getElementById("contenedor-calificaciones");
   const containerAsis = document.getElementById("contenedor-asistencias");
   containerCalif.innerHTML = "";
@@ -1052,8 +1149,15 @@ function renderDashboard() {
   let periodosContados = 0;
   let chartLabels = [];
   let chartData = [];
+  let asisGlobalScore = 0;
+  let maxAsisGlobal = 0;
 
-  periodos.forEach((periodo) => {
+  let periodosARenderizar = periodos;
+  if (currentFiltro !== "all") {
+    periodosARenderizar = periodos.filter((p) => p.id_periodo == currentFiltro);
+  }
+
+  periodosARenderizar.forEach((periodo) => {
     const isActive = periodo.activo == 1;
     const badgeActivo = isActive
       ? `<span class="badge-active" style="background: var(--secondary); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; color: white; margin-left: 10px;">ACTIVO</span>`
@@ -1071,6 +1175,8 @@ function renderDashboard() {
 
     const btnExportar = `<button type="button" onclick="exportarPDFPeriodo(${periodo.id_periodo}, event)" class="btn btn-cancel" style="padding: 6px 12px; font-size: 0.85rem; border-color: #ef4444; color: #ef4444; background: transparent;" title="Exportar a PDF"><i class="fas fa-file-pdf"></i><span class="hide-mobile" style="margin-left: 5px;">PDF</span></button>`;
 
+    const isExpanded = currentFiltro !== "all" || isActive;
+
     let htmlCalif = `<div class="accordion-header" onclick="toggleAccordion('calif-${periodo.id_periodo}', this, event)">
                       <div style="display: flex; align-items: center; gap: 10px;">
                         <h4 style="color: var(--primary); margin: 0; font-size: 1.2rem;">${periodo.nombre_periodo}</h4>
@@ -1078,20 +1184,20 @@ function renderDashboard() {
                       </div>
                       <div style="display: flex; align-items: center; gap: 15px;">
                         ${btnExportar}
-                        <i class="fas fa-chevron-${isActive ? "up" : "down"}" style="color: var(--text-muted);"></i>
+                        <i class="fas fa-chevron-${isExpanded ? "up" : "down"}" style="color: var(--text-muted);"></i>
                       </div>
                     </div>`;
 
-    htmlCalif += `<div id="calif-${periodo.id_periodo}" class="accordion-content ${isActive ? "" : "collapsed"}">
-                  <div class="excel-container" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; overflow: auto; max-width: 100%;">
+    htmlCalif += `<div id="calif-${periodo.id_periodo}" class="accordion-content ${isExpanded ? "" : "collapsed"}">
+                  <div class="desktop-only excel-container" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; overflow: auto; max-width: 100%;">
                   <table class="table responsive-table" style="margin: 0; min-width: max-content;">`;
 
     let htmlAsis = `<div class="accordion-header" onclick="toggleAccordion('asis-${periodo.id_periodo}', this, event)">
                       <div style="display: flex; align-items: center; gap: 10px;"><h4 style="color: var(--primary); margin: 0; font-size: 1.2rem;">${periodo.nombre_periodo}</h4> ${badgeActivo}</div>
-                      <i class="fas fa-chevron-${isActive ? "up" : "down"}" style="color: var(--text-muted);"></i>
+                      <i class="fas fa-chevron-${isExpanded ? "up" : "down"}" style="color: var(--text-muted);"></i>
                     </div>`;
-    htmlAsis += `<div id="asis-${periodo.id_periodo}" class="accordion-content ${isActive ? "" : "collapsed"}">
-                 <div class="table-container" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; overflow-x: auto;">
+    htmlAsis += `<div id="asis-${periodo.id_periodo}" class="accordion-content ${isExpanded ? "" : "collapsed"}">
+                 <div class="desktop-only table-container" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; overflow-x: auto;">
                  <table class="table responsive-table" style="margin: 0; min-width: 500px;">
                  <thead style="position: sticky; top: 0; background: #0f172a; z-index: 10;">
                    <tr><th>Fecha</th><th>Estado</th><th>Comentario / Justificación</th></tr>
@@ -1129,12 +1235,18 @@ function renderDashboard() {
     let maxAsisPeriodo = fechasGrupoPeriodo.length || 1;
     let asisScore = 0;
 
+    asisPeriodo.forEach((a) => {
+      if (a.estado === "Asistencia") asisScore += 1;
+      else if (a.estado === "Retardo") asisScore += 0.5;
+    });
+
+    asisGlobalScore += asisScore;
+    maxAsisGlobal += fechasGrupoPeriodo.length || 0;
+
     if (asisPeriodo.length === 0) {
       htmlAsis += `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 24px;">Sin registros en este periodo.</td></tr>`;
     } else {
       asisPeriodo.forEach((a) => {
-        if (a.estado === "Asistencia") asisScore += 1;
-        else if (a.estado === "Retardo") asisScore += 0.5;
         let color = "white",
           icon = "";
         if (a.estado === "Asistencia") {
@@ -1154,7 +1266,43 @@ function renderDashboard() {
         </tr>`;
       });
     }
-    htmlAsis += `</tbody></table></div></div>`;
+    htmlAsis += `</tbody></table></div>`;
+
+    // --- MOBILE CARDS (ASISTENCIA) ---
+    htmlAsis += `<div class="mobile-only" style="padding: 10px 0;">`;
+    let asisPeriodoDesc = [...asisPeriodo].sort(
+      (a, b) => new Date(b.fecha_hora) - new Date(a.fecha_hora),
+    );
+    if (asisPeriodoDesc.length === 0) {
+      htmlAsis += `<p style="text-align: center; color: var(--text-muted); padding: 20px;">Sin registros en este periodo.</p>`;
+    } else {
+      asisPeriodoDesc.forEach((a) => {
+        let color = "white",
+          icon = "";
+        if (a.estado === "Asistencia") {
+          color = "#10b981";
+          icon = "fa-check-circle";
+        } else if (a.estado === "Falta") {
+          color = "#ef4444";
+          icon = "fa-times-circle";
+        } else if (a.estado === "Retardo") {
+          color = "#f59e0b";
+          icon = "fa-clock";
+        }
+
+        htmlAsis += `
+            <div class="mobile-activity-card" style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h5 style="color: var(--text-light); margin-bottom:6px; font-size: 0.95rem;"><i class="fas fa-calendar-day" style="color: var(--primary);"></i> ${a.fecha_hora.substring(0, 10).split("-").reverse().join("/")}</h5>
+                    <span style="font-size:0.85rem; color: var(--text-muted);">${a.comentario ? "📝 " + a.comentario : "Sin justificación / comentarios"}</span>
+                </div>
+                <div style="color: ${color}; font-weight: 800; font-size: 1rem; text-align:right;">
+                    <i class="fas ${icon}" style="margin-bottom: 4px; font-size: 1.2rem;"></i><br>${a.estado}
+                </div>
+            </div>`;
+      });
+    }
+    htmlAsis += `</div></div>`;
     containerAsis.innerHTML += htmlAsis;
 
     rubricasPeriodo.forEach((rubrica) => {
@@ -1247,7 +1395,74 @@ function renderDashboard() {
         : "text-danger";
     tbodyHtml += `<td data-label="Promedio Final" class="cell-promedio ${colorClass}" style="font-size: 1.3rem; font-weight: 800; position: sticky; right: 0; z-index: 5; background: rgba(15,23,42,0.97); border-left: 1px solid rgba(255,255,255,0.1);">${promedioRealPeriodo > 0 ? promedioRealPeriodo.toFixed(1) : "0.0"}</td></tr></tbody>`;
 
-    htmlCalif += theadHtml + tbodyHtml + `</table></div></div>`;
+    htmlCalif += theadHtml + tbodyHtml + `</table></div>`;
+
+    // --- MOBILE CARDS (CALIFICACIONES) ---
+    htmlCalif += `<div class="mobile-only" style="padding: 10px 0;">`;
+    let actividadesMobiles = actividadesDelPeriodo.map((acto) => {
+      const rubrica = rubricasPeriodo.find(
+        (r) => r.id_rubrica == acto.id_rubrica,
+      );
+      const calif = calificaciones.find(
+        (c) => c.id_actividad == acto.id_actividad,
+      );
+      return { ...acto, rubrica, calif };
+    });
+    actividadesMobiles.sort(
+      (a, b) =>
+        (b.fecha_entrega ? new Date(b.fecha_entrega) : new Date(0)) -
+        (a.fecha_entrega ? new Date(a.fecha_entrega) : new Date(0)),
+    );
+
+    if (actividadesMobiles.length === 0) {
+      htmlCalif += `<p style="text-align: center; color: var(--text-muted); padding: 20px;">Sin actividades en este periodo.</p>`;
+    } else {
+      actividadesMobiles.forEach((acto) => {
+        const rubColor = acto.rubrica ? acto.rubrica.color : "#8b5cf6";
+        const rubCat = acto.rubrica ? acto.rubrica.categoria : "General";
+        const nota =
+          acto.calif && acto.calif.puntaje !== null && acto.calif.puntaje !== ""
+            ? acto.calif.puntaje
+            : "";
+        const notaDisplay = nota !== "" ? parseFloat(nota).toFixed(1) : "—";
+        const isDanger =
+          nota !== "" && parseFloat(nota) < grupo.calificacion_minima
+            ? "color: #ef4444;"
+            : nota !== ""
+              ? "color: #10b981;"
+              : "color: var(--text-light);";
+        const fechaStr = acto.fecha_entrega
+          ? acto.fecha_entrega.split("-").reverse().join("/")
+          : "Sin fecha";
+
+        htmlCalif += `
+        <div class="mobile-activity-card" onclick="abrirDetalleActividad(${acto.id_actividad})" style="cursor:pointer;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+             <span class="rubric-badge" style="background: ${rubColor}">${rubCat}</span>
+             <span style="color: var(--text-muted); font-size: 0.8rem;"><i class="fas fa-calendar-alt"></i> ${fechaStr}</span>
+          </div>
+          <h4 style="margin-bottom: 12px; color: var(--text-light); font-size: 1.05rem; line-height: 1.3;">${acto.nombre_actividad}</h4>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
+             <span style="font-size: 0.85rem; color: var(--text-muted);">Calificación:</span>
+             <strong style="font-size: 1.15rem; ${isDanger}">${notaDisplay}<span style="font-size: 0.8rem; color: var(--text-muted);"> / 10</span></strong>
+          </div>
+        </div>`;
+      });
+    }
+
+    htmlCalif += `
+        <div class="mobile-activity-card" style="background: rgba(15, 23, 42, 0.9); border-color: var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 0.9rem; color: var(--text-light);"><i class="fas fa-user-check" style="color: var(--primary);"></i> Asistencias</span>
+                <strong style="font-size: 1rem; color: var(--text-light);">${asisScore} / ${maxAsisPeriodo}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.9rem; color: var(--text-light);"><i class="fas fa-graduation-cap" style="color: var(--secondary);"></i> Promedio Parcial</span>
+                <strong style="font-size: 1.25rem; color: ${promedioRealPeriodo >= grupo.calificacion_minima ? "#10b981" : "#ef4444"};">${promedioRealPeriodo > 0 ? promedioRealPeriodo.toFixed(1) : "0.0"}</strong>
+            </div>
+        </div>
+    </div></div>`;
+
     containerCalif.innerHTML += htmlCalif;
 
     const periodoYaIniciado = tieneCalificaciones || asisScore > 0 || !isActive;
@@ -1318,16 +1533,122 @@ function renderDashboard() {
       ? "status-aprobado"
       : "status-reprobado";
 
-  let asisGlobalScore = 0;
-  asistencias.forEach((a) => {
-    if (a.estado === "Asistencia") asisGlobalScore += 1;
-    else if (a.estado === "Retardo") asisGlobalScore += 0.5;
-  });
+  if (maxAsisGlobal === 0) maxAsisGlobal = 1;
   document.getElementById("porcentaje-asistencia").innerText =
-    `${Math.min(Math.round((asisGlobalScore / (fechas_grupo.length || 1)) * 100), 100)}%`;
+    `${Math.min(Math.round((asisGlobalScore / maxAsisGlobal) * 100), 100)}%`;
   document.getElementById("tareas-entregadas").innerText =
     `${evalCountGlobal}/${tareasTotalesDelCiclo}`;
 }
+
+window.exportarPDFAsistenciasGlobal = function () {
+  if (!rawData) return;
+  const { alumno, grupo, asistencias } = rawData;
+
+  let asisDesc = [...asistencias].sort(
+    (a, b) => new Date(b.fecha_hora) - new Date(a.fecha_hora),
+  );
+  const fechaReporte = new Date().toLocaleDateString("es-MX", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  let asisScore = 0;
+  asisDesc.forEach((a) => {
+    if (a.estado === "Asistencia") asisScore += 1;
+    else if (a.estado === "Retardo") asisScore += 0.5;
+  });
+
+  const maxAsis = rawData.fechas_grupo ? rawData.fechas_grupo.length : 1;
+  const porcentaje = Math.min(
+    Math.round((asisScore / (maxAsis || 1)) * 100),
+    100,
+  );
+
+  let rowsHtml = "";
+  if (asisDesc.length === 0) {
+    rowsHtml = `<tr><td colspan="3" style="text-align: center; color: #9ca3af; padding: 16px;">Sin registros de asistencia.</td></tr>`;
+  } else {
+    asisDesc.forEach((a) => {
+      const colorAs =
+        a.estado === "Asistencia"
+          ? "#10b981"
+          : a.estado === "Retardo"
+            ? "#f59e0b"
+            : "#ef4444";
+      const iconAs =
+        a.estado === "Asistencia" ? "✓" : a.estado === "Retardo" ? "◔" : "✗";
+      const fecha = a.fecha_hora
+        .substring(0, 10)
+        .split("-")
+        .reverse()
+        .join("/");
+      rowsHtml += `
+        <tr>
+          <td style="padding: 9px 14px; border-bottom: 1px solid #f3f4f6; color: #374151; font-size: 0.9em;">${fecha}</td>
+          <td style="padding: 9px 14px; border-bottom: 1px solid #f3f4f6; color: ${colorAs}; font-weight: 700; font-size: 0.9em;">${iconAs} ${a.estado}</td>
+          <td style="padding: 9px 14px; border-bottom: 1px solid #f3f4f6; color: #6b7280; font-size: 0.88em;">${a.comentario || "—"}</td>
+        </tr>
+      `;
+    });
+  }
+
+  const htmlPDF = `<!DOCTYPE html>
+  <html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <title>Historial de Asistencia — ${alumno.nombre}</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+      body { font-family: 'Inter', sans-serif; background: #fff; color: #111827; padding: 40px; font-size: 13px; }
+      .header { border-bottom: 3px solid #8b5cf6; padding-bottom: 20px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
+      .title { font-size: 1.8rem; font-weight: 800; color: #1e1b4b; margin-bottom: 5px; }
+      .subtitle { color: #6b7280; font-size: 0.9rem; }
+      .stats { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 15px; margin-bottom: 25px; display: flex; justify-content: space-around; }
+      .stat-item { text-align: center; }
+      .stat-val { font-size: 1.4rem; font-weight: 800; color: #8b5cf6; }
+      .stat-lbl { font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+      table { width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+      th { background: #374151; color: white; padding: 12px 14px; text-align: left; font-weight: 600; }
+      .footer { margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px; font-size: 0.75rem; color: #9ca3af; text-align: space-between; display: flex; }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div>
+        <div class="title">Historial de Asistencia</div>
+        <div class="subtitle">${alumno.nombre} · ${grupo.nombre_grupo} · Ciclo: ${grupo.ciclo_escolar}</div>
+      </div>
+      <div style="text-align: right; color: #9ca3af; font-size: 0.8rem;">
+        Generado el ${fechaReporte}
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat-item"><div class="stat-val">${asisScore} / ${maxAsis}</div><div class="stat-lbl">Asistencias Registradas</div></div>
+      <div class="stat-item"><div class="stat-val">${porcentaje}%</div><div class="stat-lbl">Porcentaje de Asistencia</div></div>
+    </div>
+    <table>
+      <thead><tr><th style="width: 25%;">Fecha</th><th style="width: 25%;">Estado</th><th style="width: 50%;">Comentarios</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <div class="footer">
+      <div>EvaLiA — Reporte Oficial</div>
+      <div>${alumno.nombre}</div>
+    </div>
+    <script>window.onload = () => { window.print(); };</script>
+  </body>
+  </html>`;
+
+  const blob = new Blob([htmlPDF], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Asistencias_${alumno.nombre.replace(/\s+/g, "_")}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+};
 
 // ================================================================
 //  DETALLE DE ACTIVIDAD
