@@ -83,21 +83,31 @@
           padding: 10px;
         }
         .table td {
-          text-align: right;
-          padding-left: 45% !important;
-          position: relative;
+          display: flex !important;
+          justify-content: space-between !important;
+          align-items: center !important;
+          text-align: right !important;
+          padding: 12px 15px !important;
           border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          gap: 10px;
+          white-space: normal !important;
+          word-wrap: break-word !important;
         }
         .table td:last-child {
           border-bottom: none;
         }
         .table td::before {
           content: attr(data-label);
-          position: absolute;
-          left: 10px;
+          position: relative !important;
+          left: auto !important;
           text-align: left;
           font-weight: bold;
           color: var(--text-muted);
+          flex: 1;
+          padding-right: 10px;
+        }
+        .table td > * {
+          flex-shrink: 0;
         }
       }
     </style>
@@ -250,6 +260,32 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/panel_alumno.js?v=5"></script>
+    <!-- Modal para Detalles de Actividad -->
+    <div id="modal-detalle-actividad" class="modal-overlay">
+      <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+          <h2 style="color: var(--primary);"><i class="fas fa-tasks"></i> Detalles de la Actividad</h2>
+          <button type="button" onclick="document.getElementById('modal-detalle-actividad').classList.remove('active')" class="btn-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <h3 id="detalle-nombre" style="color: white; margin-bottom: 5px; word-wrap: break-word;"></h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;"><i class="fas fa-calendar-alt"></i> Fecha de entrega: <span id="detalle-fecha"></span></p>
+        </div>
+        <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05);">
+          <h4 style="color: var(--secondary); margin-bottom: 10px;">Instrucciones:</h4>
+          <div id="detalle-descripcion" style="color: var(--text-light); line-height: 1.5; font-size: 0.95rem; overflow-x: auto;"></div>
+        </div>
+        <div id="detalle-enlace-container" style="display: none; margin-bottom: 20px;">
+          <a id="detalle-enlace" href="#" target="_blank" class="btn btn-maestro" style="width: 100%; justify-content: center;">
+            <i class="fas fa-external-link-alt"></i> Abrir Enlace de la Tarea
+          </a>
+        </div>
+        <button onclick="document.getElementById('modal-detalle-actividad').classList.remove('active')" class="btn btn-cancel" style="width: 100%; justify-content: center;">Cerrar</button>
+      </div>
+    </div>
+
+    <script type="module" src="../../js/panel_alumno.js?v=8"></script>
   </body>
 </html>

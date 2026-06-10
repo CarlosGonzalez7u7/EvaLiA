@@ -110,20 +110,26 @@ function renderDashboard() {
 
   let sumaTotalGlobal = 0;
   let evalCountGlobal = 0;
+  let tareasTotalesDelCiclo = 0;
   let periodosContados = 0; // Para el promedio justo
   let chartLabels = [];
   let chartData = [];
-
-  // Averiguar hasta qué periodo debe promediar (Periodo Activo o el último)
-  let idxActivo = periodos.findIndex((p) => p.activo == 1);
-  if (idxActivo === -1) idxActivo = periodos.length - 1;
-  let indexPeriodo = 0;
 
   periodos.forEach((periodo) => {
     const isActive = periodo.activo == 1;
     const badgeActivo = isActive
       ? `<span class="badge-active" style="background: var(--secondary); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; color: white; margin-left: 10px;">ACTIVO</span>`
       : "";
+
+    const actividadesDelPeriodo = actividades.filter(
+      (a) => a.id_periodo === periodo.id_periodo,
+    );
+    const tieneCalificaciones = actividadesDelPeriodo.some((a) => {
+      const calif = calificaciones.find(
+        (c) => c.id_actividad == a.id_actividad,
+      );
+      return calif && calif.puntaje !== "" && calif.puntaje !== null;
+    });
 
     let htmlCalif = `<div class="accordion-header" onclick="toggleAccordion('calif-${periodo.id_periodo}', this)">
                         <h4 style="color: var(--primary); margin: 0; font-size: 1.2rem;">${periodo.nombre_periodo} ${badgeActivo}</h4>
@@ -147,6 +153,7 @@ function renderDashboard() {
     );
 
     let sumaPeriodo = 0;
+    let porcentajeEvaluadoPeriodo = 0;
     let theadHtml = `<thead class="hide-mobile"><tr><th class="hide-mobile" style="width: 50px; text-align: center;">N°</th><th class="hide-mobile" style="width: 250px;">Alumno</th>`;
     let tbodyHtml = `<tr><td class="hide-mobile" style="text-align: center; color: var(--text-muted); font-weight: bold;">${rawData.alumno.numero_lista || "-"}</td><th class="hide-mobile">${rawData.alumno.nombre}</th>`;
 
@@ -201,6 +208,7 @@ function renderDashboard() {
         const scoreAsis = (asisScore / max_asis_periodo) * 10;
         sumaPeriodo +=
           (scoreAsis > 10 ? 10 : scoreAsis) * (rubrica.porcentaje / 100);
+        porcentajeEvaluadoPeriodo += parseFloat(rubrica.porcentaje);
         theadHtml += `<th class="hide-mobile" style="white-space: normal; min-width: 120px; max-width: 150px; vertical-align: bottom;"><span style="color: ${color}; font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 5px;">${rubrica.categoria}</span><div style="background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); color: var(--text-light); text-align: center;"><i class="fas fa-user-check" style="color: ${color}; margin-right: 5px;"></i>Total (Calc)</div></th>`;
         tbodyHtml += `<td data-label="✅ ${rubrica.categoria} (Total)" style="text-align: center; vertical-align: middle; border-bottom: 2px solid ${color};"><strong>${asisScore}</strong> <span style="color: var(--text-muted); font-size: 0.8rem;">/ ${max_asis_periodo}</span> <span style="color: var(--secondary); font-size: 0.8rem; font-weight: bold; margin-left: 5px;">(Nota: ${scoreAsis.toFixed(1)})</span></td>`;
       } else {
@@ -214,14 +222,18 @@ function renderDashboard() {
           tbodyHtml += `<td data-label="📌 ${rubrica.categoria}">-</td>`;
         } else {
           let sumaRub = 0;
+          let evalRub = 0;
           actosRub.forEach((acto) => {
             const calif = calificaciones.find(
               (c) => c.id_actividad == acto.id_actividad,
             );
-            let nota = calif ? parseFloat(calif.puntaje) : "";
-            if (nota !== "") sumaRub += nota;
-            theadHtml += `<th class="hide-mobile" style="white-space: normal; min-width: 150px; max-width: 200px; vertical-align: bottom;"><span style="color: ${color}; font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 5px;">${rubrica.categoria}</span><div style="background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: inline-block; word-wrap: break-word; font-weight: normal; color: var(--text-light); width: 100%; text-align: left;"><div style="font-weight: 600;"><i class="fas fa-tasks" style="color: ${color}; margin-right: 5px;"></i>${acto.nombre_actividad}</div><div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;"><i class="fas fa-calendar-alt"></i> Entrega: ${acto.fecha_entrega.split("-").reverse().join("/")}</div></div></th>`;
-            const notaDisplay = nota !== "" ? nota.toFixed(1) : "-";
+            let nota = calif && calif.puntaje !== null ? calif.puntaje : "";
+            if (nota !== "") {
+               sumaRub += parseFloat(nota);
+               evalRub++;
+            }
+            theadHtml += `<th class="hide-mobile" style="white-space: normal; min-width: 150px; max-width: 200px; vertical-align: bottom;"><span style="color: ${color}; font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 5px;">${rubrica.categoria}</span><div onclick="abrirDetalleActividad(${acto.id_actividad})" style="cursor: pointer; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: inline-block; word-wrap: break-word; font-weight: normal; color: var(--text-light); width: 100%; text-align: left;" title="Ver detalles de actividad"><div style="font-weight: 600;"><i class="fas fa-tasks" style="color: ${color}; margin-right: 5px;"></i>${acto.nombre_actividad}</div><div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;"><i class="fas fa-calendar-alt"></i> Entrega: ${acto.fecha_entrega.split("-").reverse().join("/")}</div></div></th>`;
+            const notaDisplay = nota !== "" ? parseFloat(nota).toFixed(1) : "-";
             const isDanger =
               nota !== "" && nota < grupo.calificacion_minima
                 ? "text-danger"
@@ -230,31 +242,35 @@ function renderDashboard() {
               nota !== "" && nota >= grupo.calificacion_minima
                 ? "text-success"
                 : "";
-            tbodyHtml += `<td data-label="📌 ${acto.nombre_actividad}" style="text-align: center; vertical-align: middle; border-bottom: 2px solid ${color};" class="${isDanger} ${isSuccess}"><span style="font-size: 1.1rem; font-weight:bold;">${notaDisplay}</span> <span class="hide-mobile" style="font-size:0.8rem; color:var(--text-muted)">/ 10</span></td>`;
-            if (calif) evalCountGlobal++;
+            tbodyHtml += `<td data-label="📌 ${acto.nombre_actividad}" onclick="abrirDetalleActividad(${acto.id_actividad})" style="cursor: pointer; text-align: center; vertical-align: middle; border-bottom: 2px solid ${color};" class="${isDanger} ${isSuccess}" title="Ver detalles de actividad"><span style="font-size: 1.1rem; font-weight:bold;">${notaDisplay}</span> <span class="hide-mobile" style="font-size:0.8rem; color:var(--text-muted)">/ 10</span></td>`;
+            if (nota !== "") evalCountGlobal++;
           });
-          sumaPeriodo +=
-            (sumaRub / actosRub.length) * (rubrica.porcentaje / 100);
+          if (evalRub > 0) {
+            sumaPeriodo += (sumaRub / evalRub) * (rubrica.porcentaje / 100);
+            porcentajeEvaluadoPeriodo += parseFloat(rubrica.porcentaje);
+          }
         }
       }
     });
 
+    let promedioRealPeriodo = porcentajeEvaluadoPeriodo > 0 ? (sumaPeriodo / (porcentajeEvaluadoPeriodo / 100)) : 0;
+
     theadHtml += `<th class="cell-promedio hide-mobile" style="color: var(--primary);">Promedio del Periodo</th></tr></thead>`;
     const colorClass =
-      sumaPeriodo >= grupo.calificacion_minima ? "text-success" : "text-danger";
-    tbodyHtml += `<td data-label="🏆 Promedio del Periodo" class="cell-promedio ${colorClass}" style="font-size: 1.3rem;">${sumaPeriodo > 0 ? sumaPeriodo.toFixed(1) : "0.0"}</td></tr></tbody>`;
+      promedioRealPeriodo >= grupo.calificacion_minima ? "text-success" : "text-danger";
+    tbodyHtml += `<td data-label="🏆 Promedio del Periodo" class="cell-promedio ${colorClass}" style="font-size: 1.3rem;">${promedioRealPeriodo > 0 ? promedioRealPeriodo.toFixed(1) : "0.0"}</td></tr></tbody>`;
 
     htmlCalif += theadHtml + tbodyHtml + `</table></div></div>`;
     containerCalif.innerHTML += htmlCalif;
 
-    // Promedio Justo: Solo sumar periodos pasados o el actual
-    if (indexPeriodo <= idxActivo) {
-      sumaTotalGlobal += sumaPeriodo;
+    const periodoYaIniciado = tieneCalificaciones || asisScore > 0 || !isActive;
+    if (periodoYaIniciado) {
+      sumaTotalGlobal += promedioRealPeriodo;
       periodosContados++;
+      tareasTotalesDelCiclo += actividadesDelPeriodo.length;
     }
     chartLabels.push(periodo.nombre_periodo);
-    chartData.push(sumaPeriodo.toFixed(1));
-    indexPeriodo++;
+    chartData.push(promedioRealPeriodo.toFixed(1));
   });
 
   // Renderizar Gráfica
@@ -304,5 +320,43 @@ function renderDashboard() {
   document.getElementById("porcentaje-asistencia").innerText =
     `${Math.min(Math.round((asisGlobalScore / max_asis_global) * 100), 100)}%`;
   document.getElementById("tareas-entregadas").innerText =
-    `${evalCountGlobal}/${actividades.length}`;
+    `${evalCountGlobal}/${tareasTotalesDelCiclo}`;
 }
+
+window.abrirDetalleActividad = function (idActividad) {
+  if (!rawData || !rawData.actividades) return;
+
+  const actividad = rawData.actividades.find(
+    (a) => a.id_actividad == idActividad,
+  );
+  if (!actividad) return;
+
+  document.getElementById("detalle-nombre").innerText =
+    actividad.nombre_actividad;
+
+  if (actividad.fecha_entrega) {
+    const parts = actividad.fecha_entrega.split("-");
+    document.getElementById("detalle-fecha").innerText =
+      parts.length === 3
+        ? `${parts[2]}/${parts[1]}/${parts[0]}`
+        : actividad.fecha_entrega;
+  } else {
+    document.getElementById("detalle-fecha").innerText = "Sin fecha asignada";
+  }
+
+  document.getElementById("detalle-descripcion").innerHTML =
+    actividad.descripcion ||
+    "<em>Sin instrucciones detalladas proporcionadas por el profesor.</em>";
+
+  const enlaceContainer = document.getElementById("detalle-enlace-container");
+  const enlaceBtn = document.getElementById("detalle-enlace");
+
+  if (actividad.enlace && actividad.enlace.trim() !== "") {
+    enlaceBtn.href = actividad.enlace;
+    enlaceContainer.style.display = "block";
+  } else {
+    enlaceContainer.style.display = "none";
+  }
+
+  document.getElementById("modal-detalle-actividad").classList.add("active");
+};

@@ -497,6 +497,7 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
     tbody += `<tr><td style="text-align: center; color: var(--text-muted); font-weight: bold;">${nLista++}</td><th>${alumno.nombre}</th>`;
 
     let sumaFinal = 0; // Para el promedio total
+    let porcentajeEvaluado = 0; // Para escalar equitativamente
 
     data.rubricas.forEach((rubrica) => {
       if (rubrica.categoria.toLowerCase().includes("asistencia")) {
@@ -512,6 +513,7 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
 
         const scoreAsis = (asisScore / maxAsistencias) * 10;
         sumaFinal += scoreAsis * (rubrica.porcentaje / 100);
+        porcentajeEvaluado += parseFloat(rubrica.porcentaje);
 
         tbody += `<td style="text-align: center; vertical-align: middle;">
             <button onclick="verAsistencias(${alumno.id_alumno}, '${alumno.nombre}')" style="background: transparent; border: none; border-bottom: 2px solid ${rubrica.color || "#8b5cf6"}; cursor: pointer; color: white; width: 100%; padding: 10px 0; font-family: 'Inter', sans-serif;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" title="Ver/Editar Asistencias">
@@ -523,6 +525,7 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
           (a) => a.id_rubrica === rubrica.id_rubrica,
         );
         let sumaRubrica = 0;
+        let actsEvaluadas = 0;
 
         if (actos.length === 0) {
           tbody += `<td>-</td>`;
@@ -534,24 +537,33 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
                 c.id_alumno === alumno.id_alumno &&
                 c.id_actividad === a.id_actividad,
             );
-            const puntaje = calif ? parseFloat(calif.puntaje) : "";
-            if (puntaje !== "") sumaRubrica += puntaje;
+            const puntaje =
+              calif && calif.puntaje !== null ? calif.puntaje : "";
+            if (puntaje !== "") {
+              sumaRubrica += parseFloat(puntaje);
+              actsEvaluadas++;
+            }
 
             tbody += `<td>
                         <input type="number" class="grade-input" style="border-bottom: 2px solid ${rubrica.color || "#8b5cf6"};" data-alumno="${alumno.id_alumno}" data-actividad="${a.id_actividad}" value="${puntaje}" min="0" max="10" step="0.1" onblur="guardarCalificacion(this, ${minAprobatoria})">
                     </td>`;
           });
-          // Calcular el peso de esta rúbrica: (Promedio de sus actividades) * Porcentaje / 100
-          const promedioRubrica = sumaRubrica / actos.length;
-          sumaFinal += promedioRubrica * (rubrica.porcentaje / 100);
+          if (actsEvaluadas > 0) {
+            // Calcular el peso de esta rúbrica: (Promedio de sus actividades) * Porcentaje / 100
+            const promedioRubrica = sumaRubrica / actsEvaluadas;
+            sumaFinal += promedioRubrica * (rubrica.porcentaje / 100);
+            porcentajeEvaluado += parseFloat(rubrica.porcentaje);
+          }
         }
       }
     });
 
     // Columna de Promedio Final
+    let promedioReal =
+      porcentajeEvaluado > 0 ? sumaFinal / (porcentajeEvaluado / 100) : 0;
     const colorClass =
-      sumaFinal >= minAprobatoria ? "text-success" : "text-danger";
-    tbody += `<td class="cell-promedio ${colorClass}" id="promFinal-${alumno.id_alumno}">${sumaFinal > 0 ? sumaFinal.toFixed(1) : "0.0"}</td></tr>`;
+      promedioReal >= minAprobatoria ? "text-success" : "text-danger";
+    tbody += `<td class="cell-promedio ${colorClass}" id="promFinal-${alumno.id_alumno}">${promedioReal > 0 ? promedioReal.toFixed(1) : "0.0"}</td></tr>`;
   });
   tbody += `</tbody>`;
   tabla.innerHTML += tbody;
