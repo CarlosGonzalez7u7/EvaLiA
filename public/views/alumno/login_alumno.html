@@ -14,7 +14,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="../../css/styles.css?v=4" />
+    <link rel="stylesheet" href="../../css/styles.css?v=5" />
     <!-- Librería del Escáner QR -->
     <script
       src="https://unpkg.com/html5-qrcode"
@@ -67,7 +67,7 @@
         border-radius: 10px;
         overflow: hidden;
         display: none;
-        margin-bottom: 20px;
+        margin-top: 15px;
       }
     </style>
   </head>
@@ -88,22 +88,12 @@
           Ingresa con tus datos o escanea tu credencial
         </p>
 
-        <!-- Contenedor de la cámara -->
-        <div id="reader"></div>
-
         <button
           id="btn-scan-qr"
           class="btn btn-alumno"
           style="width: 100%; justify-content: center; margin-bottom: 10px"
         >
           <i class="fas fa-qrcode"></i> Escanear Código QR
-        </button>
-        <button
-          id="btn-stop-scan"
-          class="btn btn-cancel"
-          style="width: 100%; justify-content: center; display: none"
-        >
-          Detener Cámara
         </button>
 
         <div class="divider"><span>O ingresa tus datos</span></div>
@@ -168,6 +158,21 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/auth_alumno.js"></script>
+    <!-- Modal para el Escáner QR -->
+    <div id="modal-scanner" class="modal-overlay">
+      <div class="modal-content" style="max-width: 500px; text-align: center">
+        <div class="modal-header">
+          <h2 style="color: var(--secondary)">
+            <i class="fas fa-qrcode"></i> Escanea tu Credencial
+          </h2>
+          <button id="btn-close-scanner" class="btn-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div id="reader"></div>
+      </div>
+    </div>
+
+    <script type="module" src="../../js/auth_alumno.js?v=1"></script>
   </body>
 </html>

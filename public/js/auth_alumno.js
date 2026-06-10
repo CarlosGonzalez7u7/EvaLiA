@@ -7,7 +7,8 @@ window.mostrarAlerta = function (mensaje) {
 document.addEventListener("DOMContentLoaded", () => {
   const formLogin = document.getElementById("form-login-alumno");
   const btnScanQR = document.getElementById("btn-scan-qr");
-  const btnStopScan = document.getElementById("btn-stop-scan");
+  const modalScanner = document.getElementById("modal-scanner");
+  const btnCloseScanner = document.getElementById("btn-close-scanner");
   const readerDiv = document.getElementById("reader");
 
   let html5QrcodeScanner = null;
@@ -28,25 +29,31 @@ document.addEventListener("DOMContentLoaded", () => {
   // 2. INGRESO MEDIANTE CÁMARA Y QR
   btnScanQR.addEventListener("click", () => {
     readerDiv.style.display = "block";
-    btnScanQR.style.display = "none";
-    btnStopScan.style.display = "flex";
+    modalScanner.classList.add("active");
 
     // Inicializar el escáner de cámara
     html5QrcodeScanner = new Html5QrcodeScanner(
       "reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
+      { fps: 15, qrbox: { width: 250, height: 250 } },
       false,
     );
 
     html5QrcodeScanner.render(onScanSuccess, onScanFailure);
   });
 
-  btnStopScan.addEventListener("click", () => {
+  btnCloseScanner.addEventListener("click", () => {
     detenerEscaner();
   });
 
   // Cuando detecta un QR exitosamente
   async function onScanSuccess(decodedText, decodedResult) {
+    // Sonido de Escáner Fuerte
+    const scanSound = new Audio(
+      "https://www.myinstants.com/media/sounds/scanner-beep.mp3",
+    );
+    scanSound.volume = 1.0;
+    scanSound.play().catch((e) => console.log(e));
+
     detenerEscaner();
 
     // Enviar el token escaneado al servidor
@@ -65,8 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
       html5QrcodeScanner.clear();
     }
     readerDiv.style.display = "none";
-    btnScanQR.style.display = "flex";
-    btnStopScan.style.display = "none";
+    modalScanner.classList.remove("active");
   }
 
   // COMUNICACIÓN CON EL SERVIDOR PHP

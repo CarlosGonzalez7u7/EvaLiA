@@ -3,120 +3,638 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EvaLiA - Sistema de Gestión Escolar</title>
-
-    <!-- Favicon -->
+    <title>EvaLiA - Evaluación en Línea</title>
     <link rel="icon" type="image/x-icon" href="assets/Logo.ico" />
-
-    <!-- Fuentes -->
+    <link rel="stylesheet" href="css/styles.css" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap"
       rel="stylesheet"
     />
-
-    <!-- Íconos de FontAwesome -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
+    <style>
+      /* CSS específico para la presentación del index */
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden !important;
+        color: white;
+        font-family: "Inter", sans-serif;
+      }
 
-    <!-- Estilos separados -->
-    <link rel="stylesheet" href="css/styles.css?v=2" />
+      /* Fondo base sutil para index */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(
+          circle at 50% 50%,
+          #1e1b4b 0%,
+          #020617 100%
+        );
+        z-index: -1;
+      }
+
+      .slides-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      .slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 20px 20px 120px 20px;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: scale(0.95) translateY(30px);
+        z-index: 10;
+      }
+      .slide.active {
+        opacity: 1;
+        pointer-events: auto;
+        transform: scale(1) translateY(0);
+        z-index: 20;
+      }
+      .slide.exit {
+        opacity: 0;
+        transform: scale(1.05) translateY(-30px);
+        z-index: 10;
+      }
+
+      .slide-icon {
+        font-size: 6rem;
+        margin-bottom: 30px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: float 4s ease-in-out infinite;
+        filter: drop-shadow(0 10px 15px rgba(139, 92, 246, 0.3));
+      }
+      .slide h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 20px;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--secondary) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.2;
+      }
+      .slide p {
+        font-size: 1.25rem;
+        color: var(--text-light);
+        max-width: 750px;
+        line-height: 1.7;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      }
+
+      .controls {
+        position: fixed;
+        bottom: 50px;
+        left: 0;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        gap: 25px;
+        z-index: 100;
+        transition: opacity 0.5s;
+      }
+      .dots {
+        display: flex;
+        gap: 12px;
+      }
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      .dot.active {
+        background: var(--primary);
+        transform: scale(1.4);
+        box-shadow: 0 0 12px var(--primary);
+      }
+
+      .btn-start {
+        padding: 16px 45px;
+        font-size: 1.2rem;
+        font-weight: 700;
+        background: linear-gradient(
+          135deg,
+          var(--primary),
+          var(--primary-dark)
+        );
+        border: none;
+        border-radius: 50px;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: "Inter", sans-serif;
+        animation: pulseGlow 2.5s infinite;
+      }
+      .btn-start:hover {
+        transform: translateY(-4px) scale(1.03);
+        box-shadow: 0 15px 40px rgba(139, 92, 246, 0.6);
+      }
+
+      .role-selection {
+        display: flex;
+        gap: 25px;
+        margin-top: 40px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .role-card {
+        background: rgba(30, 27, 75, 0.45);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 24px;
+        padding: 40px 30px;
+        width: 280px;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(12px);
+        text-decoration: none;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+      .role-card i {
+        font-size: 4.5rem;
+        margin-bottom: 25px;
+        color: var(--primary);
+        transition: all 0.3s;
+      }
+      .role-card h3 {
+        font-size: 1.6rem;
+        margin-bottom: 12px;
+        font-weight: 700;
+      }
+      .role-card p {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        text-align: center;
+        line-height: 1.5;
+      }
+
+      /* Tarjeta Maestro Específica */
+      .role-card.teacher {
+        background: linear-gradient(
+          135deg,
+          rgba(13, 148, 136, 0.15),
+          rgba(15, 118, 110, 0.3)
+        );
+        border-color: rgba(20, 184, 166, 0.3);
+      }
+      .role-card.teacher i {
+        color: #2dd4bf;
+      }
+      .role-card.teacher:hover {
+        transform: translateY(-12px);
+        background: linear-gradient(
+          135deg,
+          rgba(13, 148, 136, 0.4),
+          rgba(15, 118, 110, 0.6)
+        );
+        box-shadow: 0 20px 50px rgba(13, 148, 136, 0.25);
+        border-color: #14b8a6;
+      }
+      .role-card.teacher:hover i {
+        animation: teachAnim 1s ease-in-out infinite;
+        color: #5eead4;
+      }
+
+      /* Tarjeta Alumno Específica */
+      .role-card.student {
+        background: linear-gradient(
+          135deg,
+          rgba(219, 39, 119, 0.15),
+          rgba(190, 24, 93, 0.3)
+        );
+        border-color: rgba(244, 114, 182, 0.3);
+      }
+      .role-card.student i {
+        color: #f472b6;
+      }
+      .role-card.student:hover {
+        transform: translateY(-12px);
+        background: linear-gradient(
+          135deg,
+          rgba(219, 39, 119, 0.4),
+          rgba(190, 24, 93, 0.6)
+        );
+        box-shadow: 0 20px 50px rgba(219, 39, 119, 0.25);
+        border-color: #f472b6;
+      }
+      .role-card.student:hover i {
+        animation: studyAnim 1s ease-in-out infinite;
+        color: #f9a8d4;
+      }
+
+      @keyframes teachAnim {
+        0%,
+        100% {
+          transform: rotate(0deg) scale(1.1);
+        }
+        25% {
+          transform: rotate(-10deg) scale(1.1);
+        }
+        75% {
+          transform: rotate(10deg) scale(1.1);
+        }
+      }
+      @keyframes studyAnim {
+        0%,
+        100% {
+          transform: translateY(0) scale(1.1);
+        }
+        50% {
+          transform: translateY(-10px) scale(1.1);
+        }
+      }
+
+      /* Botón Saltar Intro */
+      .btn-skip {
+        position: fixed;
+        top: 30px;
+        right: 30px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 50px;
+        cursor: pointer;
+        z-index: 1000;
+        font-family: "Inter", sans-serif;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.3s;
+        backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn-skip:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.05);
+      }
+      .btn-skip.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-20px);
+      }
+
+      @media (max-width: 768px) {
+        .slide h1 {
+          font-size: 2.5rem;
+        }
+        .slide p {
+          font-size: 1.1rem;
+          padding: 0 25px;
+        }
+        .slide-icon {
+          font-size: 4rem;
+          margin-bottom: 20px;
+        }
+        .role-selection {
+          flex-direction: column;
+          gap: 15px;
+          margin-top: 20px;
+        }
+        .role-card {
+          width: 100%;
+          max-width: 320px;
+          padding: 25px 20px;
+          flex-direction: row;
+          text-align: left;
+        }
+        .role-card i {
+          font-size: 3rem;
+          margin-bottom: 0;
+          margin-right: 20px;
+        }
+        .role-card h3 {
+          font-size: 1.3rem;
+          margin-bottom: 5px;
+        }
+        .role-card p {
+          font-size: 0.85rem;
+          text-align: left;
+        }
+        .btn-start {
+          font-size: 1.1rem;
+          padding: 14px 35px;
+        }
+        .controls {
+          bottom: 30px;
+        }
+        .btn-skip {
+          top: 15px;
+          right: 15px;
+          padding: 8px 15px;
+          font-size: 0.8rem;
+        }
+      }
+    </style>
   </head>
   <body class="no-scroll">
-    <!-- Pantalla de Carga (Telón) -->
+    <button id="btn-skip" class="btn-skip">
+      Saltar presentación <i class="fas fa-forward"></i>
+    </button>
+
+    <!-- Telón de carga animado de EvaLiA -->
     <div id="splash-screen">
-      <img
-        src="assets/Logo.png"
-        alt="Logo EvaLiA Animado"
-        class="splash-logo"
-      />
-      <div class="splash-text">EvaLiA</div>
+      <img src="assets/Logo.png" alt="EvaLiA Logo" class="splash-logo" />
+      <h1 class="splash-text">EvaLiA</h1>
     </div>
 
-    <!-- Barra de Navegación -->
-    <nav>
-      <div class="logo-container">
-        <img src="assets/Logo.png" alt="Logo EvaLiA" class="nav-logo" /> EvaLiA
+    <div class="slides-container" id="slides-container">
+      <!-- Slide 1 -->
+      <div class="slide active">
+        <i class="fas fa-rocket slide-icon"></i>
+        <h1>Bienvenido a EvaLiA</h1>
+        <p>
+          Imagina tener todas tus calificaciones, asistencias y reportes en un
+          solo lugar, sin perder papeles ni usar calculadoras.
+          <strong>Eso es EvaLiA.</strong> Un sistema diseñado para hacer la
+          escuela más fácil, rápida y moderna.
+        </p>
       </div>
-    </nav>
 
-    <!-- Sección Principal (Hero) -->
-    <section class="hero">
-      <h1 class="scroll-hidden">
-        El control total de tus clases,<br />ahora es automático.
-      </h1>
-      <p class="subtitle scroll-hidden">
-        EvaLiA es la plataforma definitiva diseñada para maestros. Automatiza
-        tus calificaciones con rúbricas personalizadas, pasa lista escaneando
-        códigos QR y permite a tus alumnos consultar su progreso en tiempo real.
-      </p>
+      <!-- Slide 2 -->
+      <div class="slide">
+        <i class="fas fa-chalkboard-teacher slide-icon"></i>
+        <h1>Para Maestros</h1>
+        <p>
+          Como profesor, olvídate de las hojas de cálculo complicadas. Aquí
+          podrás registrar tareas, crear rúbricas que se calculan solas, pasar
+          lista escaneando códigos QR en segundos, y descargar todos tus
+          reportes en Excel listos para imprimir.
+        </p>
+      </div>
 
-      <div class="buttons-container scroll-hidden">
-        <a href="views/maestro/login_maestro.html" class="btn btn-maestro">
-          <i class="fas fa-chalkboard-teacher"></i> Acceso Profesores
-        </a>
-        <a href="views/alumno/login_alumno.html" class="btn btn-alumno"
-          ><i class="fas fa-user-graduate"></i> Portal de Alumnos</a
+      <!-- Slide 3 -->
+      <div class="slide">
+        <i class="fas fa-user-graduate slide-icon"></i>
+        <h1>Para Alumnos</h1>
+        <p>
+          Como estudiante, ya no tendrás que preguntar "¿cuánto saqué?". Entra a
+          tu portal con tu credencial, mira gráficas de tu progreso, verifica
+          qué tareas te faltan y descarga tus boletas en PDF en cualquier
+          momento y desde tu celular.
+        </p>
+      </div>
+
+      <!-- Slide 4: SOPORTE Y DESARROLLADOR -->
+      <div class="slide">
+        <h1
+          style="
+            background: linear-gradient(135deg, #3b82f6, #2dd4bf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 25px;
+          "
         >
+          Soporte Técnico
+        </h1>
+
+        <div
+          style="
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            backdrop-filter: blur(10px);
+          "
+        >
+          <img
+            src="assets/yo.jpg"
+            alt="Desarrollador"
+            style="
+              width: 100px;
+              height: 100px;
+              border-radius: 50%;
+              object-fit: cover;
+              border: 3px solid #2dd4bf;
+              box-shadow: 0 8px 20px rgba(45, 212, 191, 0.3);
+              margin-bottom: 15px;
+            "
+          />
+          <p style="font-size: 1.1rem; color: #e2e8f0; margin-bottom: 15px">
+            Sistema desarrollado con ❤️ para mejorar la educación por:
+          </p>
+          <h3
+            style="
+              font-size: 1.6rem;
+              color: white;
+              margin-bottom: 5px;
+              font-weight: 800;
+            "
+          >
+            Ing. Juan Carlos Gonzalez Orozco
+          </h3>
+          <p
+            style="
+              font-size: 0.95rem;
+              color: var(--text-muted);
+              margin-bottom: 25px;
+              line-height: 1.4;
+            "
+          >
+            Alumno del Instituto Tecnológico Superior de Uruapan<br />
+            Profesor de la Escuela Pierre Faure
+          </p>
+
+          <div
+            style="
+              background: rgba(0, 0, 0, 0.3);
+              padding: 20px;
+              border-radius: 12px;
+              text-align: left;
+              display: inline-block;
+              width: 100%;
+              box-sizing: border-box;
+            "
+          >
+            <p style="font-size: 0.9rem; margin-bottom: 12px; color: #94a3b8">
+              <i
+                class="fas fa-bug"
+                style="color: #f43f5e; margin-right: 8px"
+              ></i>
+              ¿Problemas, dudas o sugerencias? Contáctame:
+            </p>
+            <p style="font-size: 1.05rem; margin-bottom: 8px; color: white">
+              <i
+                class="fab fa-whatsapp"
+                style="color: #10b981; margin-right: 8px; font-size: 1.2rem"
+              ></i>
+              <strong>452 112 3947</strong>
+            </p>
+            <p
+              style="
+                font-size: 1.05rem;
+                margin-bottom: 0;
+                color: white;
+                word-break: break-all;
+              "
+            >
+              <i
+                class="fas fa-envelope"
+                style="color: #3b82f6; margin-right: 8px; font-size: 1.2rem"
+              ></i>
+              <strong>gooj030829@itsuruapan.edu.mx</strong>
+            </p>
+          </div>
+        </div>
       </div>
-    </section>
 
-    <!-- Sección de Características -->
-    <section class="features">
-      <h2 class="scroll-hidden">Todo lo que necesitas en un solo lugar</h2>
-      <div class="grid">
-        <div class="card scroll-hidden">
-          <i class="fas fa-chart-pie card-icon"></i>
-          <h3>Rúbricas Configurables</h3>
-          <p>
-            Adapta el sistema a tu forma de enseñar. Define tus porcentajes
-            (Tareas 40%, Examen 30%, Participación 20%, etc.) y EvaLiA calculará
-            las calificaciones finales de forma automática en cada
-            actualización.
-          </p>
+      <!-- Slide 5 -->
+      <div class="slide" id="final-slide">
+        <div
+          style="
+            background: white;
+            padding: 15px 25px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+          "
+        >
+          <img
+            src="assets/Logo.png"
+            alt="EvaLiA Logo"
+            style="height: 85px; object-fit: contain; display: block"
+          />
         </div>
+        <h1 style="margin-bottom: 10px">¿Listo para comenzar?</h1>
+        <p>
+          Selecciona tu perfil para iniciar sesión y acceder a tu portal mágico.
+        </p>
 
-        <div class="card scroll-hidden">
-          <i class="fas fa-qrcode card-icon"></i>
-          <h3>Pase de Lista QR</h3>
-          <p>
-            Despídete de perder tiempo pasando lista. Genera un código QR único
-            para cada estudiante, escanéalo con tu dispositivo y registra
-            automáticamente la asistencia con fecha y hora exacta.
-          </p>
-        </div>
-
-        <div class="card scroll-hidden">
-          <i class="fas fa-bolt card-icon"></i>
-          <h3>Actualización en Tiempo Real</h3>
-          <p>
-            Tanto maestros como alumnos ven la misma información. Si te
-            equivocas en una calificación o asistencia, corrígelo con un clic y
-            el promedio se recalculará al instante para todos.
-          </p>
-        </div>
-
-        <div class="card scroll-hidden">
-          <i class="fas fa-shield-alt card-icon"></i>
-          <h3>Seguro y Multi-maestro</h3>
-          <p>
-            Alojado en la nube. Crea tu cuenta de forma segura vinculándola con
-            Google y comienza a gestionar todos tus grupos. Diseñado para
-            soportar múltiples profesores trabajando en simultáneo.
-          </p>
+        <div class="role-selection">
+          <a href="views/maestro/login_maestro.html" class="role-card teacher">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <div>
+              <h3 style="color: #5eead4">Soy Maestro</h3>
+              <p style="color: #ccfbf1">
+                Accede para administrar tus clases y evaluar a tus alumnos.
+              </p>
+            </div>
+          </a>
+          <a href="views/alumno/login_alumno.html" class="role-card student">
+            <i class="fas fa-book-reader"></i>
+            <div>
+              <h3 style="color: #f9a8d4">Soy Alumno</h3>
+              <p style="color: #fce7f3">
+                Ingresa para ver tu rendimiento y descargar tus calificaciones.
+              </p>
+            </div>
+          </a>
         </div>
       </div>
-    </section>
+    </div>
 
-    <footer>
-      <p>
-        &copy; 2026 EvaLiA - Sistema de Gestión Escolar. Todos los derechos
-        reservados.
-      </p>
-    </footer>
+    <div class="controls" id="controls">
+      <button class="btn-start" id="btn-next">
+        <span>Iniciar Viaje</span> <i class="fas fa-arrow-right"></i>
+      </button>
+      <div class="dots" id="dots-container">
+        <div class="dot active" data-index="0"></div>
+        <div class="dot" data-index="1"></div>
+        <div class="dot" data-index="2"></div>
+        <div class="dot" data-index="3"></div>
+        <div class="dot" data-index="4"></div>
+      </div>
+    </div>
 
-    <!-- Scripts separados -->
+    <!-- Cargar app.js para mantener activa la pantalla del telón de carga al inicio -->
     <script src="js/app.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const slides = document.querySelectorAll(".slide");
+        const dots = document.querySelectorAll(".dot");
+        const btnNext = document.getElementById("btn-next");
+        const btnSkip = document.getElementById("btn-skip");
+        const controls = document.getElementById("controls");
+        let currentSlide = 0;
+
+        function goToSlide(index) {
+          if (index === currentSlide) return;
+
+          slides[currentSlide].classList.remove("active");
+          slides[currentSlide].classList.add("exit");
+          dots[currentSlide].classList.remove("active");
+
+          setTimeout(() => {
+            slides.forEach((s) => s.classList.remove("exit"));
+          }, 800); // Esperar que termine la transición de salida
+
+          currentSlide = index;
+
+          slides[currentSlide].classList.add("active");
+          dots[currentSlide].classList.add("active");
+
+          if (currentSlide === slides.length - 1) {
+            controls.style.opacity = "0";
+            btnSkip.classList.add("hidden");
+            setTimeout(() => (controls.style.display = "none"), 500);
+          } else {
+            controls.style.display = "flex";
+            btnSkip.classList.remove("hidden");
+            setTimeout(() => (controls.style.opacity = "1"), 10);
+            btnNext.innerHTML =
+              '<span>Siguiente</span> <i class="fas fa-arrow-right"></i>';
+          }
+        }
+
+        btnNext.addEventListener("click", () => {
+          if (currentSlide < slides.length - 1) goToSlide(currentSlide + 1);
+        });
+
+        dots.forEach((dot) =>
+          dot.addEventListener("click", () =>
+            goToSlide(parseInt(dot.getAttribute("data-index"))),
+          ),
+        );
+
+        btnSkip.addEventListener("click", () => {
+          goToSlide(slides.length - 1);
+        });
+      });
+    </script>
   </body>
 </html>

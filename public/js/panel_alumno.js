@@ -1017,6 +1017,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     renderDashboard();
+
+    // Sonido de bienvenida (Estilo Windows 7)
+    const welcomeSound = new Audio(
+      "https://www.myinstants.com/media/sounds/windows-7-startup-sound.mp3",
+    );
+    welcomeSound.volume = 0.5;
+    welcomeSound
+      .play()
+      .catch((e) => console.log("Auto-play blocked by browser."));
   } catch (error) {
     console.error("Error al cargar portal:", error);
   }
