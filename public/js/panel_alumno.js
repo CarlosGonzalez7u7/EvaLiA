@@ -49,6 +49,8 @@ window.solicitarNotificaciones = function () {
 
 let rawData = null;
 let rendimientoChartInstance = null;
+let rubricasChartInstance = null;
+let asistenciasChartInstance = null;
 
 // ================================================================
 //  TUTORIAL INTERACTIVO
@@ -60,76 +62,63 @@ const tutorialSteps = [
     description:
       "Aquí aparece tu nombre. Cada vez que entres, este es tu espacio personal donde puedes ver todo tu desempeño académico.",
     position: "bottom",
+    tab: "tab-dashboard",
   },
   {
-    target: ".stat-card:nth-child(1)",
+    target: ".stat-card:nth-child(1), #promedio-general",
     title: "📊 Promedio General",
     description:
       "Este número es tu promedio ponderado del periodo seleccionado. Considera el peso de cada categoría (rúbrica) definida por tu maestro.",
     position: "bottom",
+    tab: "tab-dashboard",
   },
   {
-    target: ".stat-card:nth-child(2)",
-    title: "📅 Porcentaje de Asistencia",
-    description:
-      "Muestra qué tan seguido has asistido a clases. Un retardo cuenta como media asistencia. Este porcentaje puede afectar tu calificación si tu maestro lo tiene configurado.",
-    position: "bottom",
-  },
-  {
-    target: ".stat-card:nth-child(3)",
+    target: "#tareas-entregadas",
     title: "✅ Actividades Entregadas",
     description:
-      "Aquí ves cuántas actividades ya tienen calificación registrada del total del ciclo. Si ves '3/8', significa que tienes 3 actividades calificadas de 8 en total.",
+      "Aquí ves cuántas actividades ya tienen calificación registrada del total. Si ves '4/4', significa que completaste todas.",
     position: "bottom",
+    tab: "tab-dashboard",
   },
   {
-    target: ".stat-card:nth-child(4)",
-    title: "🏆 Tu Estado Actual",
+    target: "#dashboard-charts-grid",
+    title: "📈 Tus Gráficas de Rendimiento",
     description:
-      "Indica si estás aprobado o en riesgo de reprobar, basándose en tu promedio actual frente a la calificación mínima aprobatoria del grupo.",
-    position: "bottom",
-  },
-  {
-    target: "#rendimientoChart",
-    title: "📈 Gráfica de Rendimiento",
-    description:
-      "Esta gráfica muestra la evolución de tu promedio periodo por periodo. Úsala para ver si tu desempeño ha mejorado o necesita atención.",
+      "Aquí puedes ver visualmente cómo ha evolucionado tu promedio, tu desempeño en cada rúbrica y tu registro de asistencias.",
     position: "top",
+    tab: "tab-dashboard",
   },
   {
     target: ".tabs-container",
     title: "🗂️ Pestañas de Navegación",
     description:
-      "Aquí puedes cambiar entre dos vistas: 'Tabla de Calificaciones' para ver tus notas por actividad, y 'Historial de Asistencia' para revisar tus entradas registradas.",
+      "Usa estas pestañas para cambiar entre tu 'Dashboard' principal, tu 'Tabla de Calificaciones' detallada y tu 'Historial de Asistencias'.",
     position: "bottom",
+    tab: "tab-dashboard",
   },
   {
     target: "#tab-calificaciones",
     title: "📋 Tabla de Calificaciones",
     description:
-      "Esta es tu boleta digital. Cada columna es una actividad. Puedes hacer clic en el nombre de cualquier actividad para ver sus instrucciones y fecha de entrega. Las notas en rojo están por debajo del mínimo aprobatorio.",
+      "Esta es tu boleta digital. Cada columna es una actividad. Puedes hacer clic en el nombre de la actividad para ver detalles.",
     position: "top",
-  },
-  {
-    target: ".accordion-header:first-child",
-    title: "📂 Acordeón de Periodos",
-    description:
-      "Cada bloque representa un periodo del ciclo (Parcial 1, 2, etc.). Haz clic para expandirlo o contraerlo. El periodo ACTIVO está marcado con una etiqueta especial.",
-    position: "bottom",
+    tab: "tab-calificaciones",
   },
   {
     target: "[onclick*='exportarPDFPeriodo']",
     title: "📄 Exportar a PDF",
     description:
-      "Con este botón puedes descargar un reporte profesional de tus calificaciones del periodo. El PDF incluye tu nombre, grupo, ciclo escolar y todas tus notas organizadas por categoría.",
+      "Con este botón puedes descargar un reporte profesional de tus calificaciones del periodo.",
     position: "left",
+    tab: "tab-calificaciones",
   },
   {
     target: "#btn-logout",
     title: "🚪 Cerrar Sesión",
     description:
-      "Cuando termines de revisar tu portal, usa este botón para salir de forma segura. ¡Eso es todo! Ya conoces tu portal. Si tienes dudas, puedes volver a iniciar el tutorial en cualquier momento.",
+      "Cuando termines, usa este botón para salir de forma segura. ¡Eso es todo! Ya conoces tu portal.",
     position: "bottom",
+    tab: "tab-calificaciones",
   },
 ];
 
@@ -152,17 +141,17 @@ function handleTutorialResize() {
 window.iniciarTutorial = function () {
   tutorialCurrentStep = 0;
 
-  // Asegurarse de que la pestaña de calificaciones esté activa para el tutorial
+  // Asegurarse de que la pestaña de dashboard esté activa para el tutorial
   document
     .querySelectorAll(".tab-content")
     .forEach((t) => t.classList.remove("active"));
   document
     .querySelectorAll(".tab-btn")
     .forEach((t) => t.classList.remove("active"));
-  const tabCalif = document.getElementById("tab-calificaciones");
-  if (tabCalif) tabCalif.classList.add("active");
-  const tabBtns = document.querySelectorAll(".tab-btn");
-  if (tabBtns.length > 0) tabBtns[0].classList.add("active");
+  const tabDash = document.getElementById("tab-dashboard");
+  if (tabDash) tabDash.classList.add("active");
+  const btnDash = document.querySelector(".tab-btn[onclick*='tab-dashboard']");
+  if (btnDash) btnDash.classList.add("active");
 
   // Expandir el primer acordeón si está colapsado
   const firstAccordion = document.querySelector(".accordion-content");
@@ -343,7 +332,21 @@ window.mostrarPasoTutorial = function mostrarPasoTutorial(stepIndex) {
 
   tutorialCurrentStep = stepIndex;
   const step = tutorialSteps[stepIndex];
-  const targetEl = document.querySelector(step.target);
+
+  if (step.tab) {
+    const tabBtn = document.querySelector(`.tab-btn[onclick*="${step.tab}"]`);
+    if (tabBtn) window.switchTabAlumno(step.tab, tabBtn);
+  }
+
+  let targetEl = document.querySelector(step.target);
+
+  if (!targetEl && step.target.includes(",")) {
+    const selectors = step.target.split(",");
+    for (let sel of selectors) {
+      targetEl = document.querySelector(sel.trim());
+      if (targetEl) break;
+    }
+  }
 
   if (!targetEl) {
     window.mostrarPasoTutorial(stepIndex + 1);
@@ -1138,6 +1141,87 @@ function renderDashboard() {
     }
   }
 
+  let chartContainer = document.getElementById("rendimientoChart")?.parentNode;
+
+  if (!document.getElementById("tab-dashboard")) {
+    const tabsContainer = document.querySelector(".tabs-container");
+    if (tabsContainer) {
+      const tabDashboard = document.createElement("div");
+      tabDashboard.id = "tab-dashboard";
+      tabDashboard.className = "tab-content active";
+
+      const selCont = document.getElementById("periodo-selector-container");
+      if (selCont) tabDashboard.appendChild(selCont);
+
+      const promGen = document.getElementById("promedio-general");
+      if (promGen) {
+        const statsRow =
+          promGen.closest(".grid") || promGen.closest(".stats-row");
+        if (statsRow) tabDashboard.appendChild(statsRow);
+      }
+
+      const chartsGrid = document.createElement("div");
+      chartsGrid.style.display = "grid";
+      chartsGrid.style.gridTemplateColumns =
+        "repeat(auto-fit, minmax(300px, 1fr))";
+      chartsGrid.style.gap = "20px";
+      chartsGrid.style.marginTop = "30px";
+      chartsGrid.id = "dashboard-charts-grid";
+
+      if (chartContainer) {
+        chartContainer.style.background = "rgba(15, 23, 42, 0.6)";
+        chartContainer.style.padding = "20px";
+        chartContainer.style.borderRadius = "16px";
+        chartContainer.style.border = "1px solid rgba(255,255,255,0.05)";
+        if (!chartContainer.querySelector("h3")) {
+          chartContainer.insertAdjacentHTML(
+            "afterbegin",
+            `<h3 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-light); text-align: center;"><i class="fas fa-chart-line" style="color: var(--secondary);"></i> Evolución del Promedio</h3>`,
+          );
+        }
+        chartsGrid.appendChild(chartContainer);
+      }
+
+      const rcCont = document.createElement("div");
+      rcCont.style.background = "rgba(15, 23, 42, 0.6)";
+      rcCont.style.padding = "20px";
+      rcCont.style.borderRadius = "16px";
+      rcCont.style.border = "1px solid rgba(255,255,255,0.05)";
+      rcCont.innerHTML = `<h3 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-light); text-align: center;"><i class="fas fa-tasks" style="color: var(--primary);"></i> Desempeño por Rúbrica</h3><canvas id="rubricasChart"></canvas>`;
+      chartsGrid.appendChild(rcCont);
+
+      const acCont = document.createElement("div");
+      acCont.style.background = "rgba(15, 23, 42, 0.6)";
+      acCont.style.padding = "20px";
+      acCont.style.borderRadius = "16px";
+      acCont.style.border = "1px solid rgba(255,255,255,0.05)";
+      acCont.innerHTML = `<h3 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-light); text-align: center;"><i class="fas fa-user-check" style="color: #10b981;"></i> Resumen de Asistencia</h3><div style="max-width: 250px; margin: 0 auto;"><canvas id="asistenciasChart"></canvas></div>`;
+      chartsGrid.appendChild(acCont);
+
+      tabDashboard.appendChild(chartsGrid);
+
+      tabsContainer.parentNode.insertBefore(
+        tabDashboard,
+        tabsContainer.nextSibling,
+      );
+
+      const btnDash = document.createElement("button");
+      btnDash.className = "tab-btn active";
+      btnDash.innerHTML = `<i class="fas fa-chart-pie"></i> Dashboard y Estadísticas`;
+      btnDash.onclick = function () {
+        window.switchTabAlumno("tab-dashboard", this);
+      };
+      tabsContainer.insertBefore(btnDash, tabsContainer.firstChild);
+
+      document.querySelectorAll(".tab-content").forEach((t) => {
+        if (t.id !== "tab-dashboard") t.classList.remove("active");
+      });
+      document.querySelectorAll(".tab-btn").forEach((t) => {
+        if (t !== btnDash) t.classList.remove("active");
+      });
+    }
+  }
+
   const containerCalif = document.getElementById("contenedor-calificaciones");
   const containerAsis = document.getElementById("contenedor-asistencias");
   containerCalif.innerHTML = "";
@@ -1156,6 +1240,21 @@ function renderDashboard() {
   if (currentFiltro !== "all") {
     periodosARenderizar = periodos.filter((p) => p.id_periodo == currentFiltro);
   }
+
+  // Pre-calcular entregas reales para solucionar el bug de tareas pendientes
+  periodosARenderizar.forEach((periodo) => {
+    const actividadesDelPeriodo = actividades.filter(
+      (a) => a.id_periodo === periodo.id_periodo,
+    );
+    tareasTotalesDelCiclo += actividadesDelPeriodo.length;
+    actividadesDelPeriodo.forEach((acto) => {
+      const calif = calificaciones.find(
+        (c) => c.id_actividad == acto.id_actividad,
+      );
+      if (calif && calif.puntaje !== null && calif.puntaje !== "")
+        evalCountGlobal++;
+    });
+  });
 
   periodosARenderizar.forEach((periodo) => {
     const isActive = periodo.activo == 1;
@@ -1373,7 +1472,6 @@ function renderDashboard() {
               <span style="font-size: 1.1rem; font-weight: bold;">${notaDisplay}</span>
               <span style="font-size: 0.78rem; color: var(--text-muted);"> / 10</span>
             </td>`;
-            if (nota !== "") evalCountGlobal++;
           });
           if (evalRub > 0) {
             sumaPeriodo += (sumaRub / evalRub) * (rubrica.porcentaje / 100);
@@ -1469,17 +1567,91 @@ function renderDashboard() {
     if (periodoYaIniciado) {
       sumaTotalGlobal += promedioRealPeriodo;
       periodosContados++;
-      tareasTotalesDelCiclo += actividadesDelPeriodo.length;
     }
     chartLabels.push(periodo.nombre_periodo);
     chartData.push(promedioRealPeriodo.toFixed(1));
   });
 
+  // Construir datos de Rúbricas para la nueva gráfica
+  let rubricasMap = {};
+  periodosARenderizar.forEach((periodo) => {
+    const rubricasPeriodo = rubricas.filter((r) =>
+      grupo.tipo_rubrica === "Por Periodo"
+        ? r.id_periodo == periodo.id_periodo
+        : r.id_periodo == null,
+    );
+
+    let fechasGrupoPeriodo = fechas_grupo;
+    if (periodo.fecha_inicio && periodo.fecha_fin) {
+      const start = new Date(periodo.fecha_inicio + "T00:00:00");
+      const end = new Date(periodo.fecha_fin + "T23:59:59");
+      fechasGrupoPeriodo = fechas_grupo.filter((f) => {
+        const d = new Date(f + "T00:00:00");
+        return d >= start && d <= end;
+      });
+    }
+    let maxAsisPeriodo = fechasGrupoPeriodo.length || 1;
+    let asisScore = 0;
+
+    const asisPeriodo = asistencias.filter((a) => {
+      if (!periodo.fecha_inicio || !periodo.fecha_fin) return true;
+      const d = new Date(a.fecha_hora);
+      return (
+        d >= new Date(periodo.fecha_inicio + "T00:00:00") &&
+        d <= new Date(periodo.fecha_fin + "T23:59:59")
+      );
+    });
+    asisPeriodo.forEach((a) => {
+      if (a.estado === "Asistencia") asisScore += 1;
+      else if (a.estado === "Retardo") asisScore += 0.5;
+    });
+
+    rubricasPeriodo.forEach((r) => {
+      if (!rubricasMap[r.categoria])
+        rubricasMap[r.categoria] = {
+          sum: 0,
+          count: 0,
+          color: r.color || "#8b5cf6",
+        };
+
+      if (r.categoria.toLowerCase().includes("asistencia")) {
+        let val = (asisScore / maxAsisPeriodo) * 10;
+        rubricasMap[r.categoria].sum += val > 10 ? 10 : val;
+        rubricasMap[r.categoria].count++;
+      } else {
+        const actos = actividades.filter(
+          (a) =>
+            a.id_rubrica == r.id_rubrica && a.id_periodo == periodo.id_periodo,
+        );
+        actos.forEach((acto) => {
+          const calif = calificaciones.find(
+            (c) => c.id_actividad == acto.id_actividad,
+          );
+          if (calif && calif.puntaje !== null && calif.puntaje !== "") {
+            rubricasMap[r.categoria].sum += parseFloat(calif.puntaje);
+            rubricasMap[r.categoria].count++;
+          }
+        });
+      }
+    });
+  });
+
+  const rubLabels = [];
+  const rubData = [];
+  const rubColors = [];
+  for (const [cat, data] of Object.entries(rubricasMap)) {
+    if (data.count > 0) {
+      rubLabels.push(cat.length > 15 ? cat.substring(0, 15) + "..." : cat);
+      rubData.push((data.sum / data.count).toFixed(1));
+      rubColors.push(data.color);
+    }
+  }
+
   // Gráfica
   if (rendimientoChartInstance) rendimientoChartInstance.destroy();
-  rendimientoChartInstance = new Chart(
-    document.getElementById("rendimientoChart"),
-    {
+  const rChartEl = document.getElementById("rendimientoChart");
+  if (rChartEl) {
+    rendimientoChartInstance = new Chart(rChartEl, {
       type: "line",
       data: {
         labels: chartLabels,
@@ -1514,8 +1686,73 @@ function renderDashboard() {
           },
         },
       },
-    },
-  );
+    });
+  }
+
+  // Gráfica de Barras (Rúbricas)
+  if (rubricasChartInstance) rubricasChartInstance.destroy();
+  const ctxRub = document.getElementById("rubricasChart");
+  if (ctxRub) {
+    rubricasChartInstance = new Chart(ctxRub, {
+      type: "bar",
+      data: {
+        labels: rubLabels,
+        datasets: [
+          {
+            label: "Promedio (0-10)",
+            data: rubData,
+            backgroundColor: rubColors,
+            borderRadius: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            min: 0,
+            max: 10,
+            ticks: { color: "#94a3b8" },
+            grid: { color: "rgba(255,255,255,0.05)" },
+          },
+          x: { ticks: { color: "#94a3b8" }, grid: { display: false } },
+        },
+      },
+    });
+  }
+
+  // Gráfica Doughnut (Asistencias)
+  if (asistenciasChartInstance) asistenciasChartInstance.destroy();
+  const ctxAsis = document.getElementById("asistenciasChart");
+  if (ctxAsis) {
+    let faltasTotal = maxAsisGlobal - asisGlobalScore;
+    if (faltasTotal < 0) faltasTotal = 0;
+    asistenciasChartInstance = new Chart(ctxAsis, {
+      type: "doughnut",
+      data: {
+        labels: ["Asistencias", "Faltas/Retardos"],
+        datasets: [
+          {
+            data: [asisGlobalScore, faltasTotal],
+            backgroundColor: ["#10b981", "#ef4444"],
+            borderWidth: 0,
+            hoverOffset: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        cutout: "75%",
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: { color: "#94a3b8", padding: 20 },
+          },
+        },
+      },
+    });
+  }
 
   const finalGrade =
     periodosContados > 0 ? sumaTotalGlobal / periodosContados : 0;
