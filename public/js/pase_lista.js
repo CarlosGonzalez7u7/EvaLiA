@@ -759,12 +759,12 @@ function renderAsistenciasHoy(datos) {
 
     container.innerHTML += `
       <div style="background: ${bg}; border: 1px solid ${border}; padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <div style="font-weight: 600; color: var(--text-light); margin-bottom: 2px;">${asis.nombre}</div>
+        <div style="overflow: hidden; padding-right: 10px;">
+          <div style="font-weight: 600; color: var(--text-light); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${asis.nombre}">${asis.nombre}</div>
           <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">${asis.matricula || ""}</div>
           <div style="font-size: 0.85rem; color: ${color}; font-weight: bold;"><i class="fas ${icon}"></i> ${asis.estado}</div>
         </div>
-        <div style="text-align: right; color: var(--text-muted); font-size: 0.9rem; font-weight: 600;">
+        <div style="text-align: right; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; white-space: nowrap;">
           ${asis.fecha_hora}
         </div>
       </div>`;

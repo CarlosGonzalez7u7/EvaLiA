@@ -134,6 +134,13 @@
         }
       }
 
+      /* Ajustar el escáner y la lista para que aprovechen el espacio horizontal inteligentemente */
+      @media (min-width: 992px) {
+        #vista-escaner {
+          grid-template-columns: 380px 1fr !important;
+        }
+      }
+
       /* Optimizaciones de rendimiento para móviles */
       @media (max-width: 768px) {
         body {
@@ -318,7 +325,7 @@
               id="lista-asistencias-hoy"
               style="
                 display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
                 gap: 15px;
               "
             >
@@ -569,6 +576,6 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/pase_lista.js?v=9"></script>
+    <script type="module" src="../../js/pase_lista.js?v=10"></script>
   </body>
 </html>
