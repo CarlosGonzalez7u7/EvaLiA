@@ -14,9 +14,45 @@ window.switchTabAlumno = function (tabId, btnElem) {
   btnElem.classList.add("active");
 };
 
+window.toggleAccordion = function (id, headerElem) {
+  const content = document.getElementById(id);
+  const icon = headerElem.querySelector("i.fas");
+  if (content.classList.contains("collapsed")) {
+    content.classList.remove("collapsed");
+    icon.classList.replace("fa-chevron-down", "fa-chevron-up");
+  } else {
+    content.classList.add("collapsed");
+    icon.classList.replace("fa-chevron-up", "fa-chevron-down");
+  }
+};
+
+window.solicitarNotificaciones = function () {
+  Notification.requestPermission().then((permission) => {
+    if (permission === "granted") {
+      document.getElementById("notif-banner").style.display = "none";
+      new Notification("EvaLiA", {
+        body: "Notificaciones activadas correctamente. Te avisaremos cuando el maestro suba anuncios.",
+      });
+    } else {
+      mostrarAlerta(
+        "Debes habilitar las notificaciones desde el candadito en la barra de direcciones de tu navegador.",
+      );
+    }
+  });
+};
+
 let rawData = null;
+let rendimientoChartInstance = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
+  if (
+    "Notification" in window &&
+    Notification.permission !== "granted" &&
+    Notification.permission !== "denied"
+  ) {
+    document.getElementById("notif-banner").style.display = "flex";
+  }
+
   try {
     const res = await fetch(
       "/api/controllers/AlumnoPortalController.php?action=dashboard",
@@ -37,6 +73,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (data.grupo.avisos) {
       document.getElementById("muro-avisos").style.display = "block";
       document.getElementById("texto-avisos").innerText = data.grupo.avisos;
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Aviso de tu maestro", { body: data.grupo.avisos });
+      }
     }
 
     renderDashboard();
@@ -71,6 +110,14 @@ function renderDashboard() {
 
   let sumaTotalGlobal = 0;
   let evalCountGlobal = 0;
+  let periodosContados = 0; // Para el promedio justo
+  let chartLabels = [];
+  let chartData = [];
+
+  // Averiguar hasta qué periodo debe promediar (Periodo Activo o el último)
+  let idxActivo = periodos.findIndex((p) => p.activo == 1);
+  if (idxActivo === -1) idxActivo = periodos.length - 1;
+  let indexPeriodo = 0;
 
   periodos.forEach((periodo) => {
     const isActive = periodo.activo == 1;
@@ -78,12 +125,20 @@ function renderDashboard() {
       ? `<span class="badge-active" style="background: var(--secondary); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; color: white; margin-left: 10px;">ACTIVO</span>`
       : "";
 
-    let htmlCalif = `<h4 style="color: var(--primary); margin: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; font-size: 1.2rem;">${periodo.nombre_periodo} ${badgeActivo}</h4>`;
-    htmlCalif += `<div class="excel-container" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px;"><table class="table" style="margin: 0;">`;
+    let htmlCalif = `<div class="accordion-header" onclick="toggleAccordion('calif-${periodo.id_periodo}', this)">
+                        <h4 style="color: var(--primary); margin: 0; font-size: 1.2rem;">${periodo.nombre_periodo} ${badgeActivo}</h4>
+                        <i class="fas fa-chevron-${isActive ? "up" : "down"}"></i>
+                     </div>`;
+    htmlCalif += `<div id="calif-${periodo.id_periodo}" class="accordion-content ${isActive ? "" : "collapsed"}">
+                  <div class="excel-container" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; overflow: visible;"><table class="table responsive-table" style="margin: 0;">`;
 
-    let htmlAsis = `<h4 style="color: var(--primary); margin: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; font-size: 1.2rem;">${periodo.nombre_periodo} ${badgeActivo}</h4>`;
-    htmlAsis += `<div class="table-container" style="max-height: 300px; overflow-y: auto; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px;"><table class="table" style="margin: 0;">
-                 <thead style="position: sticky; top: 0; background: #0f172a; z-index: 10;"><tr><th>Fecha</th><th>Estado</th><th>Comentario / Justificación</th></tr></thead><tbody>`;
+    let htmlAsis = `<div class="accordion-header" onclick="toggleAccordion('asis-${periodo.id_periodo}', this)">
+                        <h4 style="color: var(--primary); margin: 0; font-size: 1.2rem;">${periodo.nombre_periodo} ${badgeActivo}</h4>
+                        <i class="fas fa-chevron-${isActive ? "up" : "down"}"></i>
+                     </div>`;
+    htmlAsis += `<div id="asis-${periodo.id_periodo}" class="accordion-content ${isActive ? "" : "collapsed"}">
+                 <div class="table-container" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px;"><table class="table responsive-table" style="margin: 0;">
+                 <thead class="hide-mobile" style="position: sticky; top: 0; background: #0f172a; z-index: 10;"><tr><th>Fecha</th><th>Estado</th><th>Comentario / Justificación</th></tr></thead><tbody>`;
 
     const rubricasPeriodo = rubricas.filter((r) =>
       grupo.tipo_rubrica === "Por Periodo"
@@ -92,8 +147,8 @@ function renderDashboard() {
     );
 
     let sumaPeriodo = 0;
-    let theadHtml = `<thead><tr><th style="width: 50px; text-align: center;">N°</th><th style="width: 250px;">Alumno</th>`;
-    let tbodyHtml = `<tr><td style="text-align: center; color: var(--text-muted); font-weight: bold;">${rawData.alumno.numero_lista || "-"}</td><th>${rawData.alumno.nombre}</th>`;
+    let theadHtml = `<thead class="hide-mobile"><tr><th class="hide-mobile" style="width: 50px; text-align: center;">N°</th><th class="hide-mobile" style="width: 250px;">Alumno</th>`;
+    let tbodyHtml = `<tr><td class="hide-mobile" style="text-align: center; color: var(--text-muted); font-weight: bold;">${rawData.alumno.numero_lista || "-"}</td><th class="hide-mobile">${rawData.alumno.nombre}</th>`;
 
     let asisPeriodo = asistencias;
     let fechasGrupoPeriodo = fechas_grupo;
@@ -132,12 +187,12 @@ function renderDashboard() {
           color = "#f59e0b";
           icon = "fa-clock";
         }
-        htmlAsis += `<tr><td style="color: var(--text-muted);">${a.fecha_hora.substring(0, 10).split("-").reverse().join("/")}</td>
-                <td style="color: ${color}; font-weight: bold;"><i class="fas ${icon}"></i> ${a.estado}</td>
-                <td style="color: var(--text-light); font-size: 0.9rem;">${a.comentario ? "📝 " + a.comentario : "-"}</td></tr>`;
+        htmlAsis += `<tr><td data-label="📅 Fecha" style="color: var(--text-muted);">${a.fecha_hora.substring(0, 10).split("-").reverse().join("/")}</td>
+                <td data-label="📊 Estado" style="color: ${color}; font-weight: bold;"><i class="fas ${icon}"></i> ${a.estado}</td>
+                <td data-label="📝 Comentario" style="color: var(--text-light); font-size: 0.9rem;">${a.comentario ? "📝 " + a.comentario : "-"}</td></tr>`;
       });
     }
-    htmlAsis += `</tbody></table></div>`;
+    htmlAsis += `</tbody></table></div></div>`;
     containerAsis.innerHTML += htmlAsis;
 
     rubricasPeriodo.forEach((rubrica) => {
@@ -146,8 +201,8 @@ function renderDashboard() {
         const scoreAsis = (asisScore / max_asis_periodo) * 10;
         sumaPeriodo +=
           (scoreAsis > 10 ? 10 : scoreAsis) * (rubrica.porcentaje / 100);
-        theadHtml += `<th style="white-space: normal; min-width: 120px; max-width: 150px; vertical-align: bottom;"><span style="color: ${color}; font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 5px;">${rubrica.categoria}</span><div style="background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); color: var(--text-light); text-align: center;"><i class="fas fa-user-check" style="color: ${color}; margin-right: 5px;"></i>Total (Calc)</div></th>`;
-        tbodyHtml += `<td style="text-align: center; vertical-align: middle; border-bottom: 2px solid ${color};"><strong>${asisScore}</strong> <span style="color: var(--text-muted); font-size: 0.8rem;">/ ${max_asis_periodo}</span> <br><span style="color: var(--secondary); font-size: 0.8rem; font-weight: bold;">(Nota: ${scoreAsis.toFixed(1)})</span></td>`;
+        theadHtml += `<th class="hide-mobile" style="white-space: normal; min-width: 120px; max-width: 150px; vertical-align: bottom;"><span style="color: ${color}; font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 5px;">${rubrica.categoria}</span><div style="background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); color: var(--text-light); text-align: center;"><i class="fas fa-user-check" style="color: ${color}; margin-right: 5px;"></i>Total (Calc)</div></th>`;
+        tbodyHtml += `<td data-label="✅ ${rubrica.categoria} (Total)" style="text-align: center; vertical-align: middle; border-bottom: 2px solid ${color};"><strong>${asisScore}</strong> <span style="color: var(--text-muted); font-size: 0.8rem;">/ ${max_asis_periodo}</span> <span style="color: var(--secondary); font-size: 0.8rem; font-weight: bold; margin-left: 5px;">(Nota: ${scoreAsis.toFixed(1)})</span></td>`;
       } else {
         const actosRub = actividades.filter(
           (a) =>
@@ -155,8 +210,8 @@ function renderDashboard() {
             a.id_periodo == periodo.id_periodo,
         );
         if (actosRub.length === 0) {
-          theadHtml += `<th><span style="color: ${color}; font-size: 0.8rem; font-weight: 800;">${rubrica.categoria}</span><br><i>Sin act.</i></th>`;
-          tbodyHtml += `<td>-</td>`;
+          theadHtml += `<th class="hide-mobile"><span style="color: ${color}; font-size: 0.8rem; font-weight: 800;">${rubrica.categoria}</span><br><i>Sin act.</i></th>`;
+          tbodyHtml += `<td data-label="📌 ${rubrica.categoria}">-</td>`;
         } else {
           let sumaRub = 0;
           actosRub.forEach((acto) => {
@@ -165,7 +220,7 @@ function renderDashboard() {
             );
             let nota = calif ? parseFloat(calif.puntaje) : "";
             if (nota !== "") sumaRub += nota;
-            theadHtml += `<th style="white-space: normal; min-width: 150px; max-width: 200px; vertical-align: bottom;"><span style="color: ${color}; font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 5px;">${rubrica.categoria}</span><div style="background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: inline-block; word-wrap: break-word; font-weight: normal; color: var(--text-light); width: 100%; text-align: left;"><div style="font-weight: 600;"><i class="fas fa-tasks" style="color: ${color}; margin-right: 5px;"></i>${acto.nombre_actividad}</div><div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;"><i class="fas fa-calendar-alt"></i> Entrega: ${acto.fecha_entrega.split("-").reverse().join("/")}</div></div></th>`;
+            theadHtml += `<th class="hide-mobile" style="white-space: normal; min-width: 150px; max-width: 200px; vertical-align: bottom;"><span style="color: ${color}; font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 5px;">${rubrica.categoria}</span><div style="background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: inline-block; word-wrap: break-word; font-weight: normal; color: var(--text-light); width: 100%; text-align: left;"><div style="font-weight: 600;"><i class="fas fa-tasks" style="color: ${color}; margin-right: 5px;"></i>${acto.nombre_actividad}</div><div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;"><i class="fas fa-calendar-alt"></i> Entrega: ${acto.fecha_entrega.split("-").reverse().join("/")}</div></div></th>`;
             const notaDisplay = nota !== "" ? nota.toFixed(1) : "-";
             const isDanger =
               nota !== "" && nota < grupo.calificacion_minima
@@ -175,7 +230,7 @@ function renderDashboard() {
               nota !== "" && nota >= grupo.calificacion_minima
                 ? "text-success"
                 : "";
-            tbodyHtml += `<td style="text-align: center; vertical-align: middle; border-bottom: 2px solid ${color};" class="${isDanger} ${isSuccess}"><span style="font-size: 1.1rem;">${notaDisplay}</span></td>`;
+            tbodyHtml += `<td data-label="📌 ${acto.nombre_actividad}" style="text-align: center; vertical-align: middle; border-bottom: 2px solid ${color};" class="${isDanger} ${isSuccess}"><span style="font-size: 1.1rem; font-weight:bold;">${notaDisplay}</span> <span class="hide-mobile" style="font-size:0.8rem; color:var(--text-muted)">/ 10</span></td>`;
             if (calif) evalCountGlobal++;
           });
           sumaPeriodo +=
@@ -184,19 +239,52 @@ function renderDashboard() {
       }
     });
 
-    theadHtml += `<th class="cell-promedio" style="color: var(--primary);">Promedio del Periodo</th></tr></thead>`;
+    theadHtml += `<th class="cell-promedio hide-mobile" style="color: var(--primary);">Promedio del Periodo</th></tr></thead>`;
     const colorClass =
       sumaPeriodo >= grupo.calificacion_minima ? "text-success" : "text-danger";
-    tbodyHtml += `<td class="cell-promedio ${colorClass}">${sumaPeriodo > 0 ? sumaPeriodo.toFixed(1) : "0.0"}</td></tr></tbody>`;
+    tbodyHtml += `<td data-label="🏆 Promedio del Periodo" class="cell-promedio ${colorClass}" style="font-size: 1.3rem;">${sumaPeriodo > 0 ? sumaPeriodo.toFixed(1) : "0.0"}</td></tr></tbody>`;
 
-    htmlCalif += theadHtml + tbodyHtml + `</table></div>`;
+    htmlCalif += theadHtml + tbodyHtml + `</table></div></div>`;
     containerCalif.innerHTML += htmlCalif;
 
-    sumaTotalGlobal += sumaPeriodo;
+    // Promedio Justo: Solo sumar periodos pasados o el actual
+    if (indexPeriodo <= idxActivo) {
+      sumaTotalGlobal += sumaPeriodo;
+      periodosContados++;
+    }
+    chartLabels.push(periodo.nombre_periodo);
+    chartData.push(sumaPeriodo.toFixed(1));
+    indexPeriodo++;
   });
 
+  // Renderizar Gráfica
+  if (rendimientoChartInstance) rendimientoChartInstance.destroy();
+  rendimientoChartInstance = new Chart(
+    document.getElementById("rendimientoChart"),
+    {
+      type: "line",
+      data: {
+        labels: chartLabels,
+        datasets: [
+          {
+            label: "Promedio Obtenido",
+            data: chartData,
+            borderColor: "#8b5cf6",
+            backgroundColor: "rgba(139, 92, 246, 0.2)",
+            fill: true,
+            tension: 0.4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        scales: { y: { min: 0, max: 10 } },
+      },
+    },
+  );
+
   const finalGrade =
-    periodos.length > 0 ? sumaTotalGlobal / periodos.length : 0;
+    periodosContados > 0 ? sumaTotalGlobal / periodosContados : 0;
   document.getElementById("promedio-general").innerText = finalGrade.toFixed(1);
   document.getElementById("promedio-general").style.color =
     finalGrade >= grupo.calificacion_minima ? "#10b981" : "#ef4444";

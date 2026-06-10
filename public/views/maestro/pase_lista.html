@@ -338,10 +338,8 @@
                 ><strong style="color: #ef4444">0</strong> = Falta (0 pts)</span
               >
               <span
-                ><strong style="color: var(--primary)"
-                  >Clic Derecho o Tecla C</strong
-                >
-                = Comentario / Justificación</span
+                ><strong style="color: #3b82f6">Tecla F2 o Botón</strong> = Modo
+                Comentarios</span
               >
             </div>
           </div>
@@ -381,6 +379,19 @@
               style="padding: 8px 15px; font-size: 0.9rem"
             >
               <i class="fas fa-plus"></i> Agregar
+            </button>
+            <button
+              id="btn-modo-comentario"
+              class="btn btn-cancel"
+              style="
+                padding: 8px 15px;
+                font-size: 0.9rem;
+                color: #3b82f6;
+                border-color: #3b82f6;
+              "
+              title="Activar/Desactivar Modo Comentario (F2)"
+            >
+              <i class="fas fa-comment-dots"></i> Comentarios
             </button>
             <button
               id="btn-export-excel-asis"
@@ -440,6 +451,62 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/pase_lista.js?v=2"></script>
+    <!-- Modal de Comentario -->
+    <div id="modal-comentario" class="modal-overlay" style="z-index: 2010">
+      <div class="modal-content" style="max-width: 400px">
+        <div class="modal-header">
+          <h2 style="color: #3b82f6">
+            <i class="fas fa-comment-dots"></i> Justificación
+          </h2>
+          <button
+            type="button"
+            onclick="
+              document
+                .getElementById('modal-comentario')
+                .classList.remove('active')
+            "
+            class="btn-close"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="form-comentario">
+          <input type="hidden" id="com_id_alumno" value="" />
+          <input type="hidden" id="com_fecha" value="" />
+          <div class="form-group">
+            <label>Escribe el motivo de la falta o retardo:</label>
+            <textarea
+              id="com_texto"
+              class="form-control"
+              rows="3"
+              placeholder="Ej. Problemas de salud..."
+            ></textarea>
+          </div>
+          <div class="modal-actions" style="margin-top: 10px">
+            <button
+              type="button"
+              onclick="
+                document
+                  .getElementById('modal-comentario')
+                  .classList.remove('active')
+              "
+              class="btn btn-cancel"
+              style="flex: 1; justify-content: center"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn btn-maestro"
+              style="flex: 1; justify-content: center"
+            >
+              Guardar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="../../js/pase_lista.js?v=4"></script>
   </body>
 </html>

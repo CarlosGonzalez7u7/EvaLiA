@@ -112,6 +112,12 @@
         </div>
       </div>
 
+      <!-- Banner de Permiso de Notificaciones -->
+      <div id="notif-banner" class="notif-banner" style="display: none;">
+        <div style="color: var(--text-light);"><i class="fas fa-bell" style="color: #f59e0b; margin-right: 8px; font-size: 1.2rem;"></i> Activa las notificaciones para no perderte ningún anuncio de tu maestro.</div>
+        <button onclick="solicitarNotificaciones()" class="btn btn-alumno" style="padding: 8px 15px; font-size: 0.9rem;">Habilitar Notificaciones</button>
+      </div>
+
       <div id="muro-avisos" class="card" style="display: none; background: rgba(236, 72, 153, 0.15); border-color: var(--secondary); margin-bottom: 30px;">
         <h3 style="color: var(--secondary); margin-bottom: 10px;"><i class="fas fa-bullhorn"></i> Aviso Importante del Maestro</h3>
         <p id="texto-avisos" style="color: var(--text-light); white-space: pre-wrap; font-size: 1.05rem;"></p>
@@ -140,6 +146,11 @@
           <h3 id="estado-final" class="status-aprobado">N/A</h3>
           <p>Estado</p>
         </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 30px; padding: 20px;">
+        <h3 style="color: white; margin-bottom: 15px;"><i class="fas fa-chart-line"></i> Mi Rendimiento</h3>
+        <canvas id="rendimientoChart" height="80"></canvas>
       </div>
 
       <!-- Pestañas de Navegación -->
@@ -202,6 +213,6 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/panel_alumno.js?v=3"></script>
+    <script type="module" src="../../js/panel_alumno.js?v=5"></script>
   </body>
 </html>

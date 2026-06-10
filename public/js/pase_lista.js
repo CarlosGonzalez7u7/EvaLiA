@@ -7,6 +7,34 @@ let grupoDatos = null;
 let alarmPlayed = false;
 let fechasAgregadasManualmente = [];
 let periodosGlobal = [];
+let modoComentario = false;
+
+window.toggleModoComentario = function () {
+  modoComentario = !modoComentario;
+  const btn = document.getElementById("btn-modo-comentario");
+  const tabla = document.getElementById("tabla-asistencias-excel");
+
+  if (modoComentario) {
+    btn.classList.replace("btn-cancel", "btn-maestro");
+    btn.style.color = "white";
+    btn.style.background = "#3b82f6";
+    btn.style.borderColor = "#3b82f6";
+    tabla.classList.add("modo-comentario-activo");
+  } else {
+    btn.style.background = "";
+    btn.classList.replace("btn-maestro", "btn-cancel");
+    btn.style.color = "#3b82f6";
+    tabla.classList.remove("modo-comentario-activo");
+  }
+};
+
+window.abrirModalComentario = function (idAlumno, fecha, comentarioActual) {
+  document.getElementById("com_id_alumno").value = idAlumno;
+  document.getElementById("com_fecha").value = fecha;
+  document.getElementById("com_texto").value = comentarioActual || "";
+  document.getElementById("modal-comentario").classList.add("active");
+  setTimeout(() => document.getElementById("com_texto").focus(), 100);
+};
 
 document.addEventListener("DOMContentLoaded", async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -98,6 +126,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnEscaner.style.color = "white";
     cargarTablaExcel(idGrupo);
   });
+
+  document
+    .getElementById("btn-modo-comentario")
+    ?.addEventListener("click", toggleModoComentario);
+
+  document
+    .getElementById("form-comentario")
+    ?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const idAlumno = document.getElementById("com_id_alumno").value;
+      const fecha = document.getElementById("com_fecha").value;
+      const com = document.getElementById("com_texto").value;
+
+      await fetch("/api/controllers/AsistenciaController.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "add_comment",
+          id_alumno: idAlumno,
+          fecha: fecha,
+          comentario: com,
+        }),
+      });
+      document.getElementById("modal-comentario").classList.remove("active");
+      cargarTablaExcel(new URLSearchParams(window.location.search).get("id"));
+    });
 
   cargarAsistenciasHoy(idGrupo);
 
@@ -198,6 +252,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // --- NAVEGACIÓN ESTILO EXCEL Y ATAJOS PARA ASISTENCIAS ---
   document.addEventListener("keydown", (e) => {
+    // Atajo F2 para Modo Comentario
+    if (e.key === "F2") {
+      e.preventDefault();
+      if (document.getElementById("vista-tabla").style.display === "block") {
+        toggleModoComentario();
+      }
+    }
+
     if (e.target.classList.contains("cell-asistencia")) {
       let currentTd = e.target;
       let currentTr = currentTd.parentElement;
@@ -246,26 +308,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         let idAlumno = currentTd.getAttribute("data-alumno");
         let fecha = currentTd.getAttribute("data-fecha");
         let comentarioActual = currentTd.getAttribute("data-comentario") || "";
-        const com = prompt(
-          "Escribe un comentario o justificación (ej. Retardo por lluvia):",
-          comentarioActual,
-        );
-        if (com !== null) {
-          fetch("/api/controllers/AsistenciaController.php", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "add_comment",
-              id_alumno: idAlumno,
-              fecha: fecha,
-              comentario: com,
-            }),
-          }).then(() => {
-            cargarTablaExcel(
-              new URLSearchParams(window.location.search).get("id"),
-            );
-          });
-        }
+        window.abrirModalComentario(idAlumno, fecha, comentarioActual);
       }
     }
   });
@@ -520,10 +563,10 @@ async function cargarTablaExcel(idGrupo) {
       }
 
       let titleTxt =
-        "Clic para cambiar estado | Shift+Clic para justificar | Teclas: 1 (Asistencia), 0 (Falta), / (Retardo)";
+        "Clic para cambiar estado | Teclas: 1 (Asistencia), 0 (Falta), / (Retardo)";
       if (comentario) titleTxt += `\nComentario: ${comentario}`;
 
-      tbody += `<td tabindex="0" data-alumno="${al.id_alumno}" data-fecha="${fecha}" data-estado="${estadoTxt}" data-comentario="${comentario}" class="cell-asistencia ${cssClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')" oncontextmenu="abrirComentarioAsistencia(event, ${al.id_alumno}, '${fecha}', '${comentario}')">
+      tbody += `<td tabindex="0" data-alumno="${al.id_alumno}" data-fecha="${fecha}" data-estado="${estadoTxt}" data-comentario="${comentario}" class="cell-asistencia ${cssClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')">
           ${symbol} ${comentario ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}
       </td>`;
     });
@@ -571,11 +614,6 @@ window.setEstadoAsistenciaDirecto = async function (
     `cambiarEstadoAsistencia(event, ${idAlumno}, '${fecha}', '${nuevoEstado}', '${hasComment ? "Comentario guardado" : ""}')`,
   );
 
-  td.setAttribute(
-    "oncontextmenu",
-    `abrirComentarioAsistencia(event, ${idAlumno}, '${fecha}', '${hasComment ? "Comentario guardado" : ""}')`,
-  );
-
   // 2. Enviar a BD en segundo plano
   try {
     await fetch("/api/controllers/AsistenciaController.php", {
@@ -593,32 +631,6 @@ window.setEstadoAsistenciaDirecto = async function (
   }
 };
 
-window.abrirComentarioAsistencia = async function (
-  event,
-  idAlumno,
-  fecha,
-  comentarioActual,
-) {
-  event.preventDefault(); // Evitar que salga el menú normal del navegador
-  const com = prompt(
-    "Escribe un comentario o justificación (ej. 'Llegó tarde por tráfico'):",
-    comentarioActual,
-  );
-  if (com !== null) {
-    await fetch("/api/controllers/AsistenciaController.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "add_comment",
-        id_alumno: idAlumno,
-        fecha: fecha,
-        comentario: com,
-      }),
-    });
-    cargarTablaExcel(new URLSearchParams(window.location.search).get("id"));
-  }
-};
-
 window.cambiarEstadoAsistencia = async function (
   event,
   idAlumno,
@@ -626,24 +638,8 @@ window.cambiarEstadoAsistencia = async function (
   estadoActual,
   comentarioActual,
 ) {
-  if (event.shiftKey) {
-    const com = prompt(
-      "Escribe un comentario o justificación (ej. 'Llegó tarde por tráfico'):",
-      comentarioActual,
-    );
-    if (com !== null) {
-      await fetch("/api/controllers/AsistenciaController.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "add_comment",
-          id_alumno: idAlumno,
-          fecha: fecha,
-          comentario: com,
-        }),
-      });
-      cargarTablaExcel(new URLSearchParams(window.location.search).get("id"));
-    }
+  if (modoComentario || (event && event.shiftKey)) {
+    window.abrirModalComentario(idAlumno, fecha, comentarioActual);
     return;
   }
 
