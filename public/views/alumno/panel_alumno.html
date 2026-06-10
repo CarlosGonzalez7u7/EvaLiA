@@ -14,6 +14,8 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <link rel="stylesheet" href="../../css/styles.css?v=4" />
+    <!-- Librería Chart.js para el gráfico de rendimiento -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       .panel-container {
         padding: 40px 5%;
@@ -62,6 +64,41 @@
         align-items: center;
         flex-wrap: wrap;
         gap: 15px;
+      }
+
+      /* Estilos para volver la tabla en formato de lista en móviles */
+      @media (max-width: 768px) {
+        .table, .table tbody, .table tr, .table td {
+          display: block;
+          width: 100%;
+        }
+        .table thead {
+          display: none; /* Oculta la cabecera en móviles */
+        }
+        .table tr {
+          margin-bottom: 15px;
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
+          padding: 10px;
+        }
+        .table td {
+          text-align: right;
+          padding-left: 45% !important;
+          position: relative;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .table td:last-child {
+          border-bottom: none;
+        }
+        .table td::before {
+          content: attr(data-label);
+          position: absolute;
+          left: 10px;
+          text-align: left;
+          font-weight: bold;
+          color: var(--text-muted);
+        }
       }
     </style>
   </head>
