@@ -142,16 +142,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.body.className = "print-multiple";
       const container = document.getElementById("print-all-container");
       container.innerHTML = "";
-      container.style.display = "grid";
+      container.style.display = "block"; // Cambiado a block para mejorar compatibilidad móvil
 
       alumnosData.forEach((alumno) => {
         const card = document.createElement("div");
         card.className = "credencial-card";
         card.style.pageBreakInside = "avoid";
-        card.style.border = "6px solid #8b5cf6";
+        card.style.border = "2px solid #8b5cf6"; // Borde más ligero
         card.style.boxShadow = "none";
-        card.style.margin = "0";
+        card.style.margin = "10px 2%"; // Añadido margen
         card.style.textAlign = "center";
+        card.style.display = "inline-block";
+        card.style.width = "45%";
+        card.style.boxSizing = "border-box";
         card.innerHTML = `
           <img src="../../assets/Logo.png" style="width: 50px; margin-bottom: 10px;" />
           <h3 style="color: black; margin-bottom: 5px;">${alumno.nombre}</h3>
@@ -162,21 +165,34 @@ document.addEventListener("DOMContentLoaded", async () => {
       `;
         container.appendChild(card);
 
-        new QRCode(document.getElementById(`qr-all-${alumno.id_alumno}`), {
+        const qrElement = document.getElementById(`qr-all-${alumno.id_alumno}`);
+        new QRCode(qrElement, {
           text: alumno.qr_token,
           width: 100,
           height: 100,
           colorDark: "#000000",
           colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.H,
+          correctLevel: QRCode.CorrectLevel.M, // Nivel M para un QR menos denso y más fácil de leer
         });
+
+        // Forzar a convertir el canvas en img para asegurar impresión
+        setTimeout(() => {
+          const canvas = qrElement.querySelector("canvas");
+          const img = qrElement.querySelector("img");
+          if (canvas && img) {
+            if (!img.src || img.src === "")
+              img.src = canvas.toDataURL("image/png");
+            img.style.display = "inline-block";
+            canvas.style.display = "none";
+          }
+        }, 300);
       });
 
       setTimeout(() => {
         window.print();
         container.style.display = "none";
         document.body.className = "";
-      }, 500);
+      }, 800); // Aumentar tiempo de espera para asegurar que los QR se generen
     });
 
   // Botón Descargar PDF Directo de Credencial Individual
@@ -185,26 +201,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     ?.addEventListener("click", () => {
       const element = document.getElementById("credencial-print");
 
-      // Convertimos los píxeles a Milímetros exactos (1px = 0.264583 mm)
-      // Añadimos +1 para evitar desbordes milimétricos que crean una hoja en blanco extra
-      const pxToMm = 0.264583;
-      const pdfWidth = (element.offsetWidth || 400) * pxToMm + 1;
-      const pdfHeight = (element.offsetHeight || 600) * pxToMm + 1;
+      // Fix para evitar que html2canvas corte la imagen si hay scroll
+      window.scrollTo(0, 0);
 
       const opt = {
-        margin: 0,
+        margin: [10, 10, 10, 10], // Agregar márgenes para evitar cortes
         filename: `Credencial_${currentCredencialName.replace(/\s+/g, "_")}.pdf`,
-        image: { type: "jpeg", quality: 1 },
-        html2canvas: { scale: 4, useCORS: true, backgroundColor: "#ffffff" },
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          windowWidth: 800,
+        }, // Escala 2 reduce uso de memoria y evita fallos en móvil
         jsPDF: {
           unit: "mm",
-          format: [pdfWidth, pdfHeight],
+          format: "a4", // Usar A4 estándar para mayor compatibilidad
           orientation: "portrait",
         },
       };
 
       const originalShadow = element.style.boxShadow;
+      const originalBorder = element.style.border;
+      const originalMaxWidth = element.style.maxWidth;
+
       element.style.boxShadow = "none";
+      element.style.border = "2px solid #8b5cf6";
+      element.style.maxWidth = "350px"; // Limitar ancho para que quepa bien en el PDF
 
       html2pdf()
         .set(opt)
@@ -212,6 +235,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         .save()
         .then(() => {
           element.style.boxShadow = originalShadow;
+          element.style.border = originalBorder;
+          element.style.maxWidth = originalMaxWidth;
         });
     });
 });
@@ -346,7 +371,7 @@ function mostrarCredencial(alumno) {
     height: 150,
     colorDark: "#0f172a",
     colorLight: "#ffffff",
-    correctLevel: QRCode.CorrectLevel.H,
+    correctLevel: QRCode.CorrectLevel.M, // Nivel M es más limpio
   });
 
   // Convertir el Canvas a Imagen estática de forma silenciosa para que html2pdf lo reconozca
@@ -360,7 +385,7 @@ function mostrarCredencial(alumno) {
       img.style.display = "inline-block";
       canvas.style.display = "none";
     }
-  }, 150);
+  }, 300); // Aumentar timeout ligeramente
 
   document.getElementById("modal-credencial").classList.add("active");
 }

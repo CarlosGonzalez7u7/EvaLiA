@@ -133,6 +133,22 @@
           margin: 1cm;
         }
       }
+
+      /* Optimizaciones de rendimiento para móviles */
+      @media (max-width: 768px) {
+        * {
+          animation-duration: 0.01s !important;
+        }
+        body {
+          background-attachment: scroll !important;
+        }
+        .modal-content,
+        .card,
+        .scanner-container {
+          backdrop-filter: none !important;
+          background: rgba(30, 27, 75, 0.95) !important;
+        }
+      }
     </style>
   </head>
   <body>

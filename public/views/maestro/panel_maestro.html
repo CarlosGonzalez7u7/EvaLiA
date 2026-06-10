@@ -81,6 +81,20 @@
           justify-content: center;
         }
       }
+
+      /* Optimizaciones de rendimiento para móviles */
+      @media (max-width: 768px) {
+        * {
+          animation-duration: 0.01s !important;
+        }
+        body {
+          background-attachment: scroll !important;
+        }
+        .modal-content,
+        .card {
+          backdrop-filter: none !important;
+        }
+      }
     </style>
   </head>
   <body>

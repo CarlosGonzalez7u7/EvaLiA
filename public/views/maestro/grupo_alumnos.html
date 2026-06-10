@@ -114,7 +114,7 @@
           visibility: visible;
         }
         body.print-single #credencial-print {
-          position: absolute !important;
+          position: relative !important;
           left: 0 !important;
           top: 0 !important;
           margin: 0 !important;
@@ -131,16 +131,35 @@
           visibility: visible;
         }
         body.print-multiple #print-all-container {
-          position: absolute;
+          position: relative;
           left: 0;
           top: 0;
           width: 100%;
-          display: grid !important;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 20px;
+          display: block !important;
+        }
+        body.print-multiple .credencial-card {
+          display: inline-block;
+          width: 45%;
+          margin: 10px 2%;
+          vertical-align: top;
+          page-break-inside: avoid;
         }
         .modal-overlay {
           background: transparent;
+        }
+      }
+
+      /* Optimizaciones de rendimiento para móviles */
+      @media (max-width: 768px) {
+        * {
+          animation-duration: 0.01s !important;
+        }
+        body {
+          background-attachment: scroll !important;
+        }
+        .modal-content,
+        .card {
+          backdrop-filter: none !important;
         }
       }
     </style>
@@ -489,6 +508,6 @@
     <!-- Contenedor Oculto para Imprimir Todos a la vez -->
     <div id="print-all-container" style="display: none"></div>
 
-    <script type="module" src="../../js/grupo_alumnos.js?v=5"></script>
+    <script type="module" src="../../js/grupo_alumnos.js?v=6"></script>
   </body>
 </html>
