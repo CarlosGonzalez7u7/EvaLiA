@@ -176,7 +176,37 @@ document.addEventListener("DOMContentLoaded", async () => {
       cargarTablaExcel(new URLSearchParams(window.location.search).get("id"));
     });
 
-  cargarAsistenciasHoy(idGrupo);
+  window.cargarAsistenciasHoy(idGrupo);
+
+  // Event listeners para los buscadores
+  document.getElementById("search-hoy")?.addEventListener("input", (e) => {
+    const term = e.target.value.toLowerCase();
+    if (window.asistenciasHoyData) {
+      const filtrados = window.asistenciasHoyData.filter(
+        (a) =>
+          a.nombre.toLowerCase().includes(term) ||
+          (a.matricula && a.matricula.toLowerCase().includes(term)),
+      );
+      renderAsistenciasHoy(filtrados);
+    }
+  });
+
+  document
+    .getElementById("search-excel-asis")
+    ?.addEventListener("input", (e) => {
+      const term = e.target.value.toLowerCase();
+      const table = document.getElementById("tabla-asistencias-excel");
+      if (!table) return;
+      const rows = table.querySelectorAll("tbody tr");
+      rows.forEach((row) => {
+        const nameCell = row.querySelector("th");
+        if (nameCell) {
+          row.style.display = nameCell.innerText.toLowerCase().includes(term)
+            ? ""
+            : "none";
+        }
+      });
+    });
 
   // Lógica del Escáner QR
   const btnIniciar = document.getElementById("btn-iniciar-escaner");
@@ -332,7 +362,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (data.success) {
         playScannerBeep();
         mostrarModalEscaneoExito(data.nombre);
-        cargarAsistenciasHoy(idGrupo);
+        window.cargarAsistenciasHoy(idGrupo);
       } else {
         playErrorBeep();
         mostrarModalEscaneoError(data.message);
@@ -349,29 +379,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function onScanFailure(error) {
     /* Ignorar fallos de lectura, son normales frame por frame */
-  }
-
-  async function cargarAsistenciasHoy(id) {
-    try {
-      const res = await fetch(
-        `/api/controllers/AsistenciaController.php?action=listar_hoy&id_grupo=${id}`,
-      );
-      const data = await res.json();
-      const tbody = document.getElementById("lista-asistencias-hoy");
-
-      if (data.success) {
-        tbody.innerHTML = "";
-        if (data.data.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-muted); padding: 30px;">Aún no hay asistencias registradas hoy.</td></tr>`;
-          return;
-        }
-        data.data.forEach((asis) => {
-          tbody.innerHTML += `<tr><td style="font-weight: 600;">${asis.nombre}</td><td style="text-align: right; color: var(--text-muted); font-size: 0.9rem;">${asis.fecha_hora}</td></tr>`;
-        });
-      }
-    } catch (e) {
-      console.error(e);
-    }
   }
 
   // --- NAVEGACIÓN ESTILO EXCEL Y ATAJOS PARA ASISTENCIAS ---
@@ -707,6 +714,63 @@ async function cargarTablaExcel(idGrupo) {
   tabla.innerHTML += tbody;
 }
 
+window.cargarAsistenciasHoy = async function (id) {
+  try {
+    const res = await fetch(
+      `/api/controllers/AsistenciaController.php?action=listar_hoy&id_grupo=${id}`,
+    );
+    const data = await res.json();
+    const container = document.getElementById("lista-asistencias-hoy");
+
+    if (data.success) {
+      window.asistenciasHoyData = data.data; // Guardamos en memoria para el buscador
+      renderAsistenciasHoy(data.data);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+function renderAsistenciasHoy(datos) {
+  const container = document.getElementById("lista-asistencias-hoy");
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (datos.length === 0) {
+    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 30px;">No se encontraron asistencias para mostrar.</div>`;
+    return;
+  }
+  datos.forEach((asis) => {
+    let color = "#10b981";
+    let icon = "fa-check-circle";
+    let bg = "rgba(16, 185, 129, 0.1)";
+    let border = "rgba(16, 185, 129, 0.2)";
+    if (asis.estado === "Falta") {
+      color = "#ef4444";
+      icon = "fa-times-circle";
+      bg = "rgba(239, 68, 68, 0.1)";
+      border = "rgba(239, 68, 68, 0.2)";
+    } else if (asis.estado === "Retardo") {
+      color = "#f59e0b";
+      icon = "fa-clock";
+      bg = "rgba(245, 158, 11, 0.1)";
+      border = "rgba(245, 158, 11, 0.2)";
+    }
+
+    container.innerHTML += `
+      <div style="background: ${bg}; border: 1px solid ${border}; padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-weight: 600; color: var(--text-light); margin-bottom: 2px;">${asis.nombre}</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">${asis.matricula || ""}</div>
+          <div style="font-size: 0.85rem; color: ${color}; font-weight: bold;"><i class="fas ${icon}"></i> ${asis.estado}</div>
+        </div>
+        <div style="text-align: right; color: var(--text-muted); font-size: 0.9rem; font-weight: 600;">
+          ${asis.fecha_hora}
+        </div>
+      </div>`;
+  });
+}
+
 window.setEstadoAsistenciaDirecto = async function (
   td,
   idAlumno,
@@ -750,6 +814,9 @@ window.setEstadoAsistenciaDirecto = async function (
         estado: nuevoEstado,
       }),
     });
+    window.cargarAsistenciasHoy(
+      new URLSearchParams(window.location.search).get("id"),
+    );
   } catch (e) {
     console.error("Error al guardar asistencia");
   }
@@ -784,7 +851,9 @@ window.cambiarEstadoAsistencia = async function (
     }),
   });
 
-  cargarTablaExcel(new URLSearchParams(window.location.search).get("id"));
+  const idGrupo = new URLSearchParams(window.location.search).get("id");
+  cargarTablaExcel(idGrupo);
+  window.cargarAsistenciasHoy(idGrupo);
 };
 
 function inyectarPestanasNavegacion(idGrupo, vistaActiva) {
@@ -859,6 +928,7 @@ document.addEventListener("DOMContentLoaded", () => {
               .getElementById("modal-editar-fecha")
               .classList.remove("active");
             cargarTablaExcel(idGrupo);
+            window.cargarAsistenciasHoy(idGrupo);
           } else {
             mostrarAlerta(data.message || "Error al editar fecha.");
           }
@@ -899,6 +969,7 @@ document.addEventListener("DOMContentLoaded", () => {
               .getElementById("modal-editar-fecha")
               .classList.remove("active");
             cargarTablaExcel(idGrupo);
+            window.cargarAsistenciasHoy(idGrupo);
           } else {
             mostrarAlerta(data.message || "Error al borrar fecha.");
           }

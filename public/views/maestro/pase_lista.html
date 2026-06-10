@@ -284,31 +284,55 @@
               padding: 20px;
               border-bottom: 1px solid rgba(255, 255, 255, 0.05);
               background: rgba(0, 0, 0, 0.2);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              flex-wrap: wrap;
+              gap: 15px;
             "
           >
             <h3 style="color: white; margin: 0">
               <i class="fas fa-list-check"></i> Asistencias de Hoy
             </h3>
+            <div style="position: relative; flex: 1; max-width: 250px">
+              <i
+                class="fas fa-search"
+                style="
+                  position: absolute;
+                  left: 10px;
+                  top: 10px;
+                  color: var(--text-muted);
+                "
+              ></i>
+              <input
+                type="text"
+                id="search-hoy"
+                class="form-control"
+                placeholder="Buscar matrícula o nombre..."
+                style="padding-left: 30px; width: 100%"
+              />
+            </div>
           </div>
-          <div class="table-container" style="max-height: 400px">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Alumno</th>
-                  <th style="text-align: right">Hora</th>
-                </tr>
-              </thead>
-              <tbody id="lista-asistencias-hoy">
-                <tr>
-                  <td
-                    colspan="2"
-                    style="text-align: center; color: var(--text-muted)"
-                  >
-                    Cargando...
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div style="padding: 15px">
+            <div
+              id="lista-asistencias-hoy"
+              style="
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 15px;
+              "
+            >
+              <div
+                style="
+                  grid-column: 1 / -1;
+                  text-align: center;
+                  color: var(--text-muted);
+                  padding: 30px;
+                "
+              >
+                Cargando...
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -364,6 +388,31 @@
               flex-wrap: wrap;
             "
           >
+            <div style="position: relative">
+              <i
+                class="fas fa-search"
+                style="
+                  position: absolute;
+                  left: 10px;
+                  top: 9px;
+                  color: var(--text-muted);
+                  font-size: 0.9rem;
+                "
+              ></i>
+              <input
+                type="text"
+                id="search-excel-asis"
+                class="form-control"
+                placeholder="Buscar alumno..."
+                style="
+                  padding-left: 30px;
+                  width: 150px;
+                  padding-top: 6px;
+                  padding-bottom: 6px;
+                  font-size: 0.9rem;
+                "
+              />
+            </div>
             <label style="color: var(--text-light); font-weight: bold"
               ><i class="fas fa-calendar-day"></i> Periodo:</label
             >
@@ -520,6 +569,6 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/pase_lista.js?v=8"></script>
+    <script type="module" src="../../js/pase_lista.js?v=9"></script>
   </body>
 </html>

@@ -78,6 +78,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
   });
 
+  // Búsqueda en la tabla Excel de Calificaciones
+  document
+    .getElementById("search-excel-calif")
+    ?.addEventListener("input", (e) => {
+      const term = e.target.value.toLowerCase();
+      const table = document.getElementById("tabla-calificaciones");
+      if (!table) return;
+      const rows = table.querySelectorAll("tbody tr");
+      rows.forEach((row) => {
+        const nameCell = row.querySelector("th");
+        if (nameCell) {
+          row.style.display = nameCell.innerText.toLowerCase().includes(term)
+            ? ""
+            : "none";
+        }
+      });
+    });
+
   // 2. Modal Nueva Actividad
   document
     .getElementById("btn-nueva-actividad")

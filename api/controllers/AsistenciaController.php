@@ -86,7 +86,7 @@ try {
         $hoy = date('Y-m-d');
 
         $stmt = $pdo->prepare("
-            SELECT a.nombre, asis.fecha_hora, asis.estado 
+            SELECT a.matricula, a.nombre, asis.fecha_hora, asis.estado 
             FROM asistencias asis 
             JOIN alumnos a ON asis.id_alumno = a.id_alumno 
             WHERE a.id_grupo = ? AND DATE(asis.fecha_hora) = ? 

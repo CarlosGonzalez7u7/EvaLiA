@@ -194,6 +194,32 @@
           >
           <select id="select-periodo"></select>
 
+          <div style="position: relative">
+            <i
+              class="fas fa-search"
+              style="
+                position: absolute;
+                left: 10px;
+                top: 10px;
+                color: var(--text-muted);
+                font-size: 0.9rem;
+              "
+            ></i>
+            <input
+              type="text"
+              id="search-excel-calif"
+              class="form-control"
+              placeholder="Buscar alumno..."
+              style="
+                padding-left: 30px;
+                width: 170px;
+                padding-top: 8px;
+                padding-bottom: 8px;
+                font-size: 0.9rem;
+              "
+            />
+          </div>
+
           <button
             id="btn-export-excel"
             class="btn btn-cancel"
@@ -467,6 +493,6 @@
       <i class="fas fa-check-circle"></i> Guardado automático
     </div>
 
-    <script type="module" src="../../js/calificaciones.js?v=9"></script>
+    <script type="module" src="../../js/calificaciones.js?v=10"></script>
   </body>
 </html>
