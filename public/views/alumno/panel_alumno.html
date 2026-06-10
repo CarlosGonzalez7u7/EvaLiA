@@ -15,6 +15,8 @@
     />
     <link rel="stylesheet" href="../../css/styles.css?v=7" />
     <!-- Librería Chart.js para el gráfico de rendimiento -->
+    <!-- Sanitizador para evitar ataques XSS al mostrar avisos del profe -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       .panel-container {
@@ -163,6 +165,34 @@
         #print-area th, #print-area td { border: 1px solid #ccc !important; padding: 8px !important; text-align: left !important; }
         @page { margin: 1cm; }
       }
+
+      /* --- ESTILOS PARA ANUNCIOS EN MÓVIL --- */
+      .btn-ver-mas {
+          display: none; /* Oculto por defecto en escritorio */
+      }
+
+      @media (max-width: 768px) {
+        .anuncio-corto {
+            max-height: 6.5em; /* Aprox. 4-5 líneas de texto */
+            overflow: hidden;
+            position: relative;
+            /* Usamos una máscara para un degradado más limpio que un pseudo-elemento */
+            -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+            mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+            margin-bottom: 10px;
+        }
+
+        .btn-ver-mas {
+            display: inline-block; /* Se muestra en móvil */
+            color: var(--primary);
+            background: none;
+            border: none;
+            padding: 5px 0;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+      }
     </style>
   </head>
   <body>
@@ -246,7 +276,7 @@
 
       <div id="muro-avisos" class="card" style="display: none; background: rgba(236, 72, 153, 0.15); border-color: var(--secondary); margin-bottom: 30px;">
         <h3 style="color: var(--secondary); margin-bottom: 10px;"><i class="fas fa-bullhorn"></i> Aviso Importante del Maestro</h3>
-        <p id="texto-avisos" style="color: var(--text-light); white-space: pre-wrap; font-size: 1.05rem;"></p>
+        <div id="anuncios-content" style="color: var(--text-light); line-height: 1.6;"></div>
       </div>
 
       <div
@@ -315,6 +345,19 @@
         </div>
       </div>
 
+    <!-- Modal para ver el Anuncio Completo -->
+    <div id="modal-anuncio-completo" class="modal-overlay">
+      <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+          <h2 style="color: var(--secondary);"><i class="fas fa-bullhorn"></i> Anuncio Completo</h2>
+          <button id="btn-cerrar-anuncio" type="button" class="btn-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="anuncio-completo-body" style="color: var(--text-light); line-height: 1.6; max-height: 70vh; overflow-y: auto; padding-right: 15px;">
+          <!-- El contenido completo del anuncio se inyectará aquí -->
+        </div>
+      </div>
+    </div>
+
     <!-- Modal de Alerta -->
     <div id="modal-alerta" class="modal-overlay">
       <div class="modal-content" style="max-width: 400px; text-align: center">
@@ -365,6 +408,6 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/panel_alumno.js?v=15"></script>
+    <script type="module" src="../../js/panel_alumno.js?v=16"></script>
   </body>
 </html>

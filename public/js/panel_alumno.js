@@ -1006,11 +1006,47 @@ document.addEventListener("DOMContentLoaded", async () => {
       `${data.grupo.nombre_grupo} — ${data.grupo.ciclo_escolar}`;
 
     if (data.grupo.avisos) {
-      document.getElementById("muro-avisos").style.display = "block";
-      document.getElementById("texto-avisos").innerHTML =
-        data.grupo.avisos.replace(/\n/g, "<br>");
+      const muro = document.getElementById("muro-avisos");
+      const anunciosContainer = document.getElementById("anuncios-content");
+      const avisoTexto = data.grupo.avisos;
+
+      if (muro && anunciosContainer && avisoTexto && avisoTexto.trim() !== "") {
+        muro.style.display = "block";
+        // Sanitizar el HTML del aviso para evitar problemas de seguridad (XSS)
+        const sanitizedHtml = DOMPurify.sanitize(avisoTexto);
+
+        // Crear el contenedor para el texto corto
+        const shortTextDiv = document.createElement("div");
+        shortTextDiv.className = "anuncio-corto";
+        shortTextDiv.innerHTML = sanitizedHtml;
+
+        // Crear el botón "Ver más"
+        const readMoreBtn = document.createElement("button");
+        readMoreBtn.className = "btn-ver-mas";
+        readMoreBtn.innerHTML =
+          'Leer anuncio completo <i class="fas fa-angle-double-right"></i>';
+
+        // Asignar el evento para abrir el modal con el contenido completo
+        readMoreBtn.onclick = () => {
+          document.getElementById("anuncio-completo-body").innerHTML =
+            sanitizedHtml;
+          document
+            .getElementById("modal-anuncio-completo")
+            .classList.add("active");
+        };
+
+        // Limpiar el contenedor y agregar los nuevos elementos
+        anunciosContainer.innerHTML = "";
+        anunciosContainer.appendChild(shortTextDiv);
+        anunciosContainer.appendChild(readMoreBtn);
+      }
+
       if ("Notification" in window && Notification.permission === "granted") {
-        new Notification("Aviso de tu maestro", { body: data.grupo.avisos });
+        // Crear una versión de texto plano para la notificación
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = data.grupo.avisos;
+        const plainText = tempDiv.textContent || tempDiv.innerText || "";
+        new Notification("Aviso de tu maestro", { body: plainText });
       }
     }
 
@@ -1033,6 +1069,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     await fetch("/api/controllers/AlumnoPortalController.php?action=logout");
     window.location.href = "../../index.html";
   });
+
+  // Lógica para cerrar el modal de anuncio
+  document
+    .getElementById("btn-cerrar-anuncio")
+    ?.addEventListener("click", () => {
+      document
+        .getElementById("modal-anuncio-completo")
+        .classList.remove("active");
+    });
+
+  // También cerrar el modal si se hace clic fuera del contenido
+  document
+    .getElementById("modal-anuncio-completo")
+    ?.addEventListener("click", (e) => {
+      if (e.target.classList.contains("modal-overlay")) {
+        document
+          .getElementById("modal-anuncio-completo")
+          .classList.remove("active");
+      }
+    });
 });
 
 // ================================================================
