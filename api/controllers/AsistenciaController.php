@@ -156,6 +156,31 @@ try {
         exit;
     }
 
+    // 2.8 MODIFICAR FECHA COMPLETA DE ASISTENCIA
+    if ($action === 'edit_date') {
+        $id_grupo = $input['id_grupo'];
+        $old_date = $input['old_date'];
+        $new_date = $input['new_date'];
+
+        $stmt = $pdo->prepare("UPDATE asistencias a JOIN alumnos al ON a.id_alumno = al.id_alumno SET a.fecha_hora = CONCAT(?, ' ', TIME(a.fecha_hora)) WHERE al.id_grupo = ? AND DATE(a.fecha_hora) = ?");
+        $stmt->execute([$new_date, $id_grupo, $old_date]);
+        
+        echo json_encode(["success" => true]);
+        exit;
+    }
+
+    // 2.9 ELIMINAR FECHA COMPLETA DE ASISTENCIA
+    if ($action === 'delete_date') {
+        $id_grupo = $input['id_grupo'];
+        $date = $input['date'];
+
+        $stmt = $pdo->prepare("DELETE a FROM asistencias a JOIN alumnos al ON a.id_alumno = al.id_alumno WHERE al.id_grupo = ? AND DATE(a.fecha_hora) = ?");
+        $stmt->execute([$id_grupo, $date]);
+        
+        echo json_encode(["success" => true]);
+        exit;
+    }
+
     // 3. AGREGAR ASISTENCIA MANUAL
     if ($action === 'add_manual') {
         $id_alumno = $input['id_alumno'];

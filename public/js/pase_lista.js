@@ -524,7 +524,7 @@ async function cargarTablaExcel(idGrupo) {
   allFechas.sort();
 
   allFechas.forEach((fecha) => {
-    thead += `<th>${fecha.split("-").reverse().join("/")}</th>`;
+    thead += `<th style="cursor: pointer; transition: color 0.2s;" title="Clic para editar o borrar fecha" onclick="opcionesFechaAsistencia('${fecha}')" onmouseover="this.style.color='var(--secondary)'" onmouseout="this.style.color='white'">${fecha.split("-").reverse().join("/")} <i class="fas fa-edit" style="font-size: 0.7rem; margin-left: 3px; color: var(--text-muted);"></i></th>`;
   });
   thead += `<th style="color: var(--primary);">Total Asist.</th></tr></thead>`;
   tabla.innerHTML = thead;
@@ -675,3 +675,123 @@ function inyectarPestanasNavegacion(idGrupo, vistaActiva) {
   `;
   header.insertAdjacentHTML("afterend", navHtml);
 }
+
+// --- MODAL PARA EDITAR / ELIMINAR FECHAS DE ASISTENCIA ---
+document.addEventListener("DOMContentLoaded", () => {
+  const modalHTML = `
+    <div id="modal-editar-fecha" class="modal-overlay">
+      <div class="modal-content" style="max-width: 400px; text-align: center;">
+        <div class="modal-header">
+          <h2 style="color: var(--secondary);"><i class="fas fa-calendar-alt"></i> Opciones de Fecha</h2>
+          <button type="button" class="btn-close" onclick="document.getElementById('modal-editar-fecha').classList.remove('active')"><i class="fas fa-times"></i></button>
+        </div>
+        <div style="margin-bottom: 20px;">
+          <p style="color: var(--text-light); margin-bottom: 15px;">Día seleccionado: <strong id="lbl-fecha-seleccionada"></strong></p>
+          <input type="date" id="input-nueva-fecha" class="form-control" style="margin-bottom: 20px;" />
+          <input type="hidden" id="input-fecha-original" />
+          
+          <button id="btn-guardar-fecha" class="btn btn-maestro" style="width: 100%; justify-content: center; margin-bottom: 15px;">
+            <i class="fas fa-save"></i> Guardar Nueva Fecha
+          </button>
+          
+          <button id="btn-borrar-fecha" class="btn btn-cancel" style="width: 100%; justify-content: center; border-color: #ef4444; color: #ef4444; background: rgba(239, 68, 68, 0.1);">
+            <i class="fas fa-trash"></i> Eliminar toda la columna
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML("beforeend", modalHTML);
+
+  document
+    .getElementById("btn-guardar-fecha")
+    .addEventListener("click", async () => {
+      const oldDate = document.getElementById("input-fecha-original").value;
+      const newDate = document.getElementById("input-nueva-fecha").value;
+      const idGrupo = new URLSearchParams(window.location.search).get("id");
+
+      if (!newDate) {
+        mostrarAlerta("Selecciona una fecha válida.");
+        return;
+      }
+
+      if (oldDate !== newDate) {
+        const idx = fechasAgregadasManualmente.indexOf(oldDate);
+        if (idx !== -1) fechasAgregadasManualmente[idx] = newDate;
+        try {
+          const res = await fetch("/api/controllers/AsistenciaController.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "edit_date",
+              id_grupo: idGrupo,
+              old_date: oldDate,
+              new_date: newDate,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            document
+              .getElementById("modal-editar-fecha")
+              .classList.remove("active");
+            cargarTablaExcel(idGrupo);
+          } else {
+            mostrarAlerta(data.message || "Error al editar fecha.");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        document
+          .getElementById("modal-editar-fecha")
+          .classList.remove("active");
+      }
+    });
+
+  document.getElementById("btn-borrar-fecha").addEventListener("click", () => {
+    const oldDate = document.getElementById("input-fecha-original").value;
+    const idGrupo = new URLSearchParams(window.location.search).get("id");
+    const formattedDate = oldDate.split("-").reverse().join("/");
+
+    mostrarConfirmacion(
+      `¿Eliminar permanentemente la columna del día ${formattedDate} y todas las asistencias marcadas allí?`,
+      async () => {
+        fechasAgregadasManualmente = fechasAgregadasManualmente.filter(
+          (f) => f !== oldDate,
+        );
+        try {
+          const res = await fetch("/api/controllers/AsistenciaController.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "delete_date",
+              id_grupo: idGrupo,
+              date: oldDate,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            document
+              .getElementById("modal-editar-fecha")
+              .classList.remove("active");
+            cargarTablaExcel(idGrupo);
+          } else {
+            mostrarAlerta(data.message || "Error al borrar fecha.");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      },
+    );
+  });
+});
+
+window.opcionesFechaAsistencia = function (fecha) {
+  document.getElementById("lbl-fecha-seleccionada").innerText = fecha
+    .split("-")
+    .reverse()
+    .join("/");
+  document.getElementById("input-fecha-original").value = fecha;
+  document.getElementById("input-nueva-fecha").value = fecha;
+  document.getElementById("modal-editar-fecha").classList.add("active");
+};
