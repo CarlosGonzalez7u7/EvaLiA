@@ -138,6 +138,17 @@ let tutorialOverlay = null;
 let tutorialSpotlight = null;
 let tutorialCard = null;
 
+function handleTutorialResize() {
+  if (tutorialCurrentStep >= 0 && tutorialCurrentStep < tutorialSteps.length) {
+    const step = tutorialSteps[tutorialCurrentStep];
+    const targetEl = document.querySelector(step.target);
+    if (targetEl) {
+      posicionarSpotlight(targetEl, step);
+      renderTutorialCard(step, tutorialCurrentStep);
+    }
+  }
+}
+
 window.iniciarTutorial = function () {
   tutorialCurrentStep = 0;
 
@@ -161,6 +172,7 @@ window.iniciarTutorial = function () {
 
   buildTutorialDOM();
   window.mostrarPasoTutorial(0);
+  window.addEventListener("resize", handleTutorialResize);
 };
 
 function buildTutorialDOM() {
@@ -174,8 +186,10 @@ function buildTutorialDOM() {
   if (oldStyles) oldStyles.remove();
   styles.textContent = `
     #tutorial-overlay {
-      position: fixed;
-      inset: 0;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
       z-index: 9000;
       pointer-events: none;
     }
@@ -186,7 +200,7 @@ function buildTutorialDOM() {
       transition: all 0.4s ease;
     }
     #tutorial-spotlight {
-      position: fixed;
+      position: absolute;
       border-radius: 12px;
       box-shadow:
         0 0 0 4px rgba(139, 92, 246, 0.8),
@@ -197,7 +211,7 @@ function buildTutorialDOM() {
       background: transparent;
     }
     #tutorial-card {
-      position: fixed;
+      position: absolute;
       background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
       border: 1px solid rgba(139, 92, 246, 0.5);
       border-radius: 16px;
@@ -336,15 +350,10 @@ window.mostrarPasoTutorial = function mostrarPasoTutorial(stepIndex) {
     return;
   }
 
-  // Desbloquear scroll temporalmente para el desplazamiento suave
-  document.body.classList.remove("no-scroll");
-
   // Scroll al elemento
   targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
 
   setTimeout(() => {
-    // Volver a bloquear el scroll
-    document.body.classList.add("no-scroll");
     posicionarSpotlight(targetEl, step);
     renderTutorialCard(step, stepIndex);
   }, 350);
@@ -354,8 +363,8 @@ function posicionarSpotlight(el, step) {
   const rect = el.getBoundingClientRect();
   const padding = 10;
 
-  tutorialSpotlight.style.top = `${rect.top - padding}px`;
-  tutorialSpotlight.style.left = `${rect.left - padding}px`;
+  tutorialSpotlight.style.top = `${rect.top + window.scrollY - padding}px`;
+  tutorialSpotlight.style.left = `${rect.left + window.scrollX - padding}px`;
   tutorialSpotlight.style.width = `${rect.width + padding * 2}px`;
   tutorialSpotlight.style.height = `${rect.height + padding * 2}px`;
 }
@@ -397,25 +406,36 @@ function renderTutorialCard(step, stepIndex) {
 
   // Vertical
   if (pos === "bottom") {
-    top = rect.bottom + cardGap;
+    top = rect.bottom + window.scrollY + cardGap;
   } else if (pos === "top") {
-    top = rect.top - cardGap - 220; // aproximado
+    top = rect.top + window.scrollY - cardGap - 220; // aproximado
   } else {
-    top = rect.top + rect.height / 2 - 120;
+    top = rect.top + window.scrollY + rect.height / 2 - 120;
   }
 
   // Horizontal
   if (pos === "left") {
-    left = rect.left - cardWidth - cardGap;
-    if (left < 10) left = rect.right + cardGap; // fallback right
+    left = rect.left + window.scrollX - cardWidth - cardGap;
+    if (left < 10 + window.scrollX)
+      left = rect.right + window.scrollX + cardGap; // fallback right
   } else {
-    left = rect.left + rect.width / 2 - cardWidth / 2;
+    left = rect.left + window.scrollX + rect.width / 2 - cardWidth / 2;
   }
 
-  // Constrain to viewport
-  left = Math.max(12, Math.min(left, vpWidth - cardWidth - 12));
-  if (top < 10) top = 10;
-  if (top > vpHeight - 150) top = vpHeight - 200; // simple fallback if offscreen
+  // Constrain to document bounds
+  const docWidth = Math.max(
+    document.documentElement.clientWidth || 0,
+    window.innerWidth || 0,
+  );
+  left = Math.max(12, Math.min(left, docWidth - cardWidth - 12));
+
+  if (top < window.scrollY + 10) top = window.scrollY + 10;
+
+  const docHeight = Math.max(
+    document.body.scrollHeight,
+    document.documentElement.scrollHeight,
+  );
+  if (top > docHeight - 150) top = docHeight - 200; // simple fallback if offscreen
 
   tutorialCard.style.top = `${top}px`;
   tutorialCard.style.left = `${left}px`;
@@ -428,13 +448,13 @@ function renderTutorialCard(step, stepIndex) {
 }
 
 window.cerrarTutorial = function () {
-  document.body.classList.remove("no-scroll");
   const overlay = document.getElementById("tutorial-overlay");
   if (overlay) {
     overlay.style.opacity = "0";
     overlay.style.transition = "opacity 0.3s";
     setTimeout(() => overlay.remove(), 300);
   }
+  window.removeEventListener("resize", handleTutorialResize);
 };
 
 // ================================================================
