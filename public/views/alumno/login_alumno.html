@@ -69,9 +69,43 @@
         display: none;
         margin-top: 15px;
       }
+      .btn-home {
+        position: absolute;
+        top: 30px;
+        left: 30px;
+        color: white;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 10px 20px;
+        border-radius: 50px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(5px);
+        transition: all 0.3s;
+        z-index: 100;
+      }
+      .btn-home:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.05);
+      }
+      @media (max-width: 768px) {
+        .btn-home {
+          top: 15px;
+          left: 15px;
+          padding: 8px 15px;
+          font-size: 0.9rem;
+        }
+      }
     </style>
   </head>
   <body>
+    <a href="../../index.html" class="btn-home">
+      <i class="fas fa-arrow-left"></i>
+      <span class="hide-mobile">Volver al Inicio</span>
+    </a>
     <div class="login-container">
       <div class="login-box">
         <img

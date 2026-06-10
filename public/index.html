@@ -314,6 +314,55 @@
         transform: translateY(-20px);
       }
 
+      /* Splash Screen / Precarga Mejorado */
+      .splash-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .splash-subtext {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 1rem;
+        margin-top: 15px;
+        opacity: 0;
+        transform: translateY(10px);
+        animation: textAppear 1s forwards 0.8s;
+        letter-spacing: 1px;
+      }
+      .splash-loader {
+        width: 200px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        margin-top: 30px;
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+        opacity: 0;
+        animation: textAppear 1s forwards 1s;
+      }
+      .splash-loader::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        box-shadow: 0 0 15px var(--primary);
+        animation: loadProgress 2s ease-in-out forwards 1.2s;
+      }
+      @keyframes loadProgress {
+        0% {
+          width: 0%;
+        }
+        50% {
+          width: 70%;
+        }
+        100% {
+          width: 100%;
+        }
+      }
+
       @media (max-width: 768px) {
         .slide h1 {
           font-size: 2.5rem;
@@ -374,8 +423,12 @@
 
     <!-- Telón de carga animado de EvaLiA -->
     <div id="splash-screen">
-      <img src="assets/Logo.png" alt="EvaLiA Logo" class="splash-logo" />
-      <h1 class="splash-text">EvaLiA</h1>
+      <div class="splash-content">
+        <img src="assets/Logo.png" alt="EvaLiA Logo" class="splash-logo" />
+        <h1 class="splash-text">EvaLiA</h1>
+        <p class="splash-subtext">Preparando tu entorno mágico...</p>
+        <div class="splash-loader"></div>
+      </div>
     </div>
 
     <div class="slides-container" id="slides-container">
@@ -524,20 +577,26 @@
       <div class="slide" id="final-slide">
         <div
           style="
-            background: white;
-            padding: 15px 25px;
-            border-radius: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px;
+            border-radius: 24px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 40px rgba(139, 92, 246, 0.5);
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            backdrop-filter: blur(10px);
           "
         >
           <img
             src="assets/Logo.png"
             alt="EvaLiA Logo"
-            style="height: 85px; object-fit: contain; display: block"
+            style="
+              height: 80px;
+              width: auto;
+              display: block;
+              mix-blend-mode: multiply;
+            "
           />
         </div>
         <h1 style="margin-bottom: 10px">¿Listo para comenzar?</h1>
