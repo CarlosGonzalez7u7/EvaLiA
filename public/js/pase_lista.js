@@ -14,16 +14,39 @@ window.toggleModoComentario = function () {
   const btn = document.getElementById("btn-modo-comentario");
   const tabla = document.getElementById("tabla-asistencias-excel");
 
+  // Reproducir sonido para dar feedback al usuario
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(
+      modoComentario ? 600 : 400,
+      audioCtx.currentTime,
+    );
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.001,
+      audioCtx.currentTime + 0.3,
+    );
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.3);
+  } catch (e) {}
+
   if (modoComentario) {
     btn.classList.replace("btn-cancel", "btn-maestro");
     btn.style.color = "white";
     btn.style.background = "#3b82f6";
     btn.style.borderColor = "#3b82f6";
+    btn.innerHTML = '<i class="fas fa-comment-dots"></i> Modo Comentario: ON';
     tabla.classList.add("modo-comentario-activo");
   } else {
     btn.style.background = "";
     btn.classList.replace("btn-maestro", "btn-cancel");
     btn.style.color = "#3b82f6";
+    btn.innerHTML = '<i class="fas fa-comment-dots"></i> Modo Comentario: OFF';
     tabla.classList.remove("modo-comentario-activo");
   }
 };
@@ -181,6 +204,59 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnDetener.style.display = "none";
   });
 
+  function playScannerBeep() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.type = "square";
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Frecuencia intensa
+
+      gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioCtx.currentTime + 1.5,
+      );
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 1.5);
+    } catch (e) {
+      const scanSound = new Audio(
+        "https://www.myinstants.com/media/sounds/scanner-beep.mp3",
+      );
+      scanSound.volume = 1.0;
+      scanSound.play().catch(console.log);
+    }
+  }
+
+  function mostrarModalEscaneoExito(nombre) {
+    let overlay = document.getElementById("modal-escaneo-exito");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "modal-escaneo-exito";
+      overlay.className = "modal-overlay";
+      overlay.style.zIndex = "3000";
+      overlay.innerHTML = `
+        <div class="modal-content" style="max-width: 400px; text-align: center; background: rgba(16, 185, 129, 0.95); border-color: #10b981; box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);">
+          <i class="fas fa-check-circle" style="font-size: 5rem; color: white; margin-bottom: 20px;"></i>
+          <h2 style="color: white; margin-bottom: 10px;">¡Escaneado con éxito!</h2>
+          <h3 id="lbl-escaneo-nombre" style="color: white; font-weight: 800; font-size: 1.5rem;"></h3>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
+    document.getElementById("lbl-escaneo-nombre").innerText = nombre;
+    overlay.classList.add("active");
+
+    setTimeout(() => {
+      overlay.classList.remove("active");
+    }, 2000);
+  }
+
   async function onScanSuccess(decodedText, decodedResult) {
     if (escaneando) return; // Evitar múltiples peticiones a la vez
     escaneando = true;
@@ -202,17 +278,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       const data = await res.json();
 
-      const toast = document.getElementById("toast-asistencia");
-      document.getElementById("lbl-alumno-asistencia").innerText = data.success
-        ? data.nombre
-        : "Aviso del Sistema";
-      document.getElementById("lbl-hora-asistencia").innerText = data.success
-        ? data.fecha_hora
-        : data.message;
-      toast.style.background = data.success ? "var(--secondary)" : "#ef4444";
-      toast.style.display = "block";
-
-      if (data.success) cargarAsistenciasHoy(idGrupo);
+      if (data.success) {
+        playScannerBeep();
+        mostrarModalEscaneoExito(data.nombre);
+        cargarAsistenciasHoy(idGrupo);
+      } else {
+        const toast = document.getElementById("toast-asistencia");
+        document.getElementById("lbl-alumno-asistencia").innerText =
+          "Aviso del Sistema";
+        document.getElementById("lbl-hora-asistencia").innerText = data.message;
+        toast.style.background = "#ef4444";
+        toast.style.display = "block";
+      }
     } catch (error) {
       console.error("Error al registrar:", error);
     }
