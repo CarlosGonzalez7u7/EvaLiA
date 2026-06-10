@@ -1112,6 +1112,9 @@ textarea.form-control {
    TABLA RESPONSIVA A TARJETAS (solo alumnos en móvil)
    ================================================================ */
 @media (max-width: 768px) {
+  .responsive-table {
+    min-width: 100% !important;
+  }
   .hero h1 {
     font-size: 2.5rem;
   }
@@ -1151,8 +1154,11 @@ textarea.form-control {
     border: none !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
     padding: 12px 5px !important;
+    position: static !important;
+    white-space: normal !important;
   }
-  .responsive-table td:last-child {
+  .responsive-table td:last-child,
+  .responsive-table th:last-child {
     border-bottom: none !important;
   }
   .responsive-table td::before,

@@ -186,7 +186,7 @@ function buildTutorialDOM() {
       transition: all 0.4s ease;
     }
     #tutorial-spotlight {
-      position: absolute;
+      position: fixed;
       border-radius: 12px;
       box-shadow:
         0 0 0 4px rgba(139, 92, 246, 0.8),
@@ -197,7 +197,7 @@ function buildTutorialDOM() {
       background: transparent;
     }
     #tutorial-card {
-      position: absolute;
+      position: fixed;
       background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
       border: 1px solid rgba(139, 92, 246, 0.5);
       border-radius: 16px;
@@ -336,10 +336,15 @@ window.mostrarPasoTutorial = function mostrarPasoTutorial(stepIndex) {
     return;
   }
 
+  // Desbloquear scroll temporalmente para el desplazamiento suave
+  document.body.classList.remove("no-scroll");
+
   // Scroll al elemento
   targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
 
   setTimeout(() => {
+    // Volver a bloquear el scroll
+    document.body.classList.add("no-scroll");
     posicionarSpotlight(targetEl, step);
     renderTutorialCard(step, stepIndex);
   }, 350);
@@ -349,7 +354,7 @@ function posicionarSpotlight(el, step) {
   const rect = el.getBoundingClientRect();
   const padding = 10;
 
-  tutorialSpotlight.style.top = `${rect.top - padding + window.scrollY}px`;
+  tutorialSpotlight.style.top = `${rect.top - padding}px`;
   tutorialSpotlight.style.left = `${rect.left - padding}px`;
   tutorialSpotlight.style.width = `${rect.width + padding * 2}px`;
   tutorialSpotlight.style.height = `${rect.height + padding * 2}px`;
@@ -392,11 +397,11 @@ function renderTutorialCard(step, stepIndex) {
 
   // Vertical
   if (pos === "bottom") {
-    top = rect.bottom + window.scrollY + cardGap;
+    top = rect.bottom + cardGap;
   } else if (pos === "top") {
-    top = rect.top + window.scrollY - cardGap - 220; // aproximado
+    top = rect.top - cardGap - 220; // aproximado
   } else {
-    top = rect.top + window.scrollY + rect.height / 2 - 120;
+    top = rect.top + rect.height / 2 - 120;
   }
 
   // Horizontal
@@ -409,7 +414,8 @@ function renderTutorialCard(step, stepIndex) {
 
   // Constrain to viewport
   left = Math.max(12, Math.min(left, vpWidth - cardWidth - 12));
-  if (top < window.scrollY + 10) top = window.scrollY + 10;
+  if (top < 10) top = 10;
+  if (top > vpHeight - 150) top = vpHeight - 200; // simple fallback if offscreen
 
   tutorialCard.style.top = `${top}px`;
   tutorialCard.style.left = `${left}px`;
@@ -422,6 +428,7 @@ function renderTutorialCard(step, stepIndex) {
 }
 
 window.cerrarTutorial = function () {
+  document.body.classList.remove("no-scroll");
   const overlay = document.getElementById("tutorial-overlay");
   if (overlay) {
     overlay.style.opacity = "0";
@@ -1057,7 +1064,7 @@ function renderDashboard() {
 
     htmlCalif += `<div id="calif-${periodo.id_periodo}" class="accordion-content ${isActive ? "" : "collapsed"}">
                   <div class="excel-container" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; overflow: auto; max-width: 100%;">
-                  <table class="table" style="margin: 0; min-width: max-content;">`;
+                  <table class="table responsive-table" style="margin: 0; min-width: max-content;">`;
 
     let htmlAsis = `<div class="accordion-header" onclick="toggleAccordion('asis-${periodo.id_periodo}', this, event)">
                       <div style="display: flex; align-items: center; gap: 10px;"><h4 style="color: var(--primary); margin: 0; font-size: 1.2rem;">${periodo.nombre_periodo}</h4> ${badgeActivo}</div>
@@ -1065,7 +1072,7 @@ function renderDashboard() {
                     </div>`;
     htmlAsis += `<div id="asis-${periodo.id_periodo}" class="accordion-content ${isActive ? "" : "collapsed"}">
                  <div class="table-container" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; overflow-x: auto;">
-                 <table class="table" style="margin: 0; min-width: 500px;">
+                 <table class="table responsive-table" style="margin: 0; min-width: 500px;">
                  <thead style="position: sticky; top: 0; background: #0f172a; z-index: 10;">
                    <tr><th>Fecha</th><th>Estado</th><th>Comentario / Justificación</th></tr>
                  </thead><tbody>`;
@@ -1082,8 +1089,8 @@ function renderDashboard() {
       <th style="width: 46px; min-width: 46px; text-align: center; position: sticky; left: 0; z-index: 12; background: #0f172a;">N°</th>
       <th style="min-width: 200px; max-width: 260px; position: sticky; left: 46px; z-index: 12; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.1);">Alumno</th>`;
     let tbodyHtml = `<tr>
-      <td style="text-align: center; color: var(--text-muted); font-weight: bold; position: sticky; left: 0; z-index: 5; background: #1e1b4b;">${rawData.alumno.numero_lista || "—"}</td>
-      <th style="font-weight: 600; position: sticky; left: 46px; z-index: 5; background: #1e1b4b; border-right: 1px solid rgba(255,255,255,0.1); white-space: nowrap;">${rawData.alumno.nombre}</th>`;
+      <td data-label="N°" style="text-align: center; color: var(--text-muted); font-weight: bold; position: sticky; left: 0; z-index: 5; background: #1e1b4b;">${rawData.alumno.numero_lista || "—"}</td>
+      <th data-label="Alumno" style="font-weight: 600; position: sticky; left: 46px; z-index: 5; background: #1e1b4b; border-right: 1px solid rgba(255,255,255,0.1); white-space: nowrap;">${rawData.alumno.nombre}</th>`;
 
     let asisPeriodo = asistencias;
     let fechasGrupoPeriodo = fechas_grupo;
@@ -1121,9 +1128,9 @@ function renderDashboard() {
           icon = "fa-clock";
         }
         htmlAsis += `<tr>
-          <td>${a.fecha_hora.substring(0, 10).split("-").reverse().join("/")}</td>
-          <td style="color: ${color}; font-weight: bold;"><i class="fas ${icon}"></i> ${a.estado}</td>
-          <td style="color: var(--text-light); font-size: 0.9rem;">${a.comentario ? "📝 " + a.comentario : "—"}</td>
+          <td data-label="Fecha">${a.fecha_hora.substring(0, 10).split("-").reverse().join("/")}</td>
+          <td data-label="Estado" style="color: ${color}; font-weight: bold;"><i class="fas ${icon}"></i> ${a.estado}</td>
+          <td data-label="Comentario" style="color: var(--text-light); font-size: 0.9rem;">${a.comentario ? "📝 " + a.comentario : "—"}</td>
         </tr>`;
       });
     }
@@ -1143,7 +1150,7 @@ function renderDashboard() {
             <i class="fas fa-user-check" style="color: ${color};"></i> Total
           </div>
         </th>`;
-        tbodyHtml += `<td style="text-align: center; vertical-align: middle; border-bottom: 2px solid ${color};">
+        tbodyHtml += `<td data-label="${rubrica.categoria} (Total)" style="text-align: center; vertical-align: middle; border-bottom: 2px solid ${color};">
           <strong>${asisScore}</strong> <span style="color: var(--text-muted); font-size: 0.8rem;">/ ${maxAsisPeriodo}</span>
           <span style="color: var(--secondary); font-size: 0.8rem; font-weight: bold; display: block; margin-top: 2px;">${((asisScore / maxAsisPeriodo) * 10).toFixed(1)}/10</span>
         </td>`;
@@ -1158,7 +1165,7 @@ function renderDashboard() {
             <span style="color: ${color}; font-size: 0.78rem; font-weight: 800;">${rubrica.categoria}</span><br>
             <em style="font-size: 0.8rem; color: var(--text-muted);">Sin actividades</em>
           </th>`;
-          tbodyHtml += `<td style="text-align: center; color: var(--text-muted);">—</td>`;
+          tbodyHtml += `<td data-label="${rubrica.categoria}" style="text-align: center; color: var(--text-muted);">—</td>`;
         } else {
           let sumaRub = 0;
           let evalRub = 0;
@@ -1191,7 +1198,7 @@ function renderDashboard() {
               nota !== "" && nota >= grupo.calificacion_minima
                 ? "text-success"
                 : "";
-            tbodyHtml += `<td onclick="abrirDetalleActividad(${acto.id_actividad})"
+            tbodyHtml += `<td data-label="${acto.nombre_actividad}" onclick="abrirDetalleActividad(${acto.id_actividad})"
                               style="cursor: pointer; text-align: center; vertical-align: middle; border-bottom: 2px solid ${color};"
                               class="${isDanger} ${isSuccess}"
                               title="Ver detalles de actividad">
@@ -1218,7 +1225,7 @@ function renderDashboard() {
       promedioRealPeriodo >= grupo.calificacion_minima
         ? "text-success"
         : "text-danger";
-    tbodyHtml += `<td class="cell-promedio ${colorClass}" style="font-size: 1.3rem; font-weight: 800; position: sticky; right: 0; z-index: 5; background: rgba(15,23,42,0.97); border-left: 1px solid rgba(255,255,255,0.1);">${promedioRealPeriodo > 0 ? promedioRealPeriodo.toFixed(1) : "0.0"}</td></tr></tbody>`;
+    tbodyHtml += `<td data-label="Promedio Final" class="cell-promedio ${colorClass}" style="font-size: 1.3rem; font-weight: 800; position: sticky; right: 0; z-index: 5; background: rgba(15,23,42,0.97); border-left: 1px solid rgba(255,255,255,0.1);">${promedioRealPeriodo > 0 ? promedioRealPeriodo.toFixed(1) : "0.0"}</td></tr></tbody>`;
 
     htmlCalif += theadHtml + tbodyHtml + `</table></div></div>`;
     containerCalif.innerHTML += htmlCalif;
