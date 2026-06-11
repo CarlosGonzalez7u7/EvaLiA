@@ -35,11 +35,12 @@ try {
 
         // Verificar si ya tiene asistencia hoy usando la hora del servidor
         $hoy = date('Y-m-d');
-        $check = $pdo->prepare("SELECT id_asistencia FROM asistencias WHERE id_alumno = ? AND DATE(fecha_hora) = ?");
+        $check = $pdo->prepare("SELECT id_asistencia, estado FROM asistencias WHERE id_alumno = ? AND DATE(fecha_hora) = ?");
         $check->execute([$alumno['id_alumno'], $hoy]);
-        if ($check->fetch()) {
-             echo json_encode(["success" => false, "message" => "El alumno " . $alumno['nombre'] . " ya tiene asistencia registrada el día de hoy."]);
-             exit;
+        $record = $check->fetch();
+        if ($record && in_array($record['estado'], ['Asistencia', 'Retardo', 'Justificado'])) {
+            echo json_encode(["success" => false, "message" => "El alumno " . $alumno['nombre'] . " ya tiene asistencia registrada el día de hoy."]);
+            exit;
         }
 
         // Obtener el horario del grupo para saber si es Asistencia o Retardo
@@ -70,8 +71,14 @@ try {
 
         // Registrar Asistencia (Usando la hora de PHP con zona horaria correcta)
         $ahora = date('Y-m-d H:i:s');
-        $insert = $pdo->prepare("INSERT INTO asistencias (id_alumno, fecha_hora, estado, comentario) VALUES (?, ?, ?, ?)");
-        $insert->execute([$alumno['id_alumno'], $ahora, $estado, $comentario]);
+        if ($record) {
+            // Si tenía una falta previa, la sobrescribimos y actualizamos la hora
+            $update = $pdo->prepare("UPDATE asistencias SET estado = ?, fecha_hora = ?, comentario = ? WHERE id_asistencia = ?");
+            $update->execute([$estado, $ahora, $comentario, $record['id_asistencia']]);
+        } else {
+            $insert = $pdo->prepare("INSERT INTO asistencias (id_alumno, fecha_hora, estado, comentario) VALUES (?, ?, ?, ?)");
+            $insert->execute([$alumno['id_alumno'], $ahora, $estado, $comentario]);
+        }
 
         // Obtener la hora registrada para mandarla de vuelta
         $fecha_hora = date('d/m/Y h:i A');
@@ -89,7 +96,7 @@ try {
             SELECT a.matricula, a.nombre, asis.fecha_hora, asis.estado 
             FROM asistencias asis 
             JOIN alumnos a ON asis.id_alumno = a.id_alumno 
-            WHERE a.id_grupo = ? AND DATE(asis.fecha_hora) = ? 
+            WHERE a.id_grupo = ? AND DATE(asis.fecha_hora) = ? AND asis.estado != 'Falta'
             ORDER BY asis.fecha_hora DESC
         ");
         $stmt->execute([$id_grupo, $hoy]);
