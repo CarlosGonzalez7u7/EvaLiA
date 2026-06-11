@@ -266,6 +266,11 @@
             Cargando grupo...
           </p>
         </div>
+        <div id="btn-contacto-maestro-container" style="display: none;">
+          <a id="btn-contacto-maestro" href="#" target="_blank" class="btn btn-maestro" style="background: linear-gradient(135deg, #ef4444, #ec4899); border: none; padding: 10px 20px;">
+            <i class="fas fa-envelope"></i> Contactar al Maestro
+          </a>
+        </div>
       </div>
 
       <!-- Banner de Permiso de Notificaciones -->
@@ -274,74 +279,109 @@
         <button onclick="solicitarNotificaciones()" class="btn btn-alumno" style="padding: 8px 15px; font-size: 0.9rem;">Habilitar Notificaciones</button>
       </div>
 
-      <div id="muro-avisos" class="card" style="display: none; background: rgba(236, 72, 153, 0.15); border-color: var(--secondary); margin-bottom: 30px;">
-        <h3 style="color: var(--secondary); margin-bottom: 10px;"><i class="fas fa-bullhorn"></i> Aviso Importante del Maestro</h3>
-        <div id="anuncios-content" style="color: var(--text-light); line-height: 1.6;"></div>
-      </div>
-
-      <div
-        class="grid"
-        style="
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          margin-bottom: 30px;
-        "
-      >
-        <div class="stat-card">
-          <h3 id="promedio-general" style="color: white">0.0</h3>
-          <p>Promedio Seleccionado</p>
-        </div>
-        <div class="stat-card">
-          <h3 id="porcentaje-asistencia" style="color: var(--primary)">0%</h3>
-          <p>Asistencia General</p>
-        </div>
-        <div class="stat-card">
-          <h3 id="tareas-entregadas" style="color: var(--secondary)">0/0</h3>
-          <p>Actividades Entregadas</p>
-        </div>
-        <div class="stat-card" id="estado-final-card">
-          <h3 id="estado-final" class="status-aprobado">N/A</h3>
-          <p>Estado</p>
-        </div>
-      </div>
-
-      <div class="card" style="margin-bottom: 30px; padding: 20px;">
-        <h3 style="color: white; margin-bottom: 15px;"><i class="fas fa-chart-line"></i> Mi Rendimiento</h3>
-        <canvas id="rendimientoChart" height="80"></canvas>
+      <!-- Filtro Global de Periodos -->
+      <div id="periodo-selector-container" style="margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap; gap: 15px; background: rgba(15, 23, 42, 0.6); padding: 15px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+        <label style="color: var(--text-muted); font-weight: 600; margin: 0;"><i class="fas fa-filter"></i> Mostrar vista de:</label>
+        <select id="filtro-periodo-select" class="form-control" style="width: auto; flex: 1; max-width: 300px; padding: 10px; background: #1e1b4b; cursor: pointer;">
+          <option value="all">🌐 Global (Todos los periodos)</option>
+        </select>
       </div>
 
       <!-- Pestañas de Navegación -->
       <div class="tabs-container" style="width: 100%; margin-bottom: 20px;">
-        <button type="button" class="tab-btn active" onclick="switchTabAlumno('tab-calificaciones', this)">
+        <button type="button" class="tab-btn active" onclick="switchTabAlumno('tab-dashboard', this)">
+          <i class="fas fa-chart-pie"></i> Dashboard y Estadísticas
+        </button>
+        <button type="button" class="tab-btn" onclick="switchTabAlumno('tab-calificaciones', this)">
           <i class="fas fa-table"></i> Tabla de Calificaciones
         </button>
         <button type="button" class="tab-btn" onclick="switchTabAlumno('tab-asistencias', this)">
           <i class="fas fa-clipboard-list"></i> Historial de Asistencia
         </button>
+        <button type="button" id="btn-tab-avisos" class="tab-btn" onclick="switchTabAlumno('tab-avisos', this)" style="display: none;">
+          <i class="fas fa-bullhorn"></i> Avisos
+        </button>
+      </div>
+
+      <!-- Dashboard -->
+      <div id="tab-dashboard" class="tab-content active" style="max-width: 100%;">
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 30px;">
+          <div class="stat-card">
+            <h3 id="promedio-general" style="color: white">0.0</h3>
+            <p>Promedio Seleccionado</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="porcentaje-asistencia" style="color: var(--primary)">0%</h3>
+            <p>Asistencia General</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="tareas-entregadas" style="color: var(--secondary)">0/0</h3>
+            <p>Actividades Entregadas</p>
+          </div>
+          <div class="stat-card" id="estado-final-card">
+            <h3 id="estado-final" class="status-aprobado">N/A</h3>
+            <p>Estado</p>
+          </div>
+        </div>
+
+        <div id="dashboard-charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px;">
+          <div style="background: rgba(15, 23, 42, 0.6); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+              <h3 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-light); text-align: center;"><i class="fas fa-chart-line" style="color: var(--secondary);"></i> Evolución del Promedio</h3>
+              <canvas id="rendimientoChart" height="80"></canvas>
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+              <h3 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-light); text-align: center;"><i class="fas fa-tasks" style="color: var(--primary);"></i> Desempeño por Rúbrica</h3>
+              <canvas id="rubricasChart"></canvas>
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+              <h3 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-light); text-align: center;"><i class="fas fa-user-check" style="color: #10b981;"></i> Resumen de Asistencia</h3>
+              <div style="max-width: 250px; margin: 0 auto;">
+                  <canvas id="asistenciasChart"></canvas>
+              </div>
+          </div>
+        </div>
       </div>
 
       <!-- Calificaciones Detalladas -->
-      <div id="tab-calificaciones" class="card tab-content active" style="padding: 0; max-width: 100%;">
-        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-          <h3 style="color: white; margin: 0;">
-            <i class="fas fa-tasks"></i> Desglose de Calificaciones
-          </h3>
-          <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Revisa las actividades entregadas y el puntaje asignado por tu profesor en la misma vista que él.</p>
-        </div>
-        <div id="contenedor-calificaciones" style="padding: 20px;">
-          <!-- JS Inyectará las tablas separadas por periodo aquí -->
+      <div id="tab-calificaciones" class="tab-content" style="max-width: 100%;">
+        <div class="card" style="padding: 0;">
+          <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <h3 style="color: white; margin: 0;">
+              <i class="fas fa-tasks"></i> Desglose de Calificaciones
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Revisa las actividades entregadas y el puntaje asignado por tu profesor en la misma vista que él.</p>
+          </div>
+          <div id="contenedor-calificaciones" style="padding: 20px;">
+            <!-- JS Inyectará las tablas separadas por periodo aquí -->
+          </div>
         </div>
       </div>
 
       <!-- Asistencias Detalladas -->
-      <div id="tab-asistencias" class="card tab-content" style="padding: 0;">
-        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-          <h3 style="color: white; margin: 0;">
-            <i class="fas fa-calendar-check"></i> Historial de Asistencia
-          </h3>
-          <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Tu registro de entradas de acuerdo al periodo seleccionado.</p>
+      <div id="tab-asistencias" class="tab-content">
+        <div style="margin-bottom: 15px; text-align: right;">
+          <button id="btn-pdf-asistencias-global" class="btn btn-cancel" style="border-color: #8b5cf6; color: #8b5cf6; background: rgba(139, 92, 246, 0.1);" onclick="exportarPDFAsistenciasGlobal()">
+            <i class="fas fa-file-pdf"></i> Descargar Historial Completo PDF
+          </button>
         </div>
-        <div id="contenedor-asistencias" style="padding: 20px;">
-          <!-- JS Inyectará las tablas separadas por periodo aquí -->
+        <div class="card" style="padding: 0;">
+          <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <h3 style="color: white; margin: 0;">
+              <i class="fas fa-calendar-check"></i> Historial de Asistencia
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Tu registro de entradas de acuerdo al periodo seleccionado.</p>
+          </div>
+          <div id="contenedor-asistencias" style="padding: 20px;">
+            <!-- JS Inyectará las tablas separadas por periodo aquí -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Avisos -->
+      <div id="tab-avisos" class="tab-content">
+        <div id="muro-avisos" class="card" style="background: rgba(236, 72, 153, 0.15); border-color: var(--secondary);">
+          <h3 style="color: var(--secondary); margin-bottom: 10px;"><i class="fas fa-bullhorn"></i> Aviso Importante del Maestro</h3>
+          <div id="anuncios-content" style="color: var(--text-light); line-height: 1.6;"></div>
         </div>
       </div>
 
@@ -408,7 +448,7 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/panel_alumno.js?v=16"></script>
+    <script type="module" src="../../js/panel_alumno.js?v=19"></script>
     <script>
       // Sonido de bienvenida agradable al cargar el panel de alumno
       document.addEventListener("DOMContentLoaded", () => {

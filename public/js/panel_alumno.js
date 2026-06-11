@@ -536,7 +536,9 @@ window.exportarPDFPeriodo = function (idPeriodo, event) {
       let evalRub = 0;
       actividadesRub.forEach((acto) => {
         const calif = calificaciones.find(
-          (c) => c.id_actividad == acto.id_actividad,
+          (c) =>
+            c.id_actividad == acto.id_actividad &&
+            (!("id_alumno" in c) || c.id_alumno == alumno.id_alumno),
         );
         const nota =
           calif && calif.puntaje !== null && calif.puntaje !== ""
@@ -622,7 +624,7 @@ window.exportarPDFPeriodo = function (idPeriodo, event) {
         const notaActColor =
           nota !== null && nota >= (grupo.calificacion_minima || 6)
             ? "#10b981"
-            : nota !== null
+            : nota !== null && nota > 0
               ? "#ef4444"
               : "#9ca3af";
         const entrega = acto.fecha_entrega
@@ -634,7 +636,7 @@ window.exportarPDFPeriodo = function (idPeriodo, event) {
               <i style="color: ${colorRubrica}; margin-right: 6px;">●</i> ${acto.nombre_actividad}
             </td>
             <td style="padding: 8px 14px; border-bottom: 1px solid #f3f4f6; color: #9ca3af; font-size: 0.85em; text-align: center;">${entrega}</td>
-            <td style="padding: 8px 14px; border-bottom: 1px solid #f3f4f6; text-align: center; font-size: 0.85em; color: #6b7280;">${nota !== null ? "Calificado" : "Pendiente"}</td>
+            <td style="padding: 8px 14px; border-bottom: 1px solid #f3f4f6; text-align: center; font-size: 0.85em; color: #6b7280;">${nota !== null && nota > 0 ? "Calificado" : nota === 0 ? "No Entregó" : "Pendiente"}</td>
             <td style="padding: 8px 14px; border-bottom: 1px solid #f3f4f6; text-align: center; font-weight: 700; color: ${notaActColor}; font-size: 1em;">${notaActDisplay}</td>
           </tr>
         `;
@@ -1011,7 +1013,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       const avisoTexto = data.grupo.avisos;
 
       if (muro && anunciosContainer && avisoTexto && avisoTexto.trim() !== "") {
-        muro.style.display = "block";
+        // Mostrar la nueva pestaña de Avisos
+        document.getElementById("btn-tab-avisos").style.display = "inline-flex";
         // Sanitizar el HTML del aviso para evitar problemas de seguridad (XSS)
         const sanitizedHtml = DOMPurify.sanitize(avisoTexto);
 
@@ -1048,6 +1051,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         const plainText = tempDiv.textContent || tempDiv.innerText || "";
         new Notification("Aviso de tu maestro", { body: plainText });
       }
+    }
+
+    // Configurar el botón de Contactar Maestro si tenemos el email del maestro
+    if (data.maestro && data.maestro.email) {
+      const btnContact = document.getElementById("btn-contacto-maestro");
+      btnContact.href = `mailto:${data.maestro.email}?subject=Duda/Consulta%20-%20EvaLiA`;
+      document.getElementById("btn-contacto-maestro-container").style.display =
+        "block";
     }
 
     renderDashboard();
@@ -1148,139 +1159,23 @@ function renderDashboard() {
     currentFiltro = window.currentFiltroPeriodo;
   }
 
-  let selectorDiv = document.getElementById("periodo-selector-container");
-  if (!selectorDiv) {
-    selectorDiv = document.createElement("div");
-    selectorDiv.id = "periodo-selector-container";
-    selectorDiv.style.marginBottom = "20px";
-    selectorDiv.style.display = "flex";
-    selectorDiv.style.alignItems = "center";
-    selectorDiv.style.flexWrap = "wrap";
-    selectorDiv.style.gap = "15px";
-    selectorDiv.style.background = "rgba(15, 23, 42, 0.6)";
-    selectorDiv.style.padding = "15px 20px";
-    selectorDiv.style.borderRadius = "12px";
-    selectorDiv.style.border = "1px solid rgba(255,255,255,0.1)";
-
-    selectorDiv.innerHTML = `
-        <label style="color: var(--text-muted); font-weight: 600; margin: 0;"><i class="fas fa-filter"></i> Mostrar vista de:</label>
-        <select id="filtro-periodo-select" class="form-control" style="width: auto; flex: 1; max-width: 300px; padding: 10px; background: #1e1b4b; cursor: pointer;">
-            <option value="all">🌐 Global (Todos los periodos)</option>
-            ${periodos.map((p) => `<option value="${p.id_periodo}">📅 ${p.nombre_periodo} ${p.activo == 1 ? "(ACTIVO)" : ""}</option>`).join("")}
-        </select>
-    `;
-    const promGen = document.getElementById("promedio-general");
-    if (promGen) {
-      const statsContainer =
-        promGen.closest(".grid") ||
-        promGen.closest(".stats-row") ||
-        promGen.parentNode.parentNode;
-      statsContainer.parentNode.insertBefore(selectorDiv, statsContainer);
-    }
-    document.getElementById("filtro-periodo-select").value = currentFiltro;
-    document
-      .getElementById("filtro-periodo-select")
-      .addEventListener("change", (e) => {
-        window.currentFiltroPeriodo = e.target.value;
-        renderDashboard();
-      });
-  }
-
-  let btnAsisPdf = document.getElementById("btn-pdf-asistencias-global");
-  if (!btnAsisPdf) {
-    const asisTab = document.getElementById("tab-asistencias");
-    if (asisTab) {
-      const btnContainer = document.createElement("div");
-      btnContainer.style.marginBottom = "15px";
-      btnContainer.style.textAlign = "right";
-      btnContainer.innerHTML = `
-            <button id="btn-pdf-asistencias-global" class="btn btn-cancel" style="border-color: #8b5cf6; color: #8b5cf6; background: rgba(139, 92, 246, 0.1);" onclick="exportarPDFAsistenciasGlobal()">
-                <i class="fas fa-file-pdf"></i> Descargar Historial Completo PDF
-            </button>
-        `;
-      asisTab.insertBefore(btnContainer, asisTab.firstChild);
-    }
-  }
-
-  let chartContainer = document.getElementById("rendimientoChart")?.parentNode;
-
-  if (!document.getElementById("tab-dashboard")) {
-    const tabsContainer = document.querySelector(".tabs-container");
-    if (tabsContainer) {
-      const tabDashboard = document.createElement("div");
-      tabDashboard.id = "tab-dashboard";
-      tabDashboard.className = "tab-content active";
-
-      const selCont = document.getElementById("periodo-selector-container");
-      if (selCont) tabDashboard.appendChild(selCont);
-
-      const promGen = document.getElementById("promedio-general");
-      if (promGen) {
-        const statsRow =
-          promGen.closest(".grid") || promGen.closest(".stats-row");
-        if (statsRow) tabDashboard.appendChild(statsRow);
-      }
-
-      const chartsGrid = document.createElement("div");
-      chartsGrid.style.display = "grid";
-      chartsGrid.style.gridTemplateColumns =
-        "repeat(auto-fit, minmax(300px, 1fr))";
-      chartsGrid.style.gap = "20px";
-      chartsGrid.style.marginTop = "30px";
-      chartsGrid.id = "dashboard-charts-grid";
-
-      if (chartContainer) {
-        chartContainer.style.background = "rgba(15, 23, 42, 0.6)";
-        chartContainer.style.padding = "20px";
-        chartContainer.style.borderRadius = "16px";
-        chartContainer.style.border = "1px solid rgba(255,255,255,0.05)";
-        if (!chartContainer.querySelector("h3")) {
-          chartContainer.insertAdjacentHTML(
-            "afterbegin",
-            `<h3 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-light); text-align: center;"><i class="fas fa-chart-line" style="color: var(--secondary);"></i> Evolución del Promedio</h3>`,
-          );
-        }
-        chartsGrid.appendChild(chartContainer);
-      }
-
-      const rcCont = document.createElement("div");
-      rcCont.style.background = "rgba(15, 23, 42, 0.6)";
-      rcCont.style.padding = "20px";
-      rcCont.style.borderRadius = "16px";
-      rcCont.style.border = "1px solid rgba(255,255,255,0.05)";
-      rcCont.innerHTML = `<h3 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-light); text-align: center;"><i class="fas fa-tasks" style="color: var(--primary);"></i> Desempeño por Rúbrica</h3><canvas id="rubricasChart"></canvas>`;
-      chartsGrid.appendChild(rcCont);
-
-      const acCont = document.createElement("div");
-      acCont.style.background = "rgba(15, 23, 42, 0.6)";
-      acCont.style.padding = "20px";
-      acCont.style.borderRadius = "16px";
-      acCont.style.border = "1px solid rgba(255,255,255,0.05)";
-      acCont.innerHTML = `<h3 style="margin-bottom: 15px; font-size: 1.1rem; color: var(--text-light); text-align: center;"><i class="fas fa-user-check" style="color: #10b981;"></i> Resumen de Asistencia</h3><div style="max-width: 250px; margin: 0 auto;"><canvas id="asistenciasChart"></canvas></div>`;
-      chartsGrid.appendChild(acCont);
-
-      tabDashboard.appendChild(chartsGrid);
-
-      tabsContainer.parentNode.insertBefore(
-        tabDashboard,
-        tabsContainer.nextSibling,
-      );
-
-      const btnDash = document.createElement("button");
-      btnDash.className = "tab-btn active";
-      btnDash.innerHTML = `<i class="fas fa-chart-pie"></i> Dashboard y Estadísticas`;
-      btnDash.onclick = function () {
-        window.switchTabAlumno("tab-dashboard", this);
-      };
-      tabsContainer.insertBefore(btnDash, tabsContainer.firstChild);
-
-      document.querySelectorAll(".tab-content").forEach((t) => {
-        if (t.id !== "tab-dashboard") t.classList.remove("active");
-      });
-      document.querySelectorAll(".tab-btn").forEach((t) => {
-        if (t !== btnDash) t.classList.remove("active");
-      });
-    }
+  // Setup global select period
+  const selectFiltro = document.getElementById("filtro-periodo-select");
+  if (selectFiltro && selectFiltro.options.length === 1) {
+    // Only 'all' initially
+    periodos.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id_periodo;
+      opt.innerHTML = `📅 ${p.nombre_periodo} ${p.activo == 1 ? "(ACTIVO)" : ""}`;
+      selectFiltro.appendChild(opt);
+    });
+    selectFiltro.value = currentFiltro;
+    selectFiltro.addEventListener("change", (e) => {
+      window.currentFiltroPeriodo = e.target.value;
+      renderDashboard();
+    });
+  } else if (selectFiltro) {
+    selectFiltro.value = currentFiltro;
   }
 
   const containerCalif = document.getElementById("contenedor-calificaciones");
@@ -1302,19 +1197,56 @@ function renderDashboard() {
     periodosARenderizar = periodos.filter((p) => p.id_periodo == currentFiltro);
   }
 
-  // Pre-calcular entregas reales para solucionar el bug de tareas pendientes
+  // 1. Pre-calcular entregas reales para solucionar el bug de tareas pendientes
   periodosARenderizar.forEach((periodo) => {
     const actividadesDelPeriodo = actividades.filter(
-      (a) => a.id_periodo === periodo.id_periodo,
+      (a) => a.id_periodo == periodo.id_periodo,
     );
     tareasTotalesDelCiclo += actividadesDelPeriodo.length;
     actividadesDelPeriodo.forEach((acto) => {
       const calif = calificaciones.find(
-        (c) => c.id_actividad == acto.id_actividad,
+        (c) =>
+          c.id_actividad == acto.id_actividad &&
+          (!("id_alumno" in c) || c.id_alumno == rawData.alumno.id_alumno),
       );
-      if (calif && calif.puntaje !== null && calif.puntaje !== "")
+      if (
+        calif &&
+        calif.puntaje !== null &&
+        calif.puntaje !== "" &&
+        parseFloat(calif.puntaje) > 0
+      )
         evalCountGlobal++;
     });
+  });
+
+  // 2. Calcular Asistencias de forma segura (evita sumar doble si estamos en Global y no hay fechas)
+  let asisConsideradas = asistencias;
+  let fechasConsideradas = fechas_grupo;
+
+  if (currentFiltro !== "all") {
+    const pSeleccionado = periodosARenderizar[0];
+    if (
+      pSeleccionado &&
+      pSeleccionado.fecha_inicio &&
+      pSeleccionado.fecha_fin
+    ) {
+      const start = new Date(pSeleccionado.fecha_inicio + "T00:00:00");
+      const end = new Date(pSeleccionado.fecha_fin + "T23:59:59");
+      asisConsideradas = asistencias.filter((a) => {
+        const d = new Date(a.fecha_hora);
+        return d >= start && d <= end;
+      });
+      fechasConsideradas = fechas_grupo.filter((f) => {
+        const d = new Date(f + "T00:00:00");
+        return d >= start && d <= end;
+      });
+    }
+  }
+
+  maxAsisGlobal = fechasConsideradas.length || 1;
+  asisConsideradas.forEach((a) => {
+    if (a.estado === "Asistencia") asisGlobalScore += 1;
+    else if (a.estado === "Retardo") asisGlobalScore += 0.5;
   });
 
   periodosARenderizar.forEach((periodo) => {
@@ -1324,11 +1256,13 @@ function renderDashboard() {
       : "";
 
     const actividadesDelPeriodo = actividades.filter(
-      (a) => a.id_periodo === periodo.id_periodo,
+      (a) => a.id_periodo == periodo.id_periodo,
     );
     const tieneCalificaciones = actividadesDelPeriodo.some((a) => {
       const calif = calificaciones.find(
-        (c) => c.id_actividad == a.id_actividad,
+        (c) =>
+          c.id_actividad == a.id_actividad &&
+          (!("id_alumno" in c) || c.id_alumno == rawData.alumno.id_alumno),
       );
       return calif && calif.puntaje !== "" && calif.puntaje !== null;
     });
@@ -1399,9 +1333,6 @@ function renderDashboard() {
       if (a.estado === "Asistencia") asisScore += 1;
       else if (a.estado === "Retardo") asisScore += 0.5;
     });
-
-    asisGlobalScore += asisScore;
-    maxAsisGlobal += fechasGrupoPeriodo.length || 0;
 
     if (asisPeriodo.length === 0) {
       htmlAsis += `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 24px;">Sin registros en este periodo.</td></tr>`;
@@ -1499,7 +1430,10 @@ function renderDashboard() {
           let evalRub = 0;
           actosRub.forEach((acto) => {
             const calif = calificaciones.find(
-              (c) => c.id_actividad == acto.id_actividad,
+              (c) =>
+                c.id_actividad == acto.id_actividad &&
+                (!("id_alumno" in c) ||
+                  c.id_alumno == rawData.alumno.id_alumno),
             );
             let nota = calif && calif.puntaje !== null ? calif.puntaje : "";
             if (nota !== "") {
@@ -1563,7 +1497,9 @@ function renderDashboard() {
         (r) => r.id_rubrica == acto.id_rubrica,
       );
       const calif = calificaciones.find(
-        (c) => c.id_actividad == acto.id_actividad,
+        (c) =>
+          c.id_actividad == acto.id_actividad &&
+          (!("id_alumno" in c) || c.id_alumno == rawData.alumno.id_alumno),
       );
       return { ...acto, rubrica, calif };
     });
@@ -1686,7 +1622,9 @@ function renderDashboard() {
         );
         actos.forEach((acto) => {
           const calif = calificaciones.find(
-            (c) => c.id_actividad == acto.id_actividad,
+            (c) =>
+              c.id_actividad == acto.id_actividad &&
+              (!("id_alumno" in c) || c.id_alumno == rawData.alumno.id_alumno),
           );
           if (calif && calif.puntaje !== null && calif.puntaje !== "") {
             rubricasMap[r.categoria].sum += parseFloat(calif.puntaje);
