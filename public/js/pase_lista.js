@@ -3,6 +3,46 @@ window.mostrarAlerta = function (mensaje) {
   document.getElementById("modal-alerta").classList.add("active");
 };
 
+window.mostrarConfirmacion = function (
+  mensaje,
+  callbackConfirm,
+  callbackCancel = null,
+  textConfirm = "Sí, continuar",
+  textCancel = "Cancelar",
+  isDanger = true,
+) {
+  document.getElementById("confirmacion-mensaje").innerText = mensaje;
+  const modal = document.getElementById("modal-confirmacion");
+  modal.classList.add("active");
+
+  const btnConfirm = document.getElementById("btn-confirmar-accion");
+  const newBtnConfirm = btnConfirm.cloneNode(true);
+  btnConfirm.parentNode.replaceChild(newBtnConfirm, btnConfirm);
+
+  const btnCancel = document.getElementById("btn-confirmar-cancelar");
+  const newBtnCancel = btnCancel.cloneNode(true);
+  btnCancel.parentNode.replaceChild(newBtnCancel, btnCancel);
+
+  newBtnConfirm.innerHTML = textConfirm;
+  newBtnCancel.innerHTML = textCancel;
+
+  if (isDanger) {
+    newBtnConfirm.className = "btn btn-danger";
+  } else {
+    newBtnConfirm.className = "btn btn-maestro";
+  }
+
+  newBtnConfirm.addEventListener("click", () => {
+    modal.classList.remove("active");
+    if (callbackConfirm) callbackConfirm();
+  });
+
+  newBtnCancel.addEventListener("click", () => {
+    modal.classList.remove("active");
+    if (callbackCancel) callbackCancel();
+  });
+};
+
 let grupoDatos = null;
 let alarmPlayed = false;
 let fechasAgregadasManualmente = [];
@@ -11,14 +51,52 @@ let modoComentario = false;
 
 window.pendingChanges = {};
 
+window.actualizarBotonGuardar = function () {
+  const count = Object.keys(window.pendingChanges || {}).length;
+  const btn = document.getElementById("btn-guardar-cambios-asis");
+  const lbl = document.getElementById("lbl-cambios-pendientes");
+  const text = document.getElementById("btn-guardar-text");
+  const icon = document.getElementById("btn-guardar-icon");
+
+  if (count > 0) {
+    if (btn) btn.style.display = "flex";
+    if (lbl) {
+      lbl.style.display = "block";
+      lbl.innerText = `${count} pendiente${count !== 1 ? "s" : ""} (Ctrl+S)`;
+    }
+    // Solo restauramos estilo visual si no está en proceso de guardado activo
+    if (text && text.innerText !== "Guardando...") {
+      if (text) text.innerText = "Guardar Cambios";
+      if (icon) icon.className = "fas fa-save";
+      if (btn) {
+        btn.style.background = "linear-gradient(135deg, #ec4899, #f43f5e)";
+        btn.style.boxShadow = "0 10px 25px rgba(236, 72, 153, 0.6)";
+        btn.disabled = false;
+      }
+    }
+  } else {
+    if (text && text.innerText === "Guardar Cambios") {
+      if (btn) btn.style.display = "none";
+    }
+  }
+};
+
 window.queueChange = function (idAlumno, fecha, estado) {
   window.pendingChanges[`${idAlumno}_${fecha}`] = {
     id_alumno: idAlumno,
     fecha: fecha,
     estado: estado,
   };
-  const btn = document.getElementById("btn-guardar-cambios-asis");
-  if (btn) btn.style.display = "inline-flex";
+
+  window.actualizarBotonGuardar();
+
+  // Agregar indicador visual de que la celda tiene cambios sin guardar
+  const td = document.querySelector(
+    `td[data-alumno="${idAlumno}"][data-fecha="${fecha}"]`,
+  );
+  if (td) {
+    td.classList.add("unsaved-change");
+  }
 
   const idGrupo = new URLSearchParams(window.location.search).get("id");
   if (idGrupo)
@@ -157,11 +235,28 @@ document.addEventListener("DOMContentLoaded", async () => {
       const parsedBackup = JSON.parse(backup);
       if (Object.keys(parsedBackup).length > 0) {
         window.pendingChanges = parsedBackup;
-        const btn = document.getElementById("btn-guardar-cambios-asis");
-        if (btn) btn.style.display = "inline-flex";
+        window.actualizarBotonGuardar();
         setTimeout(() => {
-          mostrarAlerta(
-            "⚠️ Se detectaron cambios de asistencia sin guardar de tu sesión anterior (por un corte de internet o recarga). Revisa la tabla y presiona 'Guardar Cambios' para confirmarlos.",
+          window.mostrarConfirmacion(
+            "⚠️ Se detectaron cambios de asistencia sin guardar de tu sesión anterior (por un corte de internet o recarga).\n\n¿Deseas recuperarlos o descartarlos?",
+            () => {
+              // Recuperar
+              document.getElementById("btn-modo-tabla").click();
+            },
+            () => {
+              // Descartar
+              window.pendingChanges = {};
+              localStorage.removeItem(`evalia_backup_asis_${idGrupo}`);
+              window.actualizarBotonGuardar();
+              if (
+                document.getElementById("vista-tabla").style.display === "block"
+              ) {
+                cargarTablaExcel(idGrupo);
+              }
+            },
+            '<i class="fas fa-save"></i> Recuperar',
+            '<i class="fas fa-trash"></i> Descartar',
+            false,
           );
         }, 1000);
       }
@@ -177,7 +272,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       const changes = Object.values(window.pendingChanges || {});
       if (changes.length === 0) return;
 
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+      const text = document.getElementById("btn-guardar-text");
+      const icon = document.getElementById("btn-guardar-icon");
+      const lbl = document.getElementById("lbl-cambios-pendientes");
+
+      if (text) text.innerText = "Guardando...";
+      if (icon) icon.className = "fas fa-spinner fa-spin";
+      if (lbl) lbl.innerText = "Por favor espera";
       btn.disabled = true;
 
       try {
@@ -195,29 +296,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (dt.success) {
           window.pendingChanges = {};
           localStorage.removeItem(`evalia_backup_asis_${idG}`);
-          btn.innerHTML = '<i class="fas fa-check"></i> ¡Guardado!';
+          document
+            .querySelectorAll(".unsaved-change")
+            .forEach((td) => td.classList.remove("unsaved-change"));
+
+          if (text) text.innerText = "¡Guardado exitoso!";
+          if (icon) icon.className = "fas fa-check";
+          if (lbl) lbl.style.display = "none";
+
           btn.style.background = "#10b981";
-          btn.style.borderColor = "#10b981";
+          btn.style.boxShadow = "0 10px 25px rgba(16, 185, 129, 0.6)";
 
           setTimeout(() => {
-            btn.style.display = "none";
-            btn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
-            btn.style.background = "#ec4899";
-            btn.style.borderColor = "#ec4899";
             btn.disabled = false;
+            if (text) text.innerText = "Guardar Cambios";
+            window.actualizarBotonGuardar();
           }, 2000);
 
           window.cargarAsistenciasHoy(idG);
         } else {
           mostrarAlerta("Error al guardar: " + dt.message);
-          btn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
           btn.disabled = false;
+          window.actualizarBotonGuardar();
         }
       } catch (e) {
         console.error(e);
         mostrarAlerta("Ocurrió un error al enviar los datos.");
-        btn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
         btn.disabled = false;
+        window.actualizarBotonGuardar();
       }
     });
 
@@ -480,6 +586,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // --- NAVEGACIÓN ESTILO EXCEL Y ATAJOS PARA ASISTENCIAS ---
   document.addEventListener("keydown", (e) => {
+    // Atajo para Guardar Cambios (Ctrl + S o Ctrl + G)
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      (e.key.toLowerCase() === "s" || e.key.toLowerCase() === "g")
+    ) {
+      e.preventDefault();
+      const btnGuardar = document.getElementById("btn-guardar-cambios-asis");
+      if (
+        btnGuardar &&
+        btnGuardar.style.display !== "none" &&
+        !btnGuardar.disabled
+      ) {
+        btnGuardar.click();
+      }
+      return;
+    }
+
     // Atajo F2 para Modo Comentario
     if (e.key === "F2") {
       e.preventDefault();
@@ -747,11 +870,23 @@ async function cargarTablaExcel(idGrupo) {
   }
 
   const tabla = document.getElementById("tabla-asistencias-excel");
-  let thead = `<thead><tr><th>N°</th><th>Alumno</th>`;
+  let thead = `<thead style="position: sticky; top: 0; z-index: 10; background: #0f172a; box-shadow: 0 2px 10px rgba(0,0,0,0.5);"><tr><th style="width: 50px; min-width: 50px; max-width: 50px; padding-left: 5px; padding-right: 5px; text-align: center; position: sticky; left: 0; z-index: 11; background: #0f172a;">N°</th><th style="width: 220px; min-width: 220px; max-width: 220px; position: sticky; left: 50px; z-index: 11; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.1);">Alumno</th>`;
 
   let allFechas = Array.from(
     new Set([...data.fechas, ...fechasAgregadasManualmente]),
   );
+
+  // Agregar también las fechas que están en pendingChanges por si se recargó la página
+  const pendingKeys = Object.keys(window.pendingChanges || {});
+  pendingKeys.forEach((key) => {
+    const change = window.pendingChanges[key];
+    if (!allFechas.includes(change.fecha)) {
+      allFechas.push(change.fecha);
+      if (!fechasAgregadasManualmente.includes(change.fecha)) {
+        fechasAgregadasManualmente.push(change.fecha);
+      }
+    }
+  });
 
   const idPeriodo =
     document.getElementById("select-periodo-asis")?.value || "all";
@@ -768,13 +903,13 @@ async function cargarTablaExcel(idGrupo) {
   allFechas.forEach((fecha) => {
     thead += `<th style="cursor: pointer; transition: color 0.2s;" title="Clic para editar o borrar fecha" onclick="opcionesFechaAsistencia('${fecha}')" onmouseover="this.style.color='var(--secondary)'" onmouseout="this.style.color='white'">${fecha.split("-").reverse().join("/")} <i class="fas fa-edit" style="font-size: 0.7rem; margin-left: 3px; color: var(--text-muted);"></i></th>`;
   });
-  thead += `<th style="color: var(--primary);">Total Asist.</th></tr></thead>`;
+  thead += `<th style="color: var(--primary); position: sticky; right: 0; z-index: 11; background: #0f172a; border-left: 1px solid rgba(255,255,255,0.1);">Total Asist.</th></tr></thead>`;
   tabla.innerHTML = thead;
 
   let tbody = `<tbody>`;
   let nLista = 1;
   data.alumnos.forEach((al) => {
-    tbody += `<tr><td>${nLista++}</td><th>${al.nombre}</th>`;
+    tbody += `<tr><td style="width: 50px; min-width: 50px; max-width: 50px; padding-left: 5px; padding-right: 5px; text-align: center; position: sticky; left: 0; z-index: 5; background: #1e1b4b;">${nLista++}</td><th style="width: 220px; min-width: 220px; max-width: 220px; position: sticky; left: 50px; z-index: 5; background: #1e1b4b; white-space: normal; word-wrap: break-word; line-height: 1.3; border-right: 1px solid rgba(255,255,255,0.1);">${al.nombre}</th>`;
     let asisScore = 0;
     allFechas.forEach((fecha) => {
       const asis = data.asistencias.find(
@@ -816,7 +951,7 @@ async function cargarTablaExcel(idGrupo) {
     let maxAsis = allFechas.length || 1;
     let percent = Math.round((asisScore / maxAsis) * 100);
     let califMin = grupoDatos ? grupoDatos.calificacion_minima * 10 : 60;
-    tbody += `<td style="text-align: center; vertical-align: middle; background: rgba(0,0,0,0.2);">
+    tbody += `<td style="text-align: center; vertical-align: middle; background: rgba(15,23,42,0.95); position: sticky; right: 0; z-index: 5; border-left: 1px solid rgba(255,255,255,0.1);">
         <strong style="color: var(--primary); font-size: 1.1rem;">${asisScore}</strong> <span style="font-size: 0.8rem; color: var(--text-muted);">/ ${maxAsis}</span>
         <br><span style="font-size: 0.8rem; color: ${percent >= califMin ? "#10b981" : "#ef4444"}; font-weight: bold;">${percent}%</span>
     </td></tr>`;
@@ -825,7 +960,6 @@ async function cargarTablaExcel(idGrupo) {
   tabla.innerHTML += tbody;
 
   // Restaurar cambios pendientes visualmente si los hay (por recuperación de backup)
-  const pendingKeys = Object.keys(window.pendingChanges || {});
   if (pendingKeys.length > 0) {
     pendingKeys.forEach((key) => {
       const change = window.pendingChanges[key];
@@ -845,7 +979,7 @@ async function cargarTablaExcel(idGrupo) {
           symbol = "/";
           cssClass = "st-ret";
         }
-        td.className = `cell-asistencia ${cssClass}`;
+        td.className = `cell-asistencia ${cssClass} unsaved-change`;
         td.setAttribute("data-estado", change.estado);
         let hasComment = td.innerHTML.includes("fa-comment-dots");
         td.innerHTML = `${symbol} ${hasComment ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}`;
