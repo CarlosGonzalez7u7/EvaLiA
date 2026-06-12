@@ -939,9 +939,10 @@ async function cargarTablaExcel(idGrupo) {
         }
       }
 
-      let titleTxt =
-        "Clic para cambiar estado | Teclas: 1 (Asistencia), 0 (Falta), / (Retardo)";
-      if (comentario) titleTxt += `\nComentario: ${comentario}`;
+      const fechaFormat = fecha.split("-").reverse().join("/");
+      let titleTxt = `📅 ${fechaFormat}  |  👤 ${al.nombre}
+Clic para cambiar estado | Teclas: 1 (A), 0 (F), / (R)`;
+      if (comentario) titleTxt += `\n📝 Comentario: ${comentario}`;
 
       tbody += `<td tabindex="0" data-alumno="${al.id_alumno}" data-fecha="${fecha}" data-estado="${estadoTxt}" data-comentario="${comentario}" class="cell-asistencia ${cssClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')">
           ${symbol} ${comentario ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}
@@ -1085,6 +1086,44 @@ function recalcularTotalesTabla() {
   });
 }
 
+window.mostrarToastFugaz = function (td, fecha, estado) {
+  let toast = document.getElementById("toast-feedback-asis");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "toast-feedback-asis";
+    toast.style.cssText =
+      "position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(50px); background: rgba(15, 23, 42, 0.95); color: white; padding: 10px 20px; border-radius: 50px; font-size: 0.9rem; font-weight: 600; z-index: 10000; opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.6); pointer-events: none; white-space: nowrap;";
+    document.body.appendChild(toast);
+  }
+  const tr = td.closest("tr");
+  const nombre = tr ? tr.querySelector("th").innerText : "";
+  const fechaFormat = fecha.split("-").reverse().join("/");
+  let color = "#10b981";
+  let icon = "fa-check";
+  if (estado === "Falta") {
+    color = "#ef4444";
+    icon = "fa-times";
+  } else if (estado === "Retardo") {
+    color = "#f59e0b";
+    icon = "fa-clock";
+  } else if (estado === "Eliminar") {
+    color = "var(--text-muted)";
+    icon = "fa-eraser";
+    estado = "Borrado";
+  }
+
+  toast.innerHTML = `<span style="color: var(--primary);">📅 ${fechaFormat}</span> <span style="margin: 0 8px; color: rgba(255,255,255,0.2);">|</span> 👤 ${nombre.substring(0, 18)}${nombre.length > 18 ? "..." : ""} <span style="margin: 0 8px; color: rgba(255,255,255,0.2);">|</span> <span style="color: ${color};"><i class="fas ${icon}"></i> ${estado}</span>`;
+
+  toast.style.transform = "translateX(-50%) translateY(0)";
+  toast.style.opacity = "1";
+
+  if (window.toastFugazTimeout) clearTimeout(window.toastFugazTimeout);
+  window.toastFugazTimeout = setTimeout(() => {
+    toast.style.transform = "translateX(-50%) translateY(50px)";
+    toast.style.opacity = "0";
+  }, 2000);
+};
+
 window.setEstadoAsistenciaDirecto = async function (
   td,
   idAlumno,
@@ -1116,6 +1155,7 @@ window.setEstadoAsistenciaDirecto = async function (
     `cambiarEstadoAsistencia(event, ${idAlumno}, '${fecha}', '${nuevoEstado}', '${hasComment ? "Comentario guardado" : ""}')`,
   );
 
+  window.mostrarToastFugaz(td, fecha, nuevoEstado);
   recalcularTotalesTabla();
 
   // 2. Encolar los cambios en lugar de enviarlos individualmente
@@ -1164,6 +1204,7 @@ window.cambiarEstadoAsistencia = async function (
       `cambiarEstadoAsistencia(event, ${idAlumno}, '${fecha}', '${nuevoEstado}', '${hasComment ? "Comentario guardado" : ""}')`,
     );
 
+    window.mostrarToastFugaz(td, fecha, nuevoEstado);
     recalcularTotalesTabla();
   }
 
