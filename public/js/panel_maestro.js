@@ -67,6 +67,25 @@ document.addEventListener("change", (e) => {
 let gruposData = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // --- OPTIMIZACIÓN DE RENDIMIENTO PARA MÓVILES ---
+  if (!document.getElementById("perf-mobile-styles")) {
+    const style = document.createElement("style");
+    style.id = "perf-mobile-styles";
+    style.innerHTML = `
+      @media (max-width: 768px) {
+        body { background-attachment: scroll !important; }
+        .card, .modal-content, .panel-container, .scanner-container { 
+          backdrop-filter: none !important; 
+          -webkit-backdrop-filter: none !important; 
+          background-color: rgba(15, 23, 42, 0.98) !important;
+          box-shadow: none !important; 
+        }
+        * { text-rendering: optimizeSpeed; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   document
     .getElementById("filtro-estado-grupo")
     ?.addEventListener("change", () => {

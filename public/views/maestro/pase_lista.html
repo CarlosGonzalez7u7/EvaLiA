@@ -463,6 +463,20 @@
               <i class="fas fa-comment-dots"></i> Modo Comentario: OFF
             </button>
             <button
+              id="btn-guardar-cambios-asis"
+              class="btn btn-maestro"
+              style="
+                padding: 8px 15px;
+                font-size: 0.9rem;
+                display: none;
+                background: #ec4899;
+                border-color: #ec4899;
+                box-shadow: 0 0 10px rgba(236, 72, 153, 0.5);
+              "
+            >
+              <i class="fas fa-save"></i> Guardar Cambios
+            </button>
+            <button
               id="btn-export-excel-asis"
               class="btn btn-cancel"
               style="
@@ -510,7 +524,11 @@
         ></p>
         <button
           onclick="
-            document.getElementById('modal-alerta').classList.remove('active')
+            document.getElementById('modal-alerta').classList.remove('active');
+            if (window.alarmAudio) {
+              window.alarmAudio.pause();
+              window.alarmAudio.currentTime = 0;
+            }
           "
           class="btn btn-maestro"
           style="margin-top: 25px; width: 100%; justify-content: center"
@@ -576,6 +594,6 @@
       </div>
     </div>
 
-    <script type="module" src="../../js/pase_lista.js?v=10"></script>
+    <script type="module" src="../../js/pase_lista.js?v=12"></script>
   </body>
 </html>

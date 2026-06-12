@@ -699,22 +699,31 @@ window.guardarCalificacion = async function (inputElem, minAprobatoria) {
     const data = await res.json();
 
     if (data.success) {
-      // Mostrar el "Toast" verde de guardado
+      inputElem.style.borderBottom = "2px solid #10b981"; // Feedback visual verde de éxito
+      inputElem.style.color = "#10b981";
       const toast = document.getElementById("toast-save");
-      toast.style.opacity = "1";
-      toast.style.transform = "translateY(0)";
-      setTimeout(() => {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateY(20px)";
-      }, 2000);
+      if (toast) {
+        toast.style.opacity = "1";
+        toast.style.transform = "translateY(0)";
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          toast.style.transform = "translateY(20px)";
+        }, 2000);
+      }
 
-      // Refrescar toda la tabla para recalcular todos los promedios al instante
       const idGrupo = new URLSearchParams(window.location.search).get("id");
       const idPeriodo = document.getElementById("select-periodo").value;
       cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria);
+    } else {
+      throw new Error(data.message);
     }
   } catch (e) {
     console.error("Error al guardar:", e);
+    inputElem.style.borderBottom = "2px solid #ef4444"; // Feedback visual rojo de error
+    inputElem.style.color = "#ef4444";
+    mostrarAlerta(
+      "Error de conexión. La calificación no se guardó. Revisa tu conexión a internet e inténtalo de nuevo.",
+    );
   }
 };
 

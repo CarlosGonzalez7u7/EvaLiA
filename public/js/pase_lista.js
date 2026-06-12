@@ -9,6 +9,32 @@ let fechasAgregadasManualmente = [];
 let periodosGlobal = [];
 let modoComentario = false;
 
+window.pendingChanges = {};
+
+window.queueChange = function (idAlumno, fecha, estado) {
+  window.pendingChanges[`${idAlumno}_${fecha}`] = {
+    id_alumno: idAlumno,
+    fecha: fecha,
+    estado: estado,
+  };
+  const btn = document.getElementById("btn-guardar-cambios-asis");
+  if (btn) btn.style.display = "inline-flex";
+
+  const idGrupo = new URLSearchParams(window.location.search).get("id");
+  if (idGrupo)
+    localStorage.setItem(
+      `evalia_backup_asis_${idGrupo}`,
+      JSON.stringify(window.pendingChanges),
+    );
+};
+
+window.addEventListener("beforeunload", (e) => {
+  if (Object.keys(window.pendingChanges || {}).length > 0) {
+    e.preventDefault();
+    e.returnValue = "Tienes cambios sin guardar. ¿Seguro que deseas salir?";
+  }
+});
+
 window.toggleModoComentario = function () {
   modoComentario = !modoComentario;
   const btn = document.getElementById("btn-modo-comentario");
@@ -123,6 +149,77 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Inyectar Barra de Navegación Integrada (Pestañas)
   inyectarPestanasNavegacion(idGrupo, "asistencias");
+
+  // --- SISTEMA DE RECUPERACIÓN ANTE CORTES DE INTERNET ---
+  const backup = localStorage.getItem(`evalia_backup_asis_${idGrupo}`);
+  if (backup) {
+    try {
+      const parsedBackup = JSON.parse(backup);
+      if (Object.keys(parsedBackup).length > 0) {
+        window.pendingChanges = parsedBackup;
+        const btn = document.getElementById("btn-guardar-cambios-asis");
+        if (btn) btn.style.display = "inline-flex";
+        setTimeout(() => {
+          mostrarAlerta(
+            "⚠️ Se detectaron cambios de asistencia sin guardar de tu sesión anterior (por un corte de internet o recarga). Revisa la tabla y presiona 'Guardar Cambios' para confirmarlos.",
+          );
+        }, 1000);
+      }
+    } catch (e) {
+      localStorage.removeItem(`evalia_backup_asis_${idGrupo}`);
+    }
+  }
+
+  document
+    .getElementById("btn-guardar-cambios-asis")
+    ?.addEventListener("click", async function () {
+      const btn = this;
+      const changes = Object.values(window.pendingChanges || {});
+      if (changes.length === 0) return;
+
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+      btn.disabled = true;
+
+      try {
+        const idG = new URLSearchParams(window.location.search).get("id");
+        const resp = await fetch("/api/controllers/AsistenciaController.php", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "save_cells_bulk",
+            changes: changes,
+          }),
+        });
+        const dt = await resp.json();
+
+        if (dt.success) {
+          window.pendingChanges = {};
+          localStorage.removeItem(`evalia_backup_asis_${idG}`);
+          btn.innerHTML = '<i class="fas fa-check"></i> ¡Guardado!';
+          btn.style.background = "#10b981";
+          btn.style.borderColor = "#10b981";
+
+          setTimeout(() => {
+            btn.style.display = "none";
+            btn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
+            btn.style.background = "#ec4899";
+            btn.style.borderColor = "#ec4899";
+            btn.disabled = false;
+          }, 2000);
+
+          window.cargarAsistenciasHoy(idG);
+        } else {
+          mostrarAlerta("Error al guardar: " + dt.message);
+          btn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
+          btn.disabled = false;
+        }
+      } catch (e) {
+        console.error(e);
+        mostrarAlerta("Ocurrió un error al enviar los datos.");
+        btn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
+        btn.disabled = false;
+      }
+    });
 
   // Lógica de Tabs (Cambio de Vista)
   const btnEscaner = document.getElementById("btn-modo-escaner");
@@ -586,6 +683,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 // --- LÓGICA DE ALARMA ---
+window.alarmAudio = null;
+
 function iniciarAlarma() {
   setInterval(() => {
     if (!grupoDatos || !grupoDatos.hora_fin_hoy) return;
@@ -605,8 +704,9 @@ function iniciarAlarma() {
       const urlSonido =
         grupoDatos.sonido_alarma ||
         "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
-      const audio = new Audio(urlSonido);
-      audio
+      window.alarmAudio = new Audio(urlSonido);
+      window.alarmAudio.loop = true; // Hacer que suene sin parar hasta que el maestro lo apague
+      window.alarmAudio
         .play()
         .catch((e) => console.log("Audio play blocked by browser", e));
       mostrarAlerta(
@@ -633,7 +733,18 @@ async function cargarTablaExcel(idGrupo) {
   const res = await fetch(
     `/api/controllers/AsistenciaController.php?action=get_grid&id_grupo=${idGrupo}`,
   );
-  const data = await res.json();
+
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    mostrarAlerta(
+      "No se pudo cargar la tabla. Error del servidor: " +
+        text.substring(0, 80),
+    );
+    return;
+  }
 
   const tabla = document.getElementById("tabla-asistencias-excel");
   let thead = `<thead><tr><th>N°</th><th>Alumno</th>`;
@@ -712,6 +823,36 @@ async function cargarTablaExcel(idGrupo) {
   });
   tbody += `</tbody>`;
   tabla.innerHTML += tbody;
+
+  // Restaurar cambios pendientes visualmente si los hay (por recuperación de backup)
+  const pendingKeys = Object.keys(window.pendingChanges || {});
+  if (pendingKeys.length > 0) {
+    pendingKeys.forEach((key) => {
+      const change = window.pendingChanges[key];
+      const td = tabla.querySelector(
+        `td[data-alumno="${change.id_alumno}"][data-fecha="${change.fecha}"]`,
+      );
+      if (td) {
+        let symbol = "-";
+        let cssClass = "st-nul";
+        if (change.estado === "Asistencia") {
+          symbol = "1";
+          cssClass = "st-asi";
+        } else if (change.estado === "Falta") {
+          symbol = "0";
+          cssClass = "st-fal";
+        } else if (change.estado === "Retardo") {
+          symbol = "/";
+          cssClass = "st-ret";
+        }
+        td.className = `cell-asistencia ${cssClass}`;
+        td.setAttribute("data-estado", change.estado);
+        let hasComment = td.innerHTML.includes("fa-comment-dots");
+        td.innerHTML = `${symbol} ${hasComment ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}`;
+      }
+    });
+    recalcularTotalesTabla();
+  }
 }
 
 window.cargarAsistenciasHoy = async function (id) {
@@ -719,7 +860,20 @@ window.cargarAsistenciasHoy = async function (id) {
     const res = await fetch(
       `/api/controllers/AsistenciaController.php?action=listar_hoy&id_grupo=${id}`,
     );
-    const data = await res.json();
+
+    // Leemos como texto primero para evitar que la app explote si PHP manda un error de base de datos
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      console.error("PHP no devolvió JSON. Respuesta del servidor:", text);
+      const container = document.getElementById("lista-asistencias-hoy");
+      if (container)
+        container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px; background: rgba(239, 68, 68, 0.1); border-radius: 10px;"><i class="fas fa-database" style="font-size: 2rem; margin-bottom: 10px;"></i><br><strong>Pérdida de conexión con Base de Datos</strong><br><span style="font-size: 0.85rem;">${text.substring(0, 100)}</span></div>`;
+      return;
+    }
+
     const container = document.getElementById("lista-asistencias-hoy");
 
     if (data.success) {
@@ -771,6 +925,32 @@ function renderAsistenciasHoy(datos) {
   });
 }
 
+function recalcularTotalesTabla() {
+  const tabla = document.getElementById("tabla-asistencias-excel");
+  if (!tabla) return;
+  const tbody = tabla.querySelector("tbody");
+  if (!tbody) return;
+
+  const thead = tabla.querySelector("thead tr");
+  let numDias = thead ? thead.cells.length - 3 : 1;
+  if (numDias < 1) numDias = 1;
+
+  Array.from(tbody.rows).forEach((row) => {
+    let asisScore = 0;
+    Array.from(row.cells).forEach((cell) => {
+      if (cell.classList.contains("cell-asistencia")) {
+        const estado = cell.getAttribute("data-estado");
+        if (estado === "Asistencia") asisScore += 1;
+        else if (estado === "Retardo") asisScore += 0.5;
+      }
+    });
+    const tdTotal = row.cells[row.cells.length - 1];
+    let percent = Math.round((asisScore / numDias) * 100);
+    let califMin = grupoDatos ? grupoDatos.calificacion_minima * 10 : 60;
+    tdTotal.innerHTML = `<strong style="color: var(--primary); font-size: 1.1rem;">${asisScore}</strong> <span style="font-size: 0.8rem; color: var(--text-muted);">/ ${numDias}</span><br><span style="font-size: 0.8rem; color: ${percent >= califMin ? "#10b981" : "#ef4444"}; font-weight: bold;">${percent}%</span>`;
+  });
+}
+
 window.setEstadoAsistenciaDirecto = async function (
   td,
   idAlumno,
@@ -802,24 +982,10 @@ window.setEstadoAsistenciaDirecto = async function (
     `cambiarEstadoAsistencia(event, ${idAlumno}, '${fecha}', '${nuevoEstado}', '${hasComment ? "Comentario guardado" : ""}')`,
   );
 
-  // 2. Enviar a BD en segundo plano
-  try {
-    await fetch("/api/controllers/AsistenciaController.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "save_cell",
-        id_alumno: idAlumno,
-        fecha: fecha,
-        estado: nuevoEstado,
-      }),
-    });
-    window.cargarAsistenciasHoy(
-      new URLSearchParams(window.location.search).get("id"),
-    );
-  } catch (e) {
-    console.error("Error al guardar asistencia");
-  }
+  recalcularTotalesTabla();
+
+  // 2. Encolar los cambios en lugar de enviarlos individualmente
+  window.queueChange(idAlumno, fecha, nuevoEstado);
 };
 
 window.cambiarEstadoAsistencia = async function (
@@ -840,20 +1006,34 @@ window.cambiarEstadoAsistencia = async function (
   else if (estadoActual === "Retardo") nuevoEstado = "Falta";
   else if (estadoActual === "Falta") nuevoEstado = "Eliminar";
 
-  await fetch("/api/controllers/AsistenciaController.php", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "save_cell",
-      id_alumno: idAlumno,
-      fecha: fecha,
-      estado: nuevoEstado,
-    }),
-  });
+  const td = event.currentTarget || event.target.closest("td");
+  if (td) {
+    let symbol = "-";
+    let cssClass = "st-nul";
+    if (nuevoEstado === "Asistencia") {
+      symbol = "1";
+      cssClass = "st-asi";
+    } else if (nuevoEstado === "Falta") {
+      symbol = "0";
+      cssClass = "st-fal";
+    } else if (nuevoEstado === "Retardo") {
+      symbol = "/";
+      cssClass = "st-ret";
+    }
 
-  const idGrupo = new URLSearchParams(window.location.search).get("id");
-  cargarTablaExcel(idGrupo);
-  window.cargarAsistenciasHoy(idGrupo);
+    td.className = `cell-asistencia ${cssClass}`;
+    td.setAttribute("data-estado", nuevoEstado);
+    let hasComment = td.innerHTML.includes("fa-comment-dots");
+    td.innerHTML = `${symbol} ${hasComment ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}`;
+    td.setAttribute(
+      "onclick",
+      `cambiarEstadoAsistencia(event, ${idAlumno}, '${fecha}', '${nuevoEstado}', '${hasComment ? "Comentario guardado" : ""}')`,
+    );
+
+    recalcularTotalesTabla();
+  }
+
+  window.queueChange(idAlumno, fecha, nuevoEstado);
 };
 
 function inyectarPestanasNavegacion(idGrupo, vistaActiva) {

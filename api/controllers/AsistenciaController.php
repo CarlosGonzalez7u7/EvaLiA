@@ -132,7 +132,39 @@ try {
         exit;
     }
 
-    // 2.6 GUARDAR CELDA MANUAL DESDE EL EXCEL
+    // 2.6.5 GUARDAR CELDAS MASIVAMENTE DESDE EL EXCEL
+    if ($action === 'save_cells_bulk') {
+        $changes = $input['changes'] ?? [];
+        
+        $pdo->beginTransaction();
+        try {
+            foreach ($changes as $change) {
+                $id_alumno = $change['id_alumno'];
+                $fecha = $change['fecha'];
+                $estado = $change['estado'];
+                
+                if ($estado === 'Eliminar') {
+                    $pdo->prepare("DELETE FROM asistencias WHERE id_alumno = ? AND DATE(fecha_hora) = ?")->execute([$id_alumno, $fecha]);
+                } else {
+                    $check = $pdo->prepare("SELECT id_asistencia FROM asistencias WHERE id_alumno = ? AND DATE(fecha_hora) = ?");
+                    $check->execute([$id_alumno, $fecha]);
+                    if ($row = $check->fetch()) {
+                        $pdo->prepare("UPDATE asistencias SET estado = ? WHERE id_asistencia = ?")->execute([$estado, $row['id_asistencia']]);
+                    } else {
+                        $pdo->prepare("INSERT INTO asistencias (id_alumno, fecha_hora, estado) VALUES (?, ?, ?)")->execute([$id_alumno, $fecha . ' ' . date('H:i:s'), $estado]);
+                    }
+                }
+            }
+            $pdo->commit();
+            echo json_encode(["success" => true]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            echo json_encode(["success" => false, "message" => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    // 2.6 GUARDAR CELDA MANUAL DESDE EL EXCEL (Individual)
     if ($action === 'save_cell') {
         $id_alumno = $input['id_alumno'];
         $fecha = $input['fecha'];

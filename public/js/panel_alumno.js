@@ -1249,42 +1249,14 @@ function renderDashboard() {
     else if (a.estado === "Retardo") asisGlobalScore += 0.5;
   });
 
-  periodosARenderizar.forEach((periodo) => {
+  // 3. Renderizar TODAS las asistencias en el tab "Historial de Asistencias" (ignora el filtro)
+  periodos.forEach((periodo) => {
     const isActive = periodo.activo == 1;
     const badgeActivo = isActive
       ? `<span class="badge-active" style="background: var(--secondary); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; color: white; margin-left: 10px;">ACTIVO</span>`
       : "";
 
-    const actividadesDelPeriodo = actividades.filter(
-      (a) => a.id_periodo == periodo.id_periodo,
-    );
-    const tieneCalificaciones = actividadesDelPeriodo.some((a) => {
-      const calif = calificaciones.find(
-        (c) =>
-          c.id_actividad == a.id_actividad &&
-          (!("id_alumno" in c) || c.id_alumno == rawData.alumno.id_alumno),
-      );
-      return calif && calif.puntaje !== "" && calif.puntaje !== null;
-    });
-
-    const btnExportar = `<button type="button" onclick="exportarPDFPeriodo(${periodo.id_periodo}, event)" class="btn btn-cancel" style="padding: 6px 12px; font-size: 0.85rem; border-color: #ef4444; color: #ef4444; background: transparent;" title="Exportar a PDF"><i class="fas fa-file-pdf"></i><span class="hide-mobile" style="margin-left: 5px;">PDF</span></button>`;
-
-    const isExpanded = currentFiltro !== "all" || isActive;
-
-    let htmlCalif = `<div class="accordion-header" onclick="toggleAccordion('calif-${periodo.id_periodo}', this, event)">
-                      <div style="display: flex; align-items: center; gap: 10px;">
-                        <h4 style="color: var(--primary); margin: 0; font-size: 1.2rem;">${periodo.nombre_periodo}</h4>
-                        ${badgeActivo}
-                      </div>
-                      <div style="display: flex; align-items: center; gap: 15px;">
-                        ${btnExportar}
-                        <i class="fas fa-chevron-${isExpanded ? "up" : "down"}" style="color: var(--text-muted);"></i>
-                      </div>
-                    </div>`;
-
-    htmlCalif += `<div id="calif-${periodo.id_periodo}" class="accordion-content ${isExpanded ? "" : "collapsed"}">
-                  <div class="desktop-only excel-container" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; overflow: auto; max-width: 100%;">
-                  <table class="table responsive-table" style="margin: 0; min-width: max-content;">`;
+    const isExpanded = isActive || currentFiltro === "all";
 
     let htmlAsis = `<div class="accordion-header" onclick="toggleAccordion('asis-${periodo.id_periodo}', this, event)">
                       <div style="display: flex; align-items: center; gap: 10px;"><h4 style="color: var(--primary); margin: 0; font-size: 1.2rem;">${periodo.nombre_periodo}</h4> ${badgeActivo}</div>
@@ -1297,23 +1269,7 @@ function renderDashboard() {
                    <tr><th>Fecha</th><th>Estado</th><th>Comentario / Justificación</th></tr>
                  </thead><tbody>`;
 
-    const rubricasPeriodo = rubricas.filter((r) =>
-      grupo.tipo_rubrica === "Por Periodo"
-        ? r.id_periodo == periodo.id_periodo
-        : r.id_periodo == null,
-    );
-
-    let sumaPeriodo = 0;
-    let porcentajeEvaluadoPeriodo = 0;
-    let theadHtml = `<thead><tr>
-      <th style="width: 46px; min-width: 46px; text-align: center; position: sticky; left: 0; z-index: 12; background: #0f172a;">N°</th>
-      <th style="min-width: 200px; max-width: 260px; position: sticky; left: 46px; z-index: 12; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.1);">Alumno</th>`;
-    let tbodyHtml = `<tr>
-      <td data-label="N°" style="text-align: center; color: var(--text-muted); font-weight: bold; position: sticky; left: 0; z-index: 5; background: #1e1b4b;">${rawData.alumno.numero_lista || "—"}</td>
-      <th data-label="Alumno" style="font-weight: 600; position: sticky; left: 46px; z-index: 5; background: #1e1b4b; border-right: 1px solid rgba(255,255,255,0.1); white-space: nowrap;">${rawData.alumno.nombre}</th>`;
-
     let asisPeriodo = asistencias;
-    let fechasGrupoPeriodo = fechas_grupo;
     if (periodo.fecha_inicio && periodo.fecha_fin) {
       const start = new Date(periodo.fecha_inicio + "T00:00:00");
       const end = new Date(periodo.fecha_fin + "T23:59:59");
@@ -1321,18 +1277,7 @@ function renderDashboard() {
         const d = new Date(a.fecha_hora);
         return d >= start && d <= end;
       });
-      fechasGrupoPeriodo = fechas_grupo.filter((f) => {
-        const d = new Date(f + "T00:00:00");
-        return d >= start && d <= end;
-      });
     }
-    let maxAsisPeriodo = fechasGrupoPeriodo.length || 1;
-    let asisScore = 0;
-
-    asisPeriodo.forEach((a) => {
-      if (a.estado === "Asistencia") asisScore += 1;
-      else if (a.estado === "Retardo") asisScore += 0.5;
-    });
 
     if (asisPeriodo.length === 0) {
       htmlAsis += `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 24px;">Sin registros en este periodo.</td></tr>`;
@@ -1395,6 +1340,81 @@ function renderDashboard() {
     }
     htmlAsis += `</div></div>`;
     containerAsis.innerHTML += htmlAsis;
+  });
+
+  periodosARenderizar.forEach((periodo) => {
+    const isActive = periodo.activo == 1;
+    const badgeActivo = isActive
+      ? `<span class="badge-active" style="background: var(--secondary); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; color: white; margin-left: 10px;">ACTIVO</span>`
+      : "";
+
+    const actividadesDelPeriodo = actividades.filter(
+      (a) => a.id_periodo == periodo.id_periodo,
+    );
+    const tieneCalificaciones = actividadesDelPeriodo.some((a) => {
+      const calif = calificaciones.find(
+        (c) =>
+          c.id_actividad == a.id_actividad &&
+          (!("id_alumno" in c) || c.id_alumno == rawData.alumno.id_alumno),
+      );
+      return calif && calif.puntaje !== "" && calif.puntaje !== null;
+    });
+
+    const btnExportar = `<button type="button" onclick="exportarPDFPeriodo(${periodo.id_periodo}, event)" class="btn btn-cancel" style="padding: 6px 12px; font-size: 0.85rem; border-color: #ef4444; color: #ef4444; background: transparent;" title="Exportar a PDF"><i class="fas fa-file-pdf"></i><span class="hide-mobile" style="margin-left: 5px;">PDF</span></button>`;
+
+    const isExpanded = currentFiltro !== "all" || isActive;
+
+    let htmlCalif = `<div class="accordion-header" onclick="toggleAccordion('calif-${periodo.id_periodo}', this, event)">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <h4 style="color: var(--primary); margin: 0; font-size: 1.2rem;">${periodo.nombre_periodo}</h4>
+                        ${badgeActivo}
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 15px;">
+                        ${btnExportar}
+                        <i class="fas fa-chevron-${isExpanded ? "up" : "down"}" style="color: var(--text-muted);"></i>
+                      </div>
+                    </div>`;
+
+    htmlCalif += `<div id="calif-${periodo.id_periodo}" class="accordion-content ${isExpanded ? "" : "collapsed"}">
+                  <div class="desktop-only excel-container" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; overflow: auto; max-width: 100%;">
+                  <table class="table responsive-table" style="margin: 0; min-width: max-content;">`;
+
+    const rubricasPeriodo = rubricas.filter((r) =>
+      grupo.tipo_rubrica === "Por Periodo"
+        ? r.id_periodo == periodo.id_periodo
+        : r.id_periodo == null,
+    );
+
+    let sumaPeriodo = 0;
+    let porcentajeEvaluadoPeriodo = 0;
+    let theadHtml = `<thead><tr>
+      <th style="width: 46px; min-width: 46px; text-align: center; position: sticky; left: 0; z-index: 12; background: #0f172a;">N°</th>
+      <th style="min-width: 200px; max-width: 260px; position: sticky; left: 46px; z-index: 12; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.1);">Alumno</th>`;
+    let tbodyHtml = `<tr>
+      <td data-label="N°" style="text-align: center; color: var(--text-muted); font-weight: bold; position: sticky; left: 0; z-index: 5; background: #1e1b4b;">${rawData.alumno.numero_lista || "—"}</td>
+      <th data-label="Alumno" style="font-weight: 600; position: sticky; left: 46px; z-index: 5; background: #1e1b4b; border-right: 1px solid rgba(255,255,255,0.1); white-space: nowrap;">${rawData.alumno.nombre}</th>`;
+
+    let asisPeriodo = asistencias;
+    let fechasGrupoPeriodo = fechas_grupo;
+    if (periodo.fecha_inicio && periodo.fecha_fin) {
+      const start = new Date(periodo.fecha_inicio + "T00:00:00");
+      const end = new Date(periodo.fecha_fin + "T23:59:59");
+      asisPeriodo = asistencias.filter((a) => {
+        const d = new Date(a.fecha_hora);
+        return d >= start && d <= end;
+      });
+      fechasGrupoPeriodo = fechas_grupo.filter((f) => {
+        const d = new Date(f + "T00:00:00");
+        return d >= start && d <= end;
+      });
+    }
+    let maxAsisPeriodo = fechasGrupoPeriodo.length || 1;
+    let asisScore = 0;
+
+    asisPeriodo.forEach((a) => {
+      if (a.estado === "Asistencia") asisScore += 1;
+      else if (a.estado === "Retardo") asisScore += 0.5;
+    });
 
     rubricasPeriodo.forEach((rubrica) => {
       const color = rubrica.color || "#8b5cf6";
