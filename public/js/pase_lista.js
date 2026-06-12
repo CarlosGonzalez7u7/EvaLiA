@@ -180,6 +180,17 @@ window.abrirModalComentario = function (idAlumno, fecha, comentarioActual) {
   setTimeout(() => document.getElementById("com_texto").focus(), 100);
 };
 
+window.abrirComentarioDirecto = function (e, iconElem) {
+  e.stopPropagation(); // Evita que se cambie el estado de la asistencia al hacer clic en el ícono
+  const td = iconElem.closest("td");
+  if (td) {
+    const idAlumno = td.getAttribute("data-alumno");
+    const fecha = td.getAttribute("data-fecha");
+    const comentario = td.getAttribute("data-comentario");
+    window.abrirModalComentario(idAlumno, fecha, comentario);
+  }
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const idGrupo = urlParams.get("id");
@@ -392,7 +403,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         else if (td.classList.contains("st-fal")) symbol = "0";
         else if (td.classList.contains("st-ret")) symbol = "/";
 
-        let cornerHtml = com ? '<div class="corner-comment"></div>' : "";
+        let cornerHtml = com
+          ? '<i class="fas fa-comment-dots icon-comentario-celda" onclick="window.abrirComentarioDirecto(event, this)" title="Ver/Editar comentario"></i>'
+          : "";
         td.innerHTML = `${symbol} ${cornerHtml}`;
 
         const nombre = td.closest("tr").querySelector("th").innerText;
@@ -893,12 +906,28 @@ window.agregarColumnaAsistencia = function () {
 };
 
 window.updateColsPerPage = function () {
-  let width = window.innerWidth;
-  if (width < 500) window.colsPerPage = 4;
-  else if (width < 768) window.colsPerPage = 6;
-  else if (width < 1024) window.colsPerPage = 10;
-  else window.colsPerPage = 15;
+  let availableWidth = window.innerWidth - 35; // Margen y paddings
+  let fixedWidth = 240; // N°(30) + Alumno Minimo(150) + Total(60)
+  let cellWidth = 45; // Ancho de celda de asistencia
+
+  let cols = Math.floor((availableWidth - fixedWidth) / cellWidth);
+  if (cols < 3) cols = 3;
+
+  window.colsPerPage = cols;
 };
+
+window.addEventListener("resize", () => {
+  if (
+    document.getElementById("vista-tabla")?.style.display === "block" &&
+    window.allFechasGlobal?.length > 0
+  ) {
+    const prevCols = window.colsPerPage;
+    window.updateColsPerPage();
+    if (prevCols !== window.colsPerPage) {
+      window.renderTablaPaginada();
+    }
+  }
+});
 
 window.changeDatePage = function (delta) {
   window.currentDatePage += delta;
@@ -987,24 +1016,30 @@ window.renderTablaPaginada = function () {
   const endIdx = startIdx + window.colsPerPage;
   const fechasPage = allFechas.slice(startIdx, endIdx);
 
-  let thead = `<thead style="background: #0f172a; border-bottom: 2px solid var(--primary);"><tr>
-      <th style="width: 40px; text-align: center;">N°</th>
-      <th style="min-width: 150px; text-align: left;">Alumno</th>`;
+  let thead = `<thead style="background: #0f172a; border-bottom: 2px solid var(--primary);"><tr>`;
+  if (!window.isMobileView) {
+    thead += `<th style="width: 30px; text-align: center;">N°</th>`;
+  }
+  thead += `<th style="width: auto; text-align: left;">Alumno</th>`;
 
   fechasPage.forEach((fecha) => {
-    thead += `<th style="cursor: pointer; text-align: center; transition: color 0.2s;" title="Clic para editar o borrar fecha" onclick="opcionesFechaAsistencia('${fecha}')" onmouseover="this.style.color='var(--secondary)'" onmouseout="this.style.color='white'">${fecha.split("-").reverse().join("/").substring(0, 5)} <i class="fas fa-edit" style="font-size: 0.6rem; color: var(--text-muted);"></i></th>`;
+    let fDisplay = fecha.split("-").reverse().join("/").substring(0, 5); // Siempre mostramos DD/MM
+    let fontSize = window.isMobileView ? "0.65rem" : "0.85rem"; // Achicamos un poco la letra si es celular
+    thead += `<th style="width: ${window.isMobileView ? "38px" : "45px"}; cursor: pointer; text-align: center; transition: color 0.2s;" title="Clic para editar o borrar fecha" onclick="opcionesFechaAsistencia('${fecha}')" onmouseover="this.style.color='var(--secondary)'" onmouseout="this.style.color='white'"><span style="font-size: ${fontSize}; letter-spacing: -0.5px;">${fDisplay}</span> <i class="fas fa-edit" style="font-size: 0.5rem; color: var(--text-muted);"></i></th>`;
   });
 
-  thead += `<th style="color: var(--primary); text-align: center;">Total</th></tr></thead>`;
+  thead += `<th style="width: ${window.isMobileView ? "40px" : "60px"}; color: var(--primary); text-align: center;">${window.isMobileView ? "Tot." : "Total"}</th></tr></thead>`;
   tabla.innerHTML = thead;
 
   let tbody = `<tbody>`;
   let nLista = 1;
 
   data.alumnos.forEach((al) => {
-    tbody += `<tr>
-        <td style="text-align: center; color: var(--text-muted); font-weight: bold; font-size: 0.8rem;">${nLista++}</td>
-        <th style="text-align: left; font-weight: 600; font-size: 0.85rem; white-space: normal; line-height: 1.2;">${al.nombre}</th>`;
+    tbody += `<tr>`;
+    if (!window.isMobileView) {
+      tbody += `<td style="text-align: center; color: var(--text-muted); font-weight: bold; font-size: 0.8rem;">${nLista}</td>`;
+    }
+    tbody += `<th style="text-align: left; font-weight: 600; font-size: ${window.isMobileView ? "0.75rem" : "0.85rem"}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: ${window.isMobileView ? "90px" : "150px"};" title="${al.nombre}">${al.nombre}</th>`;
 
     fechasPage.forEach((fecha) => {
       const asis = data.asistencias.find(
@@ -1043,14 +1078,17 @@ window.renderTablaPaginada = function () {
       if (comentario) titleTxt += `\n📝 Comentario: ${comentario}`;
 
       let unsavedClass = pending ? "unsaved-change" : "";
-      let cornerHtml = comentario ? '<div class="corner-comment"></div>' : "";
+      let cornerHtml = comentario
+        ? '<i class="fas fa-comment-dots icon-comentario-celda" onclick="window.abrirComentarioDirecto(event, this)" title="Ver/Editar comentario"></i>'
+        : "";
 
-      tbody += `<td tabindex="0" data-alumno="${al.id_alumno}" data-fecha="${fecha}" data-estado="${estadoTxt}" data-comentario="${comentario}" class="cell-asistencia ${cssClass} ${unsavedClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')">
+      tbody += `<td tabindex="0" data-alumno="${al.id_alumno}" data-fecha="${fecha}" data-estado="${estadoTxt}" data-comentario="${comentario}" class="cell-asistencia ${cssClass} ${unsavedClass}" style="position: relative; text-align: center; vertical-align: middle; padding: 0;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')">
             ${symbol} ${cornerHtml}
         </td>`;
     });
 
     tbody += `<td class="total-cell" style="text-align: center; vertical-align: middle; background: rgba(15,23,42,0.4);"></td></tr>`;
+    nLista++;
   });
   tbody += `</tbody>`;
   tabla.innerHTML += tbody;
@@ -1062,13 +1100,13 @@ window.renderTablaPaginada = function () {
 
   pagControls.innerHTML = `
         <div style="display: flex; gap: 5px;">
-          <button class="btn btn-cancel" style="padding: 8px 12px; font-size: 0.85rem;" onclick="window.changeDatePage(-window.currentDatePage)" ${window.currentDatePage === 0 ? "disabled" : ""}><i class="fas fa-angle-double-left"></i> Primeras</button>
-          <button class="btn btn-cancel" style="padding: 8px 12px; font-size: 0.85rem;" onclick="window.changeDatePage(-1)" ${window.currentDatePage === 0 ? "disabled" : ""}><i class="fas fa-chevron-left"></i> Ant.</button>
+          <button class="btn btn-cancel" style="padding: 8px 12px; font-size: 0.85rem;" onclick="window.changeDatePage(-window.currentDatePage)" ${window.currentDatePage === 0 ? "disabled" : ""}><i class="fas fa-angle-double-left"></i> <span class="hide-mobile">Primeras</span></button>
+          <button class="btn btn-cancel" style="padding: 8px 12px; font-size: 0.85rem;" onclick="window.changeDatePage(-1)" ${window.currentDatePage === 0 ? "disabled" : ""}><i class="fas fa-chevron-left"></i> <span class="hide-mobile">Ant.</span></button>
         </div>
-        <span style="color: var(--text-light); font-size: 0.9rem; font-weight: bold;">Página ${window.currentDatePage + 1} de ${totalPages}</span>
+        <span style="color: var(--text-light); font-size: 0.9rem; font-weight: bold;">Pág. ${window.currentDatePage + 1} / ${totalPages}</span>
         <div style="display: flex; gap: 5px;">
-          <button class="btn btn-cancel" style="padding: 8px 12px; font-size: 0.85rem;" onclick="window.changeDatePage(1)" ${window.currentDatePage === totalPages - 1 ? "disabled" : ""}>Sig. <i class="fas fa-chevron-right"></i></button>
-          <button class="btn btn-cancel" style="padding: 8px 12px; font-size: 0.85rem;" onclick="window.irAUltimaPagina()" ${window.currentDatePage === totalPages - 1 ? "disabled" : ""}>Últimas <i class="fas fa-angle-double-right"></i></button>
+          <button class="btn btn-cancel" style="padding: 8px 12px; font-size: 0.85rem;" onclick="window.changeDatePage(1)" ${window.currentDatePage === totalPages - 1 ? "disabled" : ""}><span class="hide-mobile">Sig.</span> <i class="fas fa-chevron-right"></i></button>
+          <button class="btn btn-cancel" style="padding: 8px 12px; font-size: 0.85rem;" onclick="window.irAUltimaPagina()" ${window.currentDatePage === totalPages - 1 ? "disabled" : ""}><span class="hide-mobile">Últimas</span> <i class="fas fa-angle-double-right"></i></button>
         </div>
     `;
   tabla.parentElement.appendChild(pagControls);
@@ -1176,7 +1214,7 @@ function updateRowTotal(idAlumno, tabla, allFechas, data) {
   });
 
   let maxAsis = allFechas.length || 1;
-  let percent = Math.round((asisScoreTotal / maxAsis) * 100);
+  let percent = Math.round((asisScore / maxAsis) * 100);
   let califMin = grupoDatos ? grupoDatos.calificacion_minima * 10 : 60;
 
   const tr = tabla
@@ -1184,7 +1222,11 @@ function updateRowTotal(idAlumno, tabla, allFechas, data) {
     ?.closest("tr");
   if (tr) {
     const tdTotal = tr.cells[tr.cells.length - 1];
-    tdTotal.innerHTML = `<strong style="color: var(--primary); font-size: 1rem;">${asisScoreTotal}</strong> <span style="font-size: 0.75rem; color: var(--text-muted);">/ ${maxAsis}</span><br><span style="font-size: 0.75rem; color: ${percent >= califMin ? "#10b981" : "#ef4444"}; font-weight: bold;">${percent}%</span>`;
+    if (window.isMobileView) {
+      tdTotal.innerHTML = `<strong style="color: var(--primary); font-size: 0.85rem;">${asisScore}</strong><br><span style="font-size: 0.7rem; color: ${percent >= califMin ? "#10b981" : "#ef4444"}; font-weight: bold;">${percent}%</span>`;
+    } else {
+      tdTotal.innerHTML = `<strong style="color: var(--primary); font-size: 1rem;">${asisScore}</strong> <span style="font-size: 0.75rem; color: var(--text-muted);">/ ${maxAsis}</span><br><span style="font-size: 0.75rem; color: ${percent >= califMin ? "#10b981" : "#ef4444"}; font-weight: bold;">${percent}%</span>`;
+    }
   }
 }
 
@@ -1250,7 +1292,9 @@ window.setEstadoAsistenciaDirecto = async function (
   td.setAttribute("data-estado", nuevoEstado);
 
   let comentario = td.getAttribute("data-comentario") || "";
-  let cornerHtml = comentario ? '<div class="corner-comment"></div>' : "";
+  let cornerHtml = comentario
+    ? '<i class="fas fa-comment-dots icon-comentario-celda" onclick="window.abrirComentarioDirecto(event, this)" title="Ver/Editar comentario"></i>'
+    : "";
   td.innerHTML = `${symbol} ${cornerHtml}`;
 
   td.setAttribute(
@@ -1303,7 +1347,9 @@ window.cambiarEstadoAsistencia = async function (
     td.className = `cell-asistencia ${cssClass} unsaved-change`;
     td.setAttribute("data-estado", nuevoEstado);
 
-    let cornerHtml = comentario ? '<div class="corner-comment"></div>' : "";
+    let cornerHtml = comentario
+      ? '<i class="fas fa-comment-dots icon-comentario-celda" onclick="window.abrirComentarioDirecto(event, this)" title="Ver/Editar comentario"></i>'
+      : "";
     td.innerHTML = `${symbol} ${cornerHtml}`;
     td.setAttribute(
       "onclick",
