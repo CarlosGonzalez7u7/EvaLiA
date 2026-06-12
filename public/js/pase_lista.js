@@ -620,14 +620,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (e.key === "ArrowUp") {
         let prevTr = currentTr.previousElementSibling;
         if (prevTr) targetCell = prevTr.children[index];
-      } else if (e.key === "ArrowDown") {
+      } else if (e.key === "ArrowDown" || e.key === "Enter") {
         let nextTr = currentTr.nextElementSibling;
         if (nextTr) targetCell = nextTr.children[index];
       } else if (e.key === "ArrowLeft") {
         targetCell = currentTr.children[index - 1];
         if (targetCell && !targetCell.classList.contains("cell-asistencia"))
           targetCell = null;
-      } else if (e.key === "ArrowRight") {
+      } else if (e.key === "ArrowRight" || e.key === "Tab") {
         targetCell = currentTr.children[index + 1];
         if (targetCell && !targetCell.classList.contains("cell-asistencia"))
           targetCell = null;
@@ -635,21 +635,32 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (targetCell) {
         e.preventDefault();
-        targetCell.focus();
+        targetCell.focus({ preventScroll: true });
+        targetCell.scrollIntoView({ block: "nearest", inline: "nearest" });
         return;
       }
 
       // Atajos de teclado para poner estado
-      if (e.key === "1" || e.key === "0" || e.key === "/") {
+      if (e.key === "1" || e.key === "0" || e.key === "/" || e.key === "-") {
         e.preventDefault();
         let newEstado = "Asistencia";
         if (e.key === "0") newEstado = "Falta";
-        if (e.key === "/") newEstado = "Retardo";
+        if (e.key === "/" || e.key === "-") newEstado = "Retardo";
 
         let idAlumno = currentTd.getAttribute("data-alumno");
         let fecha = currentTd.getAttribute("data-fecha");
         if (idAlumno && fecha) {
           setEstadoAsistenciaDirecto(currentTd, idAlumno, fecha, newEstado);
+
+          // Mover automáticamente abajo (Estilo Excel real)
+          let nextTr = currentTr.nextElementSibling;
+          if (nextTr) {
+            let nextCell = nextTr.children[index];
+            if (nextCell && nextCell.classList.contains("cell-asistencia")) {
+              nextCell.focus({ preventScroll: true });
+              nextCell.scrollIntoView({ block: "nearest", inline: "nearest" });
+            }
+          }
         }
       }
 
@@ -870,7 +881,7 @@ async function cargarTablaExcel(idGrupo) {
   }
 
   const tabla = document.getElementById("tabla-asistencias-excel");
-  let thead = `<thead style="position: sticky; top: 0; z-index: 10; background: #0f172a; box-shadow: 0 2px 10px rgba(0,0,0,0.5);"><tr><th style="width: 50px; min-width: 50px; max-width: 50px; padding-left: 5px; padding-right: 5px; text-align: center; position: sticky; left: 0; z-index: 11; background: #0f172a;">N°</th><th style="width: 220px; min-width: 220px; max-width: 220px; position: sticky; left: 50px; z-index: 11; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.1);">Alumno</th>`;
+  let thead = `<thead style="position: sticky; top: 0; z-index: 10; background: #0f172a; border-bottom: 2px solid var(--primary);"><tr><th style="width: 50px; min-width: 50px; max-width: 50px; padding-left: 5px; padding-right: 5px; text-align: center; position: sticky; left: 0; z-index: 11; background: #0f172a;">N°</th><th style="width: 220px; min-width: 220px; max-width: 220px; position: sticky; left: 50px; z-index: 11; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.1);">Alumno</th>`;
 
   let allFechas = Array.from(
     new Set([...data.fechas, ...fechasAgregadasManualmente]),
@@ -1182,6 +1193,7 @@ window.cambiarEstadoAsistencia = async function (
 
   const td = event.currentTarget || event.target.closest("td");
   if (td) {
+    td.focus({ preventScroll: true });
     let symbol = "-";
     let cssClass = "st-nul";
     if (nuevoEstado === "Asistencia") {
