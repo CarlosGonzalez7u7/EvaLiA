@@ -851,6 +851,23 @@ textarea.form-control {
   text-align: center;
 }
 
+/* Resolver superposición en tabla paginada sin scroll */
+.excel-container table.dense-table tbody td:first-child,
+.excel-container table.dense-table thead th:first-child,
+.excel-container table.dense-table tbody th:nth-child(2),
+.excel-container table.dense-table thead th:nth-child(2) {
+  position: static !important;
+  z-index: auto !important;
+  min-width: auto !important;
+  max-width: none !important;
+}
+.excel-container table.dense-table thead th:first-child,
+.excel-container table.dense-table thead th:nth-child(2),
+.excel-container table.dense-table tbody td:first-child,
+.excel-container table.dense-table tbody th:nth-child(2) {
+  background: transparent !important;
+}
+
 /* Icono de Comentario Interactivo en Celda */
 .icon-comentario-celda {
   position: absolute;

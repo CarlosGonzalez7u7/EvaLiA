@@ -906,14 +906,17 @@ window.agregarColumnaAsistencia = function () {
 };
 
 window.updateColsPerPage = function () {
-  let availableWidth = window.innerWidth - 35; // Margen y paddings
-  let fixedWidth = 240; // N°(30) + Alumno Minimo(150) + Total(60)
-  let cellWidth = 45; // Ancho de celda de asistencia
+  let width = window.innerWidth;
+  let isMobile = width < 600;
+  let availableWidth = width - 35; // Margen y paddings
+  let fixedWidth = isMobile ? 140 : 240; // N°(30) + Alumno Minimo + Total(60)
+  let cellWidth = isMobile ? 38 : 55; // 55px en PC para que quepa DD/MM/YY
 
   let cols = Math.floor((availableWidth - fixedWidth) / cellWidth);
   if (cols < 3) cols = 3;
 
   window.colsPerPage = cols;
+  window.isMobileView = isMobile;
 };
 
 window.addEventListener("resize", () => {
@@ -1023,12 +1026,15 @@ window.renderTablaPaginada = function () {
   thead += `<th style="width: auto; text-align: left;">Alumno</th>`;
 
   fechasPage.forEach((fecha) => {
-    let fDisplay = fecha.split("-").reverse().join("/").substring(0, 5); // Siempre mostramos DD/MM
-    let fontSize = window.isMobileView ? "0.65rem" : "0.85rem"; // Achicamos un poco la letra si es celular
-    thead += `<th style="width: ${window.isMobileView ? "38px" : "45px"}; cursor: pointer; text-align: center; transition: color 0.2s;" title="Clic para editar o borrar fecha" onclick="opcionesFechaAsistencia('${fecha}')" onmouseover="this.style.color='var(--secondary)'" onmouseout="this.style.color='white'"><span style="font-size: ${fontSize}; letter-spacing: -0.5px;">${fDisplay}</span> <i class="fas fa-edit" style="font-size: 0.5rem; color: var(--text-muted);"></i></th>`;
+    let parts = fecha.split("-");
+    let fDisplay = window.isMobileView
+      ? `${parts[2]}/${parts[1]}`
+      : `${parts[2]}/${parts[1]}/${parts[0].substring(2)}`;
+    let fontSize = window.isMobileView ? "0.65rem" : "0.75rem";
+    thead += `<th style="width: ${window.isMobileView ? "38px" : "55px"}; cursor: pointer; text-align: center; transition: color 0.2s;" title="Clic para editar o borrar fecha" onclick="opcionesFechaAsistencia('${fecha}')" onmouseover="this.style.color='var(--secondary)'" onmouseout="this.style.color='white'"><div style="font-size: ${fontSize}; letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 2px;">${fDisplay}</div> <i class="fas fa-edit" style="font-size: 0.55rem; color: var(--text-muted);"></i></th>`;
   });
 
-  thead += `<th style="width: ${window.isMobileView ? "40px" : "60px"}; color: var(--primary); text-align: center;">${window.isMobileView ? "Tot." : "Total"}</th></tr></thead>`;
+  thead += `<th style="width: ${window.isMobileView ? "40px" : "65px"}; color: var(--primary); text-align: center;">${window.isMobileView ? "Tot." : "Total"}</th></tr></thead>`;
   tabla.innerHTML = thead;
 
   let tbody = `<tbody>`;
