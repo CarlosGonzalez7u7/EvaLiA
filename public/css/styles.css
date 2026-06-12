@@ -831,6 +831,35 @@ textarea.form-control {
 }
 
 /* ================================================================
+   DENSE TABLE Y COMENTARIOS (ASISTENCIAS PAGINADAS)
+   ================================================================ */
+.dense-table {
+  font-size: 0.85rem;
+}
+.dense-table th,
+.dense-table td {
+  padding: 6px 8px !important;
+  height: 35px;
+}
+.dense-table .cell-asistencia {
+  min-width: 45px;
+  max-width: 45px;
+  font-size: 0.95rem;
+}
+
+/* Corner Comment Indicator */
+.corner-comment {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 10px 10px 0;
+  border-color: transparent #3b82f6 transparent transparent;
+}
+
+/* ================================================================
    ASISTENCIAS — COLORES DE CELDA
    ================================================================ */
 .st-asi {

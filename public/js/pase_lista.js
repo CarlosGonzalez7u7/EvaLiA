@@ -49,6 +49,11 @@ let fechasAgregadasManualmente = [];
 let periodosGlobal = [];
 let modoComentario = false;
 
+window.asistenciasData = null;
+window.allFechasGlobal = [];
+window.currentDatePage = 0;
+window.colsPerPage = 10;
+
 window.pendingChanges = {};
 
 window.actualizarBotonGuardar = function () {
@@ -81,13 +86,25 @@ window.actualizarBotonGuardar = function () {
   }
 };
 
-window.queueChange = function (idAlumno, fecha, estado) {
-  window.pendingChanges[`${idAlumno}_${fecha}`] = {
-    id_alumno: idAlumno,
-    fecha: fecha,
-    estado: estado,
-  };
+window.queueChange = function (
+  idAlumno,
+  fecha,
+  estado,
+  comentario = undefined,
+) {
+  if (!window.pendingChanges[`${idAlumno}_${fecha}`]) {
+    window.pendingChanges[`${idAlumno}_${fecha}`] = {
+      id_alumno: idAlumno,
+      fecha: fecha,
+      estado: estado,
+    };
+  } else {
+    window.pendingChanges[`${idAlumno}_${fecha}`].estado = estado;
+  }
 
+  if (comentario !== undefined) {
+    window.pendingChanges[`${idAlumno}_${fecha}`].comentario = comentario;
+  }
   window.actualizarBotonGuardar();
 
   // Agregar indicador visual de que la celda tiene cambios sin guardar
@@ -365,18 +382,29 @@ document.addEventListener("DOMContentLoaded", async () => {
       const fecha = document.getElementById("com_fecha").value;
       const com = document.getElementById("com_texto").value;
 
-      await fetch("/api/controllers/AsistenciaController.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "add_comment",
-          id_alumno: idAlumno,
-          fecha: fecha,
-          comentario: com,
-        }),
-      });
+      const td = document.querySelector(
+        `td[data-alumno="${idAlumno}"][data-fecha="${fecha}"]`,
+      );
+      if (td) {
+        td.setAttribute("data-comentario", com);
+        let symbol = "-";
+        if (td.classList.contains("st-asi")) symbol = "1";
+        else if (td.classList.contains("st-fal")) symbol = "0";
+        else if (td.classList.contains("st-ret")) symbol = "/";
+
+        let cornerHtml = com ? '<div class="corner-comment"></div>' : "";
+        td.innerHTML = `${symbol} ${cornerHtml}`;
+
+        const nombre = td.closest("tr").querySelector("th").innerText;
+        const fechaFormat = fecha.split("-").reverse().join("/");
+        let titleTxt = `📅 ${fechaFormat}  |  👤 ${nombre}\nClic para cambiar estado | Teclas: 1 (A), 0 (F), / (R)`;
+        if (com) titleTxt += `\n📝 Comentario: ${com}`;
+        td.setAttribute("title", titleTxt);
+
+        let currentState = td.getAttribute("data-estado");
+        window.queueChange(idAlumno, fecha, currentState, com);
+      }
       document.getElementById("modal-comentario").classList.remove("active");
-      cargarTablaExcel(new URLSearchParams(window.location.search).get("id"));
     });
 
   window.cargarAsistenciasHoy(idGrupo);
@@ -858,16 +886,38 @@ window.agregarColumnaAsistencia = function () {
   }
   if (!fechasAgregadasManualmente.includes(fecha)) {
     fechasAgregadasManualmente.push(fecha);
-    cargarTablaExcel(new URLSearchParams(window.location.search).get("id"));
+    window.cargarTablaExcel(
+      new URLSearchParams(window.location.search).get("id"),
+    );
   }
 };
 
-// --- LÓGICA DE LA TABLA EXCEL ---
-async function cargarTablaExcel(idGrupo) {
+window.updateColsPerPage = function () {
+  let width = window.innerWidth;
+  if (width < 500) window.colsPerPage = 4;
+  else if (width < 768) window.colsPerPage = 6;
+  else if (width < 1024) window.colsPerPage = 10;
+  else window.colsPerPage = 15;
+};
+
+window.changeDatePage = function (delta) {
+  window.currentDatePage += delta;
+  window.renderTablaPaginada();
+};
+
+window.irAUltimaPagina = function () {
+  window.updateColsPerPage();
+  const totalPages =
+    Math.ceil(window.allFechasGlobal.length / window.colsPerPage) || 1;
+  window.currentDatePage = totalPages - 1;
+  window.renderTablaPaginada();
+};
+
+// --- LÓGICA DE LA TABLA EXCEL PAGINADA ---
+window.cargarTablaExcel = async function (idGrupo) {
   const res = await fetch(
     `/api/controllers/AsistenciaController.php?action=get_grid&id_grupo=${idGrupo}`,
   );
-
   const text = await res.text();
   let data;
   try {
@@ -880,14 +930,11 @@ async function cargarTablaExcel(idGrupo) {
     return;
   }
 
-  const tabla = document.getElementById("tabla-asistencias-excel");
-  let thead = `<thead style="position: sticky; top: 0; z-index: 10; background: #0f172a; border-bottom: 2px solid var(--primary);"><tr><th style="width: 50px; min-width: 50px; max-width: 50px; padding-left: 5px; padding-right: 5px; text-align: center; position: sticky; left: 0; z-index: 11; background: #0f172a;">N°</th><th style="width: 220px; min-width: 220px; max-width: 220px; position: sticky; left: 50px; z-index: 11; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.1);">Alumno</th>`;
-
+  window.asistenciasData = data;
   let allFechas = Array.from(
     new Set([...data.fechas, ...fechasAgregadasManualmente]),
   );
 
-  // Agregar también las fechas que están en pendingChanges por si se recargó la página
   const pendingKeys = Object.keys(window.pendingChanges || {});
   pendingKeys.forEach((key) => {
     const change = window.pendingChanges[key];
@@ -910,96 +957,124 @@ async function cargarTablaExcel(idGrupo) {
     }
   }
   allFechas.sort();
+  window.allFechasGlobal = allFechas;
 
-  allFechas.forEach((fecha) => {
-    thead += `<th style="cursor: pointer; transition: color 0.2s;" title="Clic para editar o borrar fecha" onclick="opcionesFechaAsistencia('${fecha}')" onmouseover="this.style.color='var(--secondary)'" onmouseout="this.style.color='white'">${fecha.split("-").reverse().join("/")} <i class="fas fa-edit" style="font-size: 0.7rem; margin-left: 3px; color: var(--text-muted);"></i></th>`;
+  window.updateColsPerPage();
+  const totalPages = Math.ceil(allFechas.length / window.colsPerPage) || 1;
+  window.currentDatePage = totalPages - 1;
+
+  window.renderTablaPaginada();
+};
+
+window.renderTablaPaginada = function () {
+  const tabla = document.getElementById("tabla-asistencias-excel");
+  if (!tabla) return;
+  tabla.classList.add("dense-table");
+
+  const oldPag = document.getElementById("pag-controls-asis");
+  if (oldPag) oldPag.remove();
+
+  const data = window.asistenciasData;
+  const allFechas = window.allFechasGlobal;
+
+  window.updateColsPerPage();
+  const totalPages = Math.ceil(allFechas.length / window.colsPerPage) || 1;
+  if (window.currentDatePage >= totalPages)
+    window.currentDatePage = totalPages - 1;
+  if (window.currentDatePage < 0) window.currentDatePage = 0;
+
+  const startIdx = window.currentDatePage * window.colsPerPage;
+  const endIdx = startIdx + window.colsPerPage;
+  const fechasPage = allFechas.slice(startIdx, endIdx);
+
+  let thead = `<thead style="background: #0f172a; border-bottom: 2px solid var(--primary);"><tr>
+      <th style="width: 40px; text-align: center;">N°</th>
+      <th style="min-width: 150px; text-align: left;">Alumno</th>`;
+
+  fechasPage.forEach((fecha) => {
+    thead += `<th style="cursor: pointer; text-align: center; transition: color 0.2s;" title="Clic para editar o borrar fecha" onclick="opcionesFechaAsistencia('${fecha}')" onmouseover="this.style.color='var(--secondary)'" onmouseout="this.style.color='white'">${fecha.split("-").reverse().join("/").substring(0, 5)} <i class="fas fa-edit" style="font-size: 0.6rem; color: var(--text-muted);"></i></th>`;
   });
-  thead += `<th style="color: var(--primary); position: sticky; right: 0; z-index: 11; background: #0f172a; border-left: 1px solid rgba(255,255,255,0.1);">Total Asist.</th></tr></thead>`;
+
+  thead += `<th style="color: var(--primary); text-align: center;">Total</th></tr></thead>`;
   tabla.innerHTML = thead;
 
   let tbody = `<tbody>`;
   let nLista = 1;
+
   data.alumnos.forEach((al) => {
-    tbody += `<tr><td style="width: 50px; min-width: 50px; max-width: 50px; padding-left: 5px; padding-right: 5px; text-align: center; position: sticky; left: 0; z-index: 5; background: #1e1b4b;">${nLista++}</td><th style="width: 220px; min-width: 220px; max-width: 220px; position: sticky; left: 50px; z-index: 5; background: #1e1b4b; white-space: normal; word-wrap: break-word; line-height: 1.3; border-right: 1px solid rgba(255,255,255,0.1);">${al.nombre}</th>`;
-    let asisScore = 0;
-    allFechas.forEach((fecha) => {
+    tbody += `<tr>
+        <td style="text-align: center; color: var(--text-muted); font-weight: bold; font-size: 0.8rem;">${nLista++}</td>
+        <th style="text-align: left; font-weight: 600; font-size: 0.85rem; white-space: normal; line-height: 1.2;">${al.nombre}</th>`;
+
+    fechasPage.forEach((fecha) => {
       const asis = data.asistencias.find(
         (a) => a.id_alumno == al.id_alumno && a.fecha === fecha,
       );
+      let pending = window.pendingChanges[`${al.id_alumno}_${fecha}`];
+
+      let estado = asis ? asis.estado : null;
+      let comentario = asis ? asis.comentario || "" : "";
+
+      if (pending) {
+        estado = pending.estado;
+        if (pending.comentario !== undefined) comentario = pending.comentario;
+      }
+
       let symbol = "-";
       let cssClass = "st-nul";
       let estadoTxt = "Eliminar";
-      let comentario = "";
 
-      if (asis) {
-        comentario = asis.comentario || "";
-        if (asis.estado === "Asistencia") {
-          symbol = "1";
-          cssClass = "st-asi";
-          estadoTxt = "Asistencia";
-          asisScore += 1;
-        } else if (asis.estado === "Falta") {
-          symbol = "0";
-          cssClass = "st-fal";
-          estadoTxt = "Falta";
-        } else if (asis.estado === "Retardo") {
-          symbol = "/";
-          cssClass = "st-ret";
-          estadoTxt = "Retardo";
-          asisScore += 0.5;
-        }
+      if (estado === "Asistencia") {
+        symbol = "1";
+        cssClass = "st-asi";
+        estadoTxt = "Asistencia";
+      } else if (estado === "Falta") {
+        symbol = "0";
+        cssClass = "st-fal";
+        estadoTxt = "Falta";
+      } else if (estado === "Retardo") {
+        symbol = "/";
+        cssClass = "st-ret";
+        estadoTxt = "Retardo";
       }
 
       const fechaFormat = fecha.split("-").reverse().join("/");
-      let titleTxt = `📅 ${fechaFormat}  |  👤 ${al.nombre}
-Clic para cambiar estado | Teclas: 1 (A), 0 (F), / (R)`;
+      let titleTxt = `📅 ${fechaFormat}  |  👤 ${al.nombre}\nClic para cambiar estado | Teclas: 1 (A), 0 (F), / (R)`;
       if (comentario) titleTxt += `\n📝 Comentario: ${comentario}`;
 
-      tbody += `<td tabindex="0" data-alumno="${al.id_alumno}" data-fecha="${fecha}" data-estado="${estadoTxt}" data-comentario="${comentario}" class="cell-asistencia ${cssClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')">
-          ${symbol} ${comentario ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}
-      </td>`;
+      let unsavedClass = pending ? "unsaved-change" : "";
+      let cornerHtml = comentario ? '<div class="corner-comment"></div>' : "";
+
+      tbody += `<td tabindex="0" data-alumno="${al.id_alumno}" data-fecha="${fecha}" data-estado="${estadoTxt}" data-comentario="${comentario}" class="cell-asistencia ${cssClass} ${unsavedClass}" style="position: relative;" title="${titleTxt}" onclick="cambiarEstadoAsistencia(event, ${al.id_alumno}, '${fecha}', '${estadoTxt}', '${comentario}')">
+            ${symbol} ${cornerHtml}
+        </td>`;
     });
 
-    let maxAsis = allFechas.length || 1;
-    let percent = Math.round((asisScore / maxAsis) * 100);
-    let califMin = grupoDatos ? grupoDatos.calificacion_minima * 10 : 60;
-    tbody += `<td style="text-align: center; vertical-align: middle; background: rgba(15,23,42,0.95); position: sticky; right: 0; z-index: 5; border-left: 1px solid rgba(255,255,255,0.1);">
-        <strong style="color: var(--primary); font-size: 1.1rem;">${asisScore}</strong> <span style="font-size: 0.8rem; color: var(--text-muted);">/ ${maxAsis}</span>
-        <br><span style="font-size: 0.8rem; color: ${percent >= califMin ? "#10b981" : "#ef4444"}; font-weight: bold;">${percent}%</span>
-    </td></tr>`;
+    tbody += `<td class="total-cell" style="text-align: center; vertical-align: middle; background: rgba(15,23,42,0.4);"></td></tr>`;
   });
   tbody += `</tbody>`;
   tabla.innerHTML += tbody;
 
-  // Restaurar cambios pendientes visualmente si los hay (por recuperación de backup)
-  if (pendingKeys.length > 0) {
-    pendingKeys.forEach((key) => {
-      const change = window.pendingChanges[key];
-      const td = tabla.querySelector(
-        `td[data-alumno="${change.id_alumno}"][data-fecha="${change.fecha}"]`,
-      );
-      if (td) {
-        let symbol = "-";
-        let cssClass = "st-nul";
-        if (change.estado === "Asistencia") {
-          symbol = "1";
-          cssClass = "st-asi";
-        } else if (change.estado === "Falta") {
-          symbol = "0";
-          cssClass = "st-fal";
-        } else if (change.estado === "Retardo") {
-          symbol = "/";
-          cssClass = "st-ret";
-        }
-        td.className = `cell-asistencia ${cssClass} unsaved-change`;
-        td.setAttribute("data-estado", change.estado);
-        let hasComment = td.innerHTML.includes("fa-comment-dots");
-        td.innerHTML = `${symbol} ${hasComment ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}`;
-      }
-    });
-    recalcularTotalesTabla();
-  }
-}
+  let pagControls = document.createElement("div");
+  pagControls.id = "pag-controls-asis";
+  pagControls.style.cssText =
+    "display: flex; justify-content: space-between; align-items: center; margin-top: 15px; background: rgba(15,23,42,0.6); padding: 10px; border-radius: 8px; flex-wrap: wrap; gap: 10px;";
+
+  pagControls.innerHTML = `
+        <div style="display: flex; gap: 5px;">
+          <button class="btn btn-cancel" style="padding: 8px 12px; font-size: 0.85rem;" onclick="window.changeDatePage(-window.currentDatePage)" ${window.currentDatePage === 0 ? "disabled" : ""}><i class="fas fa-angle-double-left"></i> Primeras</button>
+          <button class="btn btn-cancel" style="padding: 8px 12px; font-size: 0.85rem;" onclick="window.changeDatePage(-1)" ${window.currentDatePage === 0 ? "disabled" : ""}><i class="fas fa-chevron-left"></i> Ant.</button>
+        </div>
+        <span style="color: var(--text-light); font-size: 0.9rem; font-weight: bold;">Página ${window.currentDatePage + 1} de ${totalPages}</span>
+        <div style="display: flex; gap: 5px;">
+          <button class="btn btn-cancel" style="padding: 8px 12px; font-size: 0.85rem;" onclick="window.changeDatePage(1)" ${window.currentDatePage === totalPages - 1 ? "disabled" : ""}>Sig. <i class="fas fa-chevron-right"></i></button>
+          <button class="btn btn-cancel" style="padding: 8px 12px; font-size: 0.85rem;" onclick="window.irAUltimaPagina()" ${window.currentDatePage === totalPages - 1 ? "disabled" : ""}>Últimas <i class="fas fa-angle-double-right"></i></button>
+        </div>
+    `;
+  tabla.parentElement.appendChild(pagControls);
+
+  window.recalcularTotalesTabla();
+};
 
 window.cargarAsistenciasHoy = async function (id) {
   try {
@@ -1071,30 +1146,46 @@ function renderAsistenciasHoy(datos) {
   });
 }
 
-function recalcularTotalesTabla() {
+window.recalcularTotalesTabla = function (idAlumno = null) {
   const tabla = document.getElementById("tabla-asistencias-excel");
   if (!tabla) return;
-  const tbody = tabla.querySelector("tbody");
-  if (!tbody) return;
+  const allFechas = window.allFechasGlobal || [];
+  const data = window.asistenciasData;
+  if (!data) return;
 
-  const thead = tabla.querySelector("thead tr");
-  let numDias = thead ? thead.cells.length - 3 : 1;
-  if (numDias < 1) numDias = 1;
+  if (idAlumno) {
+    updateRowTotal(idAlumno, tabla, allFechas, data);
+  } else {
+    data.alumnos.forEach((al) =>
+      updateRowTotal(al.id_alumno, tabla, allFechas, data),
+    );
+  }
+};
 
-  Array.from(tbody.rows).forEach((row) => {
-    let asisScore = 0;
-    Array.from(row.cells).forEach((cell) => {
-      if (cell.classList.contains("cell-asistencia")) {
-        const estado = cell.getAttribute("data-estado");
-        if (estado === "Asistencia") asisScore += 1;
-        else if (estado === "Retardo") asisScore += 0.5;
-      }
-    });
-    const tdTotal = row.cells[row.cells.length - 1];
-    let percent = Math.round((asisScore / numDias) * 100);
-    let califMin = grupoDatos ? grupoDatos.calificacion_minima * 10 : 60;
-    tdTotal.innerHTML = `<strong style="color: var(--primary); font-size: 1.1rem;">${asisScore}</strong> <span style="font-size: 0.8rem; color: var(--text-muted);">/ ${numDias}</span><br><span style="font-size: 0.8rem; color: ${percent >= califMin ? "#10b981" : "#ef4444"}; font-weight: bold;">${percent}%</span>`;
+function updateRowTotal(idAlumno, tabla, allFechas, data) {
+  let asisScore = 0;
+  allFechas.forEach((fecha) => {
+    let asis = data.asistencias.find(
+      (a) => a.id_alumno == idAlumno && a.fecha === fecha,
+    );
+    let pending = window.pendingChanges[`${idAlumno}_${fecha}`];
+    let estado = pending ? pending.estado : asis ? asis.estado : null;
+
+    if (estado === "Asistencia") asisScore += 1;
+    else if (estado === "Retardo") asisScore += 0.5;
   });
+
+  let maxAsis = allFechas.length || 1;
+  let percent = Math.round((asisScoreTotal / maxAsis) * 100);
+  let califMin = grupoDatos ? grupoDatos.calificacion_minima * 10 : 60;
+
+  const tr = tabla
+    .querySelector(`td[data-alumno="${idAlumno}"]`)
+    ?.closest("tr");
+  if (tr) {
+    const tdTotal = tr.cells[tr.cells.length - 1];
+    tdTotal.innerHTML = `<strong style="color: var(--primary); font-size: 1rem;">${asisScoreTotal}</strong> <span style="font-size: 0.75rem; color: var(--text-muted);">/ ${maxAsis}</span><br><span style="font-size: 0.75rem; color: ${percent >= califMin ? "#10b981" : "#ef4444"}; font-weight: bold;">${percent}%</span>`;
+  }
 }
 
 window.mostrarToastFugaz = function (td, fecha, estado) {
@@ -1158,19 +1249,19 @@ window.setEstadoAsistenciaDirecto = async function (
   td.className = `cell-asistencia ${cssClass}`;
   td.setAttribute("data-estado", nuevoEstado);
 
-  let hasComment = td.innerHTML.includes("fa-comment-dots");
-  td.innerHTML = `${symbol} ${hasComment ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}`;
+  let comentario = td.getAttribute("data-comentario") || "";
+  let cornerHtml = comentario ? '<div class="corner-comment"></div>' : "";
+  td.innerHTML = `${symbol} ${cornerHtml}`;
 
   td.setAttribute(
     "onclick",
-    `cambiarEstadoAsistencia(event, ${idAlumno}, '${fecha}', '${nuevoEstado}', '${hasComment ? "Comentario guardado" : ""}')`,
+    `cambiarEstadoAsistencia(event, ${idAlumno}, '${fecha}', '${nuevoEstado}', '${comentario}')`,
   );
 
   window.mostrarToastFugaz(td, fecha, nuevoEstado);
-  recalcularTotalesTabla();
+  window.recalcularTotalesTabla(idAlumno);
 
-  // 2. Encolar los cambios en lugar de enviarlos individualmente
-  window.queueChange(idAlumno, fecha, nuevoEstado);
+  window.queueChange(idAlumno, fecha, nuevoEstado, comentario);
 };
 
 window.cambiarEstadoAsistencia = async function (
@@ -1180,8 +1271,11 @@ window.cambiarEstadoAsistencia = async function (
   estadoActual,
   comentarioActual,
 ) {
+  const td = event.currentTarget || event.target.closest("td");
+  let comentario = td.getAttribute("data-comentario") || "";
+
   if (modoComentario || (event && event.shiftKey)) {
-    window.abrirModalComentario(idAlumno, fecha, comentarioActual);
+    window.abrirModalComentario(idAlumno, fecha, comentario);
     return;
   }
 
@@ -1191,7 +1285,6 @@ window.cambiarEstadoAsistencia = async function (
   else if (estadoActual === "Retardo") nuevoEstado = "Falta";
   else if (estadoActual === "Falta") nuevoEstado = "Eliminar";
 
-  const td = event.currentTarget || event.target.closest("td");
   if (td) {
     td.focus({ preventScroll: true });
     let symbol = "-";
@@ -1207,20 +1300,21 @@ window.cambiarEstadoAsistencia = async function (
       cssClass = "st-ret";
     }
 
-    td.className = `cell-asistencia ${cssClass}`;
+    td.className = `cell-asistencia ${cssClass} unsaved-change`;
     td.setAttribute("data-estado", nuevoEstado);
-    let hasComment = td.innerHTML.includes("fa-comment-dots");
-    td.innerHTML = `${symbol} ${hasComment ? '<i class="fas fa-comment-dots" style="font-size: 0.6rem; position: absolute; top: 2px; right: 2px;"></i>' : ""}`;
+
+    let cornerHtml = comentario ? '<div class="corner-comment"></div>' : "";
+    td.innerHTML = `${symbol} ${cornerHtml}`;
     td.setAttribute(
       "onclick",
-      `cambiarEstadoAsistencia(event, ${idAlumno}, '${fecha}', '${nuevoEstado}', '${hasComment ? "Comentario guardado" : ""}')`,
+      `cambiarEstadoAsistencia(event, ${idAlumno}, '${fecha}', '${nuevoEstado}', '${comentario}')`,
     );
 
     window.mostrarToastFugaz(td, fecha, nuevoEstado);
-    recalcularTotalesTabla();
+    window.recalcularTotalesTabla(idAlumno);
   }
 
-  window.queueChange(idAlumno, fecha, nuevoEstado);
+  window.queueChange(idAlumno, fecha, nuevoEstado, comentario);
 };
 
 function inyectarPestanasNavegacion(idGrupo, vistaActiva) {
