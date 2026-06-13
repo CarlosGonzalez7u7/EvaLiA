@@ -795,6 +795,7 @@ textarea.form-control {
   z-index: 10;
   border-bottom: 2px solid var(--primary);
   min-width: 120px;
+  will-change: transform;
 }
 /* Columna 1: Número de lista */
 .excel-container tbody td:first-child,
@@ -807,6 +808,7 @@ textarea.form-control {
   min-width: 50px;
   max-width: 50px;
   text-align: center;
+  will-change: transform;
 }
 /* Columna 2: Nombre del Alumno */
 .excel-container tbody th:nth-child(2),
@@ -823,6 +825,7 @@ textarea.form-control {
   font-size: 0.85rem;
   white-space: normal;
   word-wrap: break-word;
+  will-change: transform;
 }
 .excel-container thead th:first-child,
 .excel-container thead th:nth-child(2) {

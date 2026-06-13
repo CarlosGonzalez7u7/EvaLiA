@@ -504,6 +504,52 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  // --- LÓGICA DE CROSSHAIR (PLANO CARTESIANO) ---
+  window.updateCrosshairCalif = function (cell) {
+    const table = cell.closest("table");
+    if (!table || table.id !== "tabla-calificaciones") return;
+
+    table
+      .querySelectorAll(".crosshair-active")
+      .forEach((el) => el.classList.remove("crosshair-active"));
+
+    const row = cell.closest("tr");
+    if (row) {
+      Array.from(row.children).forEach((c) =>
+        c.classList.add("crosshair-active"),
+      );
+    }
+
+    let cellIndex = Array.from(row.children).indexOf(cell.closest("td, th"));
+    if (cellIndex > -1) {
+      Array.from(table.rows).forEach((r) => {
+        if (r.children[cellIndex]) {
+          r.children[cellIndex].classList.add("crosshair-active");
+        }
+      });
+    }
+  };
+
+  document.addEventListener("mouseover", (e) => {
+    const cell = e.target.closest("td") || e.target.closest("th");
+    if (cell) window.updateCrosshairCalif(cell);
+  });
+  document.addEventListener("focusin", (e) => {
+    const cell = e.target.closest("td") || e.target.closest("th");
+    if (cell) window.updateCrosshairCalif(cell);
+  });
+  document.addEventListener("mouseout", (e) => {
+    const cell = e.target.closest("td") || e.target.closest("th");
+    if (cell) {
+      const table = cell.closest("table");
+      if (table && table.id === "tabla-calificaciones") {
+        table
+          .querySelectorAll(".crosshair-active")
+          .forEach((el) => el.classList.remove("crosshair-active"));
+      }
+    }
+  });
+
   // --- NAVEGACIÓN ESTILO EXCEL PARA CALIFICACIONES ---
   document.addEventListener("keydown", (e) => {
     // Atajo para Guardar Cambios (Ctrl + S o Ctrl + G)
@@ -767,9 +813,12 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
               : "";
             let failClass = isFailing ? "failing-grade" : "";
             let unsavedClass = pending ? "unsaved-change" : "";
+            let originalVal =
+              calif && calif.puntaje !== null ? calif.puntaje : "";
+            let titleTxt = `👤 ${alumno.nombre.replace(/"/g, "&quot;")}&#10;📝 ${a.nombre_actividad.replace(/"/g, "&quot;")}`;
 
             tbody += `<td style="${bgStyle}" class="${unsavedClass}">
-                        <input type="number" class="grade-input ${failClass}" style="border-bottom: 2px solid ${rubrica.color || "#8b5cf6"}; ${bgStyle}" data-alumno="${alumno.id_alumno}" data-actividad="${a.id_actividad}" value="${puntaje}" min="0" max="10" step="0.1" onblur="guardarCalificacion(this, ${minAprobatoria})">
+                        <input type="number" class="grade-input ${failClass}" style="border-bottom: 2px solid ${rubrica.color || "#8b5cf6"}; ${bgStyle}" data-alumno="${alumno.id_alumno}" data-actividad="${a.id_actividad}" data-original="${originalVal}" value="${puntaje}" min="0" max="10" step="0.1" onblur="guardarCalificacion(this, ${minAprobatoria})" title="${titleTxt}">
                     </td>`;
           });
           if (actsEvaluadas > 0) {
@@ -986,6 +1035,15 @@ window.recalcularFilaCalificacion = function (idAlumno, minAprobatoria) {
 // 4. FUNCIÓN SILENCIOSA QUE GUARDA EN MEMORIA
 window.guardarCalificacion = async function (inputElem, minAprobatoria) {
   let valor = inputElem.value;
+  let original = inputElem.getAttribute("data-original");
+
+  let valCompare = valor === "" ? "" : parseFloat(valor);
+  let origCompare = original === "" ? "" : parseFloat(original);
+
+  // Si no hubo cambios reales matemáticamente, ignoramos
+  if (valCompare === origCompare) return;
+
+  inputElem.setAttribute("data-original", valor);
   if (valor === "") valor = 0;
 
   const idAlumno = inputElem.getAttribute("data-alumno");
