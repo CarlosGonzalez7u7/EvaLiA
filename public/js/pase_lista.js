@@ -909,11 +909,11 @@ window.updateColsPerPage = function () {
   let width = window.innerWidth;
   let isMobile = width < 600;
   let availableWidth = width - 35; // Margen y paddings
-  let fixedWidth = isMobile ? 140 : 240; // N°(30) + Alumno Minimo + Total(60)
+  let fixedWidth = isMobile ? 180 : 340; // N°(40) + Alumno Minimo(235) + Total(65)
   let cellWidth = isMobile ? 38 : 55; // 55px en PC para que quepa DD/MM/YY
 
   let cols = Math.floor((availableWidth - fixedWidth) / cellWidth);
-  if (cols < 3) cols = 3;
+  if (cols < 1) cols = 1;
 
   window.colsPerPage = cols;
   window.isMobileView = isMobile;
@@ -1021,9 +1021,9 @@ window.renderTablaPaginada = function () {
 
   let thead = `<thead style="background: #0f172a; border-bottom: 2px solid var(--primary);"><tr>`;
   if (!window.isMobileView) {
-    thead += `<th style="width: 30px; text-align: center;">N°</th>`;
+    thead += `<th style="width: 40px; text-align: center;">N°</th>`;
   }
-  thead += `<th style="width: auto; text-align: left;">Alumno</th>`;
+  thead += `<th style="width: ${window.isMobileView ? "140px" : "235px"}; text-align: left;">Alumno</th>`;
 
   fechasPage.forEach((fecha) => {
     let parts = fecha.split("-");
@@ -1033,6 +1033,10 @@ window.renderTablaPaginada = function () {
     let fontSize = window.isMobileView ? "0.65rem" : "0.75rem";
     thead += `<th style="width: ${window.isMobileView ? "38px" : "55px"}; cursor: pointer; text-align: center; transition: color 0.2s;" title="Clic para editar o borrar fecha" onclick="opcionesFechaAsistencia('${fecha}')" onmouseover="this.style.color='var(--secondary)'" onmouseout="this.style.color='white'"><div style="font-size: ${fontSize}; letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 2px;">${fDisplay}</div> <i class="fas fa-edit" style="font-size: 0.55rem; color: var(--text-muted);"></i></th>`;
   });
+
+  for (let i = 0; i < window.colsPerPage - fechasPage.length; i++) {
+    thead += `<th style="width: ${window.isMobileView ? "38px" : "55px"};"></th>`;
+  }
 
   thead += `<th style="width: ${window.isMobileView ? "40px" : "65px"}; color: var(--primary); text-align: center;">${window.isMobileView ? "Tot." : "Total"}</th></tr></thead>`;
   tabla.innerHTML = thead;
@@ -1045,7 +1049,7 @@ window.renderTablaPaginada = function () {
     if (!window.isMobileView) {
       tbody += `<td style="text-align: center; color: var(--text-muted); font-weight: bold; font-size: 0.8rem;">${nLista}</td>`;
     }
-    tbody += `<th style="text-align: left; font-weight: 600; font-size: ${window.isMobileView ? "0.75rem" : "0.85rem"}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: ${window.isMobileView ? "90px" : "150px"};" title="${al.nombre}">${al.nombre}</th>`;
+    tbody += `<th style="text-align: left; font-weight: 600; font-size: ${window.isMobileView ? "0.75rem" : "0.85rem"}; white-space: normal; word-wrap: break-word;" title="${al.nombre}">${al.nombre}</th>`;
 
     fechasPage.forEach((fecha) => {
       const asis = data.asistencias.find(
@@ -1092,6 +1096,10 @@ window.renderTablaPaginada = function () {
             ${symbol} ${cornerHtml}
         </td>`;
     });
+
+    for (let i = 0; i < window.colsPerPage - fechasPage.length; i++) {
+      tbody += `<td style="background: rgba(255,255,255,0.02);"></td>`;
+    }
 
     tbody += `<td class="total-cell" style="text-align: center; vertical-align: middle; background: rgba(15,23,42,0.4);"></td></tr>`;
     nLista++;

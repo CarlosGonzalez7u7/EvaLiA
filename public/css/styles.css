@@ -841,10 +841,7 @@ textarea.form-control {
 .dense-table th,
 .dense-table td {
   padding: 4px !important;
-  height: 35px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 .dense-table .cell-asistencia {
   font-size: 0.95rem;
@@ -866,6 +863,11 @@ textarea.form-control {
 .excel-container table.dense-table tbody td:first-child,
 .excel-container table.dense-table tbody th:nth-child(2) {
   background: transparent !important;
+}
+
+/* Resaltado Cruzado de Celda / Crosshair Highlight */
+.crosshair-active {
+  filter: brightness(1.4) contrast(1.1);
 }
 
 /* Icono de Comentario Interactivo en Celda */
