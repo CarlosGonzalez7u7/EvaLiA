@@ -64,7 +64,9 @@ CREATE TABLE `alumnos` (
   `password_hash` varchar(255) NOT NULL,
   `pin_acceso` varchar(10) DEFAULT NULL,
   `orden` int(11) DEFAULT 0,
-  `qr_token` varchar(255) NOT NULL
+  `qr_token` varchar(255) NOT NULL,
+  `puntos_extra` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `historial_puntos` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

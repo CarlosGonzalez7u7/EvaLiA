@@ -303,6 +303,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           sheet.getColumn(index + 1).width = 5; // N°
         else if (index === 1)
           sheet.getColumn(index + 1).width = 35; // Nombre
+        else if (index === 2)
+          sheet.getColumn(index + 1).width = 15; // Puntos Extras
         else sheet.getColumn(index + 1).width = 20; // Calificaciones
       });
       headerRow.height = 35;
@@ -317,7 +319,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           let val = "";
           const input = td.querySelector("input");
           if (input) val = input.value;
-          else
+          else if (index === 2) {
+            // Puntos Extras
+            val = td.innerText.replace("+", "").trim();
+          } else
             val = td.innerText
               .replace(/\n/g, " ")
               .replace(" (Nota:", " - Nota:")
@@ -340,10 +345,38 @@ document.addEventListener("DOMContentLoaded", async () => {
           };
 
           // Colorear verde o rojo si aprobó o reprobó
-          if (td.classList.contains("text-danger")) {
+          if (input && input.classList.contains("failing-grade")) {
             cell.font = { color: { argb: "FFEF4444" }, bold: true };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFDE8E8" },
+            };
+          } else if (
+            td.classList.contains("failing-grade-cell") ||
+            td.classList.contains("text-danger")
+          ) {
+            cell.font = { color: { argb: "FFEF4444" }, bold: true };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFDE8E8" },
+            };
           } else if (td.classList.contains("text-success")) {
             cell.font = { color: { argb: "FF10B981" }, bold: true };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFE6F9F0" },
+            };
+          } else if (index === 2 && parseFloat(val) > 0) {
+            // Puntos extras positivos
+            cell.font = { color: { argb: "FFF59E0B" }, bold: true };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFFF4E5" },
+            };
           }
         });
       });
@@ -436,6 +469,25 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
   const tabla = document.getElementById("tabla-calificaciones");
   tabla.innerHTML = "";
 
+  // Obtener puntos extras
+  let alumnosPE = {};
+  window.alumnosPEGlobal = [];
+  try {
+    const resPE = await fetch(
+      `/api/controllers/AlumnoController.php?action=list&id_grupo=${idGrupo}`,
+    );
+    const dataPE = await resPE.json();
+    if (dataPE.success) {
+      window.alumnosPEGlobal = dataPE.data;
+      dataPE.data.forEach((a) => {
+        alumnosPE[a.id_alumno] = {
+          puntos: a.puntos_extra || 0,
+          historial: a.historial_puntos || "[]",
+        };
+      });
+    }
+  } catch (e) {}
+
   // Remover el scroll interno para mejorar la experiencia de usuario
   if (tabla.parentElement) {
     tabla.parentElement.style.maxHeight = "none";
@@ -443,7 +495,7 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
   }
 
   // 1. DIBUJAR CABECERAS (THEAD)
-  let thead = `<thead><tr><th style="width: 50px; text-align: center;">N°</th><th style="width: 250px;">Alumno</th>`;
+  let thead = `<thead><tr><th style="width: 50px; text-align: center;">N°</th><th style="width: 250px;">Alumno</th><th style="width: 80px; text-align: center;"><i class="fas fa-star" style="color: #f59e0b;"></i> Extras</th>`;
   data.rubricas.forEach((rubrica) => {
     const color = rubrica.color || "#8b5cf6";
 
@@ -512,7 +564,17 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
   if (maxAsistencias === 0) maxAsistencias = 1;
 
   data.alumnos.forEach((alumno) => {
+    let peData = alumnosPE[alumno.id_alumno] || { puntos: 0, historial: "[]" };
+    let pts = parseFloat(peData.puntos);
+
     tbody += `<tr><td style="text-align: center; color: var(--text-muted); font-weight: bold;">${nLista++}</td><th>${alumno.nombre}</th>`;
+
+    // Puntos Extras
+    tbody += `<td style="text-align: center; vertical-align: middle;">
+        <button onclick="abrirModalPuntosExtra(${alumno.id_alumno}, '${alumno.nombre.replace(/'/g, "\\'")}', ${pts}, '${peData.historial.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" style="background: ${pts > 0 ? "rgba(245, 158, 11, 0.15)" : "transparent"}; border: 1px solid ${pts > 0 ? "#f59e0b" : "rgba(255,255,255,0.1)"}; color: ${pts > 0 ? "#f59e0b" : "var(--text-muted)"}; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-weight: bold; transition: 0.2s;" title="Gestionar Puntos Extra">
+            ${pts > 0 ? "+" : ""}${pts.toFixed(1)}
+        </button>
+    </td>`;
 
     let sumaFinal = 0; // Para el promedio total
     let porcentajeEvaluado = 0; // Para escalar equitativamente
@@ -562,8 +624,15 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
               actsEvaluadas++;
             }
 
-            tbody += `<td>
-                        <input type="number" class="grade-input" style="border-bottom: 2px solid ${rubrica.color || "#8b5cf6"};" data-alumno="${alumno.id_alumno}" data-actividad="${a.id_actividad}" value="${puntaje}" min="0" max="10" step="0.1" onblur="guardarCalificacion(this, ${minAprobatoria})">
+            let isFailing =
+              puntaje !== "" && parseFloat(puntaje) < minAprobatoria;
+            let bgStyle = isFailing
+              ? "background-color: rgba(239, 68, 68, 0.15); color: #ef4444;"
+              : "";
+            let failClass = isFailing ? "failing-grade" : "";
+
+            tbody += `<td style="${bgStyle}">
+                        <input type="number" class="grade-input ${failClass}" style="border-bottom: 2px solid ${rubrica.color || "#8b5cf6"}; ${bgStyle}" data-alumno="${alumno.id_alumno}" data-actividad="${a.id_actividad}" value="${puntaje}" min="0" max="10" step="0.1" onblur="guardarCalificacion(this, ${minAprobatoria})">
                     </td>`;
           });
           if (actsEvaluadas > 0) {
@@ -579,9 +648,14 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
     // Columna de Promedio Final
     let promedioReal =
       porcentajeEvaluado > 0 ? sumaFinal / (porcentajeEvaluado / 100) : 0;
-    const colorClass =
-      promedioReal >= minAprobatoria ? "text-success" : "text-danger";
-    tbody += `<td class="cell-promedio ${colorClass}" id="promFinal-${alumno.id_alumno}">${promedioReal > 0 ? promedioReal.toFixed(1) : "0.0"}</td></tr>`;
+    const isFailingFinal = promedioReal < minAprobatoria;
+    const colorClass = isFailingFinal
+      ? "text-danger failing-grade-cell"
+      : "text-success";
+    const bgFinal = isFailingFinal
+      ? "background-color: rgba(239, 68, 68, 0.15);"
+      : "";
+    tbody += `<td class="cell-promedio ${colorClass}" style="${bgFinal}" id="promFinal-${alumno.id_alumno}">${promedioReal > 0 ? promedioReal.toFixed(1) : "0.0"}</td></tr>`;
   });
   tbody += `</tbody>`;
   tabla.innerHTML += tbody;
@@ -726,6 +800,136 @@ window.guardarCalificacion = async function (inputElem, minAprobatoria) {
     );
   }
 };
+
+// --- LÓGICA DE PUNTOS EXTRAS ---
+window.switchTabPE = function (tabId, btn) {
+  const modal = btn.closest(".modal-content");
+  modal
+    .querySelectorAll(".tab-btn")
+    .forEach((b) => b.classList.remove("active"));
+  modal
+    .querySelectorAll(".tab-content")
+    .forEach((c) => c.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById(tabId).classList.add("active");
+};
+
+window.abrirModalPuntosExtra = function (
+  idAlumno,
+  nombre,
+  puntos,
+  historialStr,
+) {
+  document.getElementById("pe_id_alumno").value = idAlumno;
+  document.getElementById("pe_nombre_alumno").innerText = nombre;
+  document.getElementById("pe_total_puntos").innerText =
+    parseFloat(puntos).toFixed(2);
+
+  const lista = document.getElementById("pe_lista_historial");
+  lista.innerHTML = "";
+  let historial = [];
+  try {
+    historial = JSON.parse(historialStr) || [];
+  } catch (e) {}
+
+  if (historial.length === 0) {
+    lista.innerHTML =
+      '<li style="padding: 15px; text-align: center; color: var(--text-muted); background: rgba(15, 23, 42, 0.4); border-radius: 8px;">Sin historial de puntos.</li>';
+  } else {
+    historial.reverse().forEach((h) => {
+      let color =
+        h.tipo === "add"
+          ? "#10b981"
+          : h.tipo === "transfer"
+            ? "#3b82f6"
+            : "#ef4444";
+      let signo = h.tipo === "add" ? "+" : "-";
+      lista.innerHTML += `
+                <li style="display: flex; flex-direction: column; align-items: flex-start; gap: 5px; background: rgba(15, 23, 42, 0.6); padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid ${color};">
+                    <div style="display: flex; justify-content: space-between; width: 100%;">
+                        <strong style="color: ${color};">${signo}${parseFloat(h.cantidad).toFixed(2)} pts</strong>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">${h.fecha}</span>
+                    </div>
+                    <div style="font-size: 0.9rem; color: var(--text-light);">${h.motivo}</div>
+                </li>
+            `;
+    });
+  }
+
+  const selectDestino = document.getElementById("pe_id_destino");
+  selectDestino.innerHTML =
+    '<option value="">-- Selecciona un compañero --</option>';
+  if (window.alumnosPEGlobal) {
+    window.alumnosPEGlobal.forEach((a) => {
+      if (a.id_alumno != idAlumno)
+        selectDestino.innerHTML += `<option value="${a.id_alumno}">${a.nombre}</option>`;
+    });
+  }
+
+  document.getElementById("form-pe-agregar").reset();
+  document.getElementById("form-pe-transferir").reset();
+  document.getElementById("modal-puntos-extra").classList.add("active");
+};
+
+async function procesarPuntosExtra(
+  idAlumno,
+  operacion,
+  cantidad,
+  motivo,
+  idDestino,
+) {
+  try {
+    const res = await fetch("/api/controllers/AlumnoController.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "manage_points",
+        id_alumno: idAlumno,
+        operacion: operacion,
+        cantidad: cantidad,
+        motivo: motivo,
+        id_destino: idDestino,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById("modal-puntos-extra").classList.remove("active");
+      const idGrupo = new URLSearchParams(window.location.search).get("id");
+      cargarHojaDeCalculo(
+        idGrupo,
+        document.getElementById("select-periodo").value,
+        grupoDatos.calificacion_minima,
+      );
+    } else mostrarAlerta(data.message);
+  } catch (e) {
+    mostrarAlerta("Error al procesar los puntos.");
+  }
+}
+
+document
+  .getElementById("form-pe-agregar")
+  ?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await procesarPuntosExtra(
+      document.getElementById("pe_id_alumno").value,
+      document.getElementById("pe_operacion").value,
+      document.getElementById("pe_cantidad").value,
+      document.getElementById("pe_motivo").value,
+      null,
+    );
+  });
+document
+  .getElementById("form-pe-transferir")
+  ?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await procesarPuntosExtra(
+      document.getElementById("pe_id_alumno").value,
+      "transfer",
+      document.getElementById("pe_cantidad_trans").value,
+      document.getElementById("pe_motivo_trans").value,
+      document.getElementById("pe_id_destino").value,
+    );
+  });
 
 function inyectarPestanasNavegacion(idGrupo, vistaActiva) {
   const header = document.querySelector(".header-panel");

@@ -434,6 +434,154 @@
       </div>
     </div>
 
+    <!-- Modal de Puntos Extras -->
+    <div id="modal-puntos-extra" class="modal-overlay" style="z-index: 2020">
+      <div class="modal-content" style="max-width: 500px">
+        <div class="modal-header">
+          <h2 style="color: #f59e0b">
+            <i class="fas fa-star"></i> Puntos Extras
+          </h2>
+          <button
+            type="button"
+            onclick="
+              document
+                .getElementById('modal-puntos-extra')
+                .classList.remove('active')
+            "
+            class="btn-close"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div style="text-align: center; margin-bottom: 20px">
+          <h3 id="pe_nombre_alumno" style="color: white; margin-bottom: 5px">
+            Alumno
+          </h3>
+          <div
+            style="font-size: 2.5rem; font-weight: 800; color: #f59e0b"
+            id="pe_total_puntos"
+          >
+            0.00
+          </div>
+          <p style="color: var(--text-muted)">Puntos Acumulados</p>
+        </div>
+        <div class="tabs-container">
+          <button
+            type="button"
+            class="tab-btn active"
+            onclick="switchTabPE('pe-tab-historial', this)"
+          >
+            Historial
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            onclick="switchTabPE('pe-tab-agregar', this)"
+          >
+            Añadir/Usar
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            onclick="switchTabPE('pe-tab-transferir', this)"
+          >
+            Transferir
+          </button>
+        </div>
+        <div
+          id="pe-tab-historial"
+          class="tab-content active"
+          style="max-height: 250px; overflow-y: auto"
+        >
+          <ul
+            class="list-group"
+            id="pe_lista_historial"
+            style="list-style: none; padding: 0; margin: 0"
+          ></ul>
+        </div>
+        <div id="pe-tab-agregar" class="tab-content">
+          <form id="form-pe-agregar">
+            <input type="hidden" id="pe_id_alumno" value="" />
+            <div class="form-group">
+              <label>Operación</label>
+              <select id="pe_operacion" class="form-control">
+                <option value="add">Sumar Puntos (+)</option>
+                <option value="subtract">Usar / Restar Puntos (-)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Cantidad</label
+              ><input
+                type="number"
+                id="pe_cantidad"
+                class="form-control"
+                step="0.1"
+                min="0.1"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label>Motivo / Comentario</label
+              ><input
+                type="text"
+                id="pe_motivo"
+                class="form-control"
+                placeholder="Ej. Participación excelente en clase"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              class="btn btn-maestro"
+              style="width: 100%; justify-content: center; background: #f59e0b"
+            >
+              Guardar Cambios
+            </button>
+          </form>
+        </div>
+        <div id="pe-tab-transferir" class="tab-content">
+          <form id="form-pe-transferir">
+            <div class="form-group">
+              <label>Transferir a (Compañero)</label>
+              <select id="pe_id_destino" class="form-control" required></select>
+            </div>
+            <div class="form-group">
+              <label>Cantidad a Transferir</label>
+              <input
+                type="number"
+                id="pe_cantidad_trans"
+                class="form-control"
+                step="0.1"
+                min="0.1"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label>Motivo / Mensaje</label
+              ><input
+                type="text"
+                id="pe_motivo_trans"
+                class="form-control"
+                placeholder="Ej. Apoyo en el proyecto de ciencias"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              class="btn btn-maestro"
+              style="
+                width: 100%;
+                justify-content: center;
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+              "
+            >
+              Transferir Puntos
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal de Confirmación Personalizada -->
     <div id="modal-confirmacion" class="modal-overlay">
       <div class="modal-content" style="max-width: 450px; text-align: center">
@@ -493,6 +641,6 @@
       <i class="fas fa-check-circle"></i> Guardado automático
     </div>
 
-    <script type="module" src="../../js/calificaciones.js?v=11"></script>
+    <script type="module" src="../../js/calificaciones.js?v=12"></script>
   </body>
 </html>

@@ -18,7 +18,7 @@ try {
     // LEER ALUMNOS DEL GRUPO
     if ($action === 'list') {
         $id_grupo = $_GET['id_grupo'] ?? 0;
-        $stmt = $pdo->prepare("SELECT id_alumno, matricula, nombre, qr_token, pin_acceso FROM alumnos WHERE id_grupo = ? ORDER BY orden ASC, nombre ASC");
+        $stmt = $pdo->prepare("SELECT id_alumno, matricula, nombre, qr_token, pin_acceso, puntos_extra, historial_puntos FROM alumnos WHERE id_grupo = ? ORDER BY orden ASC, nombre ASC");
         $stmt->execute([$id_grupo]);
         echo json_encode(["success" => true, "data" => $stmt->fetchAll()]);
         exit;
@@ -136,6 +136,61 @@ try {
             $pdo->commit();
         }
         echo json_encode(["success" => true]);
+        exit;
+    }
+
+    // GESTIÓN DE PUNTOS EXTRAS
+    if ($action === 'manage_points') {
+        $id_alumno = $input['id_alumno'];
+        $operacion = $input['operacion']; // 'add', 'subtract', 'transfer'
+        $cantidad = floatval($input['cantidad']);
+        $motivo = trim($input['motivo']);
+        
+        $fecha = date('d/m/Y H:i');
+
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare("SELECT puntos_extra, historial_puntos FROM alumnos WHERE id_alumno = ? FOR UPDATE");
+            $stmt->execute([$id_alumno]);
+            $origen = $stmt->fetch();
+
+            if (!$origen) throw new Exception("Alumno no encontrado.");
+
+            $puntos_actuales = floatval($origen['puntos_extra']);
+            $historial = json_decode($origen['historial_puntos'], true) ?: [];
+
+            if ($operacion === 'subtract' || $operacion === 'transfer') {
+                if ($puntos_actuales < $cantidad) throw new Exception("El alumno no tiene suficientes puntos extras para esta operación.");
+                $puntos_actuales -= $cantidad;
+            } else if ($operacion === 'add') {
+                $puntos_actuales += $cantidad;
+            }
+
+            $historial[] = ["tipo" => $operacion, "cantidad" => $cantidad, "motivo" => $motivo, "fecha" => $fecha];
+            $update = $pdo->prepare("UPDATE alumnos SET puntos_extra = ?, historial_puntos = ? WHERE id_alumno = ?");
+            $update->execute([$puntos_actuales, json_encode($historial), $id_alumno]);
+
+            if ($operacion === 'transfer') {
+                $id_destino = $input['id_destino'];
+                $stmtD = $pdo->prepare("SELECT nombre, puntos_extra, historial_puntos FROM alumnos WHERE id_alumno = ? FOR UPDATE");
+                $stmtD->execute([$id_destino]);
+                $destino = $stmtD->fetch();
+
+                if (!$destino) throw new Exception("Alumno destino no encontrado.");
+
+                $puntos_dest = floatval($destino['puntos_extra']) + $cantidad;
+                $historial_dest = json_decode($destino['historial_puntos'], true) ?: [];
+                $historial_dest[] = ["tipo" => "add", "cantidad" => $cantidad, "motivo" => "Transferencia recibida de un compañero: " . $motivo, "fecha" => $fecha];
+
+                $updateD = $pdo->prepare("UPDATE alumnos SET puntos_extra = ?, historial_puntos = ? WHERE id_alumno = ?");
+                $updateD->execute([$puntos_dest, json_encode($historial_dest), $id_destino]);
+            }
+            $pdo->commit();
+            echo json_encode(["success" => true]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            echo json_encode(["success" => false, "message" => $e->getMessage()]);
+        }
         exit;
     }
 
