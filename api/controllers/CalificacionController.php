@@ -91,6 +91,34 @@ try {
         exit;
     }
 
+    // GESTIÓN MASIVA DE CALIFICACIONES EN BLOQUE (NUEVO)
+    if ($action === 'save_notas_bulk') {
+        $changes = $input['changes'] ?? [];
+        $pdo->beginTransaction();
+        try {
+            foreach ($changes as $change) {
+                $id_alumno = $change['id_alumno'];
+                $id_actividad = $change['id_actividad'];
+                $puntaje = floatval($change['puntaje']);
+
+                $check = $pdo->prepare("SELECT id_calificacion FROM calificaciones WHERE id_alumno = ? AND id_actividad = ?");
+                $check->execute([$id_alumno, $id_actividad]);
+                
+                if ($row = $check->fetch()) {
+                    $pdo->prepare("UPDATE calificaciones SET puntaje = ? WHERE id_calificacion = ?")->execute([$puntaje, $row['id_calificacion']]);
+                } else {
+                    $pdo->prepare("INSERT INTO calificaciones (id_alumno, id_actividad, puntaje) VALUES (?, ?, ?)")->execute([$id_alumno, $id_actividad, $puntaje]);
+                }
+            }
+            $pdo->commit();
+            echo json_encode(["success" => true]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            echo json_encode(["success" => false, "message" => $e->getMessage()]);
+        }
+        exit;
+    }
+
 } catch (Exception $e) {
     echo json_encode(["success" => false, "message" => "Error de BD: " . $e->getMessage()]);
 }

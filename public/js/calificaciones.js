@@ -5,6 +5,8 @@ let activeEditor = null; // Para controlar la instancia del editor de texto
 let tinymceLoaded = false; // Para saber si el editor ya terminó de cargar
 let asistenciasGlobal = []; // Para la memoria de asistencias
 let currentAlumnoAsistencia = null; // ID del alumno seleccionado para asistencias
+window.pendingGradeChanges = {}; // Memoria de calificaciones
+window.rubricasGlobal = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -22,6 +24,45 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Inyectar Barra de Navegación Integrada (Pestañas)
   inyectarPestanasNavegacion(idGrupo, "calificaciones");
+
+  // --- SISTEMA DE RECUPERACIÓN ANTE CORTES DE INTERNET ---
+  const backup = localStorage.getItem(`evalia_backup_calif_${idGrupo}`);
+  if (backup) {
+    try {
+      const parsedBackup = JSON.parse(backup);
+      if (Object.keys(parsedBackup).length > 0) {
+        window.pendingGradeChanges = parsedBackup;
+        window.actualizarBotonGuardarCalif();
+        setTimeout(() => {
+          window.mostrarConfirmacion(
+            "⚠️ Se detectaron calificaciones sin guardar de tu sesión anterior (por un corte de internet o cierre accidental).\n\n¿Deseas recuperarlas o descartarlas?",
+            () => {
+              cargarHojaDeCalculo(
+                idGrupo,
+                document.getElementById("select-periodo").value,
+                grupoDatos.calificacion_minima,
+              );
+            },
+            () => {
+              window.pendingGradeChanges = {};
+              localStorage.removeItem(`evalia_backup_calif_${idGrupo}`);
+              window.actualizarBotonGuardarCalif();
+              cargarHojaDeCalculo(
+                idGrupo,
+                document.getElementById("select-periodo").value,
+                grupoDatos.calificacion_minima,
+              );
+            },
+            '<i class="fas fa-save"></i> Recuperar',
+            '<i class="fas fa-trash"></i> Descartar',
+            false,
+          );
+        }, 1000);
+      }
+    } catch (e) {
+      localStorage.removeItem(`evalia_backup_calif_${idGrupo}`);
+    }
+  }
 
   // 0. Cargar Claves del .env e inicializar el script del Editor (TinyMCE)
   try {
@@ -393,8 +434,93 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.print();
   });
 
+  // --- EVENTO GUARDAR MASIVAMENTE ---
+  document
+    .getElementById("btn-guardar-cambios-calif")
+    ?.addEventListener("click", async function () {
+      const btn = this;
+      const changes = Object.values(window.pendingGradeChanges || {});
+      if (changes.length === 0) return;
+
+      const text = document.getElementById("btn-guardar-text-calif");
+      const icon = document.getElementById("btn-guardar-icon-calif");
+      const lbl = document.getElementById("lbl-cambios-pendientes-calif");
+
+      if (text) text.innerText = "Guardando...";
+      if (icon) icon.className = "fas fa-spinner fa-spin";
+      if (lbl) lbl.innerText = "Por favor espera";
+      btn.disabled = true;
+
+      try {
+        const resp = await fetch(
+          "/api/controllers/CalificacionController.php",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "save_notas_bulk",
+              changes: changes,
+            }),
+          },
+        );
+        const dt = await resp.json();
+
+        if (dt.success) {
+          window.pendingGradeChanges = {};
+          localStorage.removeItem(`evalia_backup_calif_${idGrupo}`);
+          document
+            .querySelectorAll(".unsaved-change")
+            .forEach((td) => td.classList.remove("unsaved-change"));
+
+          if (text) text.innerText = "¡Guardado exitoso!";
+          if (icon) icon.className = "fas fa-check";
+          if (lbl) lbl.style.display = "none";
+          btn.style.background = "#10b981";
+          btn.style.boxShadow = "0 10px 25px rgba(16, 185, 129, 0.6)";
+
+          setTimeout(() => {
+            btn.disabled = false;
+            if (text) text.innerText = "Guardar Cambios";
+            window.actualizarBotonGuardarCalif();
+          }, 2000);
+        } else {
+          mostrarAlerta("Error al guardar: " + dt.message);
+          btn.disabled = false;
+          window.actualizarBotonGuardarCalif();
+        }
+      } catch (e) {
+        mostrarAlerta("Ocurrió un error al enviar los datos.");
+        btn.disabled = false;
+        window.actualizarBotonGuardarCalif();
+      }
+    });
+
+  // --- ADVERTENCIA ANTES DE SALIR ---
+  window.addEventListener("beforeunload", (e) => {
+    if (Object.keys(window.pendingGradeChanges || {}).length > 0) {
+      e.preventDefault();
+      e.returnValue =
+        "Tienes cambios de calificaciones sin guardar. ¿Seguro que deseas salir?";
+    }
+  });
+
   // --- NAVEGACIÓN ESTILO EXCEL PARA CALIFICACIONES ---
   document.addEventListener("keydown", (e) => {
+    // Atajo para Guardar Cambios (Ctrl + S o Ctrl + G)
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      (e.key.toLowerCase() === "s" || e.key.toLowerCase() === "g")
+    ) {
+      e.preventDefault();
+      const btnGuardar = document.getElementById("btn-guardar-cambios-calif");
+      if (
+        btnGuardar &&
+        btnGuardar.style.display !== "none" &&
+        !btnGuardar.disabled
+      )
+        btnGuardar.click();
+      return;
+    }
     if (e.target.classList.contains("grade-input")) {
       let currentTd = e.target.closest("td");
       let currentTr = currentTd.parentElement;
@@ -454,6 +580,7 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
 
   actividadesGlobal = data.actividades; // Guardamos las actividades en memoria
   asistenciasGlobal = data.asistencias || []; // Guardamos las asistencias
+  window.rubricasGlobal = data.rubricas; // Guardamos las rúbricas para el recálculo local
 
   // Llenar selector de Rúbricas para el Modal
   const selectRub = document.getElementById("id_rubrica");
@@ -617,8 +744,17 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
                 c.id_alumno === alumno.id_alumno &&
                 c.id_actividad === a.id_actividad,
             );
-            const puntaje =
-              calif && calif.puntaje !== null ? calif.puntaje : "";
+
+            const pending =
+              window.pendingGradeChanges[
+                `${alumno.id_alumno}_${a.id_actividad}`
+              ];
+            const puntaje = pending
+              ? pending.puntaje
+              : calif && calif.puntaje !== null
+                ? calif.puntaje
+                : "";
+
             if (puntaje !== "") {
               sumaRubrica += parseFloat(puntaje);
               actsEvaluadas++;
@@ -630,8 +766,9 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
               ? "background-color: rgba(239, 68, 68, 0.15); color: #ef4444;"
               : "";
             let failClass = isFailing ? "failing-grade" : "";
+            let unsavedClass = pending ? "unsaved-change" : "";
 
-            tbody += `<td style="${bgStyle}">
+            tbody += `<td style="${bgStyle}" class="${unsavedClass}">
                         <input type="number" class="grade-input ${failClass}" style="border-bottom: 2px solid ${rubrica.color || "#8b5cf6"}; ${bgStyle}" data-alumno="${alumno.id_alumno}" data-actividad="${a.id_actividad}" value="${puntaje}" min="0" max="10" step="0.1" onblur="guardarCalificacion(this, ${minAprobatoria})">
                     </td>`;
           });
@@ -752,53 +889,127 @@ window.eliminarActividad = function (idActividad) {
     },
   );
 };
-// 4. FUNCIÓN SILENCIOSA QUE GUARDA EN TIEMPO REAL AL QUITAR EL CURSOR
+
+window.actualizarBotonGuardarCalif = function () {
+  const count = Object.keys(window.pendingGradeChanges || {}).length;
+  const btn = document.getElementById("btn-guardar-cambios-calif");
+  const lbl = document.getElementById("lbl-cambios-pendientes-calif");
+  const text = document.getElementById("btn-guardar-text-calif");
+  const icon = document.getElementById("btn-guardar-icon-calif");
+
+  if (count > 0) {
+    if (btn) btn.style.display = "flex";
+    if (lbl) {
+      lbl.style.display = "block";
+      lbl.innerText = `${count} pendiente${count !== 1 ? "s" : ""} (Ctrl+S)`;
+    }
+    if (text && text.innerText !== "Guardando...") {
+      if (text) text.innerText = "Guardar Cambios";
+      if (icon) icon.className = "fas fa-save";
+      if (btn) {
+        btn.style.background = "linear-gradient(135deg, #ec4899, #f43f5e)";
+        btn.style.boxShadow = "0 10px 25px rgba(236, 72, 153, 0.6)";
+        btn.disabled = false;
+      }
+    }
+  } else {
+    if (text && text.innerText === "Guardar Cambios") {
+      if (btn) btn.style.display = "none";
+    }
+  }
+};
+
+window.recalcularFilaCalificacion = function (idAlumno, minAprobatoria) {
+  const tr = document.getElementById(`promFinal-${idAlumno}`)?.closest("tr");
+  if (!tr) return;
+
+  let sumaFinal = 0;
+  let porcentajeEvaluado = 0;
+
+  window.rubricasGlobal.forEach((rubrica) => {
+    if (rubrica.categoria.toLowerCase().includes("asistencia")) {
+      const btnAsis = tr.querySelector(`button[onclick^="verAsistencias"]`);
+      if (btnAsis) {
+        const match = btnAsis.innerHTML.match(/Nota:\s*([\d.]+)/);
+        if (match) {
+          sumaFinal += parseFloat(match[1]) * (rubrica.porcentaje / 100);
+          porcentajeEvaluado += parseFloat(rubrica.porcentaje);
+        }
+      }
+    } else {
+      const actos = actividadesGlobal.filter(
+        (a) => a.id_rubrica === rubrica.id_rubrica,
+      );
+      let sumaRubrica = 0;
+      let actsEvaluadas = 0;
+      actos.forEach((a) => {
+        const input = tr.querySelector(
+          `input[data-actividad="${a.id_actividad}"]`,
+        );
+        if (input) {
+          let val = input.value;
+          if (val !== "") {
+            sumaRubrica += parseFloat(val);
+            actsEvaluadas++;
+          }
+          let isFailing = val !== "" && parseFloat(val) < minAprobatoria;
+          input.classList.toggle("failing-grade", isFailing);
+          input.parentElement.style.backgroundColor = isFailing
+            ? "rgba(239, 68, 68, 0.15)"
+            : "";
+          input.style.backgroundColor = isFailing
+            ? "rgba(239, 68, 68, 0.15)"
+            : "";
+          input.style.color = isFailing ? "#ef4444" : "";
+        }
+      });
+      if (actsEvaluadas > 0) {
+        sumaFinal += (sumaRubrica / actsEvaluadas) * (rubrica.porcentaje / 100);
+        porcentajeEvaluado += parseFloat(rubrica.porcentaje);
+      }
+    }
+  });
+
+  let promReal =
+    porcentajeEvaluado > 0 ? sumaFinal / (porcentajeEvaluado / 100) : 0;
+  const tdFinal = document.getElementById(`promFinal-${idAlumno}`);
+  if (tdFinal) {
+    const isFailingFinal = promReal < minAprobatoria;
+    tdFinal.className = `cell-promedio ${isFailingFinal ? "text-danger failing-grade-cell" : "text-success"}`;
+    tdFinal.style.backgroundColor = isFailingFinal
+      ? "rgba(239, 68, 68, 0.15)"
+      : "";
+    tdFinal.innerText = promReal > 0 ? promReal.toFixed(1) : "0.0";
+  }
+};
+
+// 4. FUNCIÓN SILENCIOSA QUE GUARDA EN MEMORIA
 window.guardarCalificacion = async function (inputElem, minAprobatoria) {
   let valor = inputElem.value;
   if (valor === "") valor = 0;
 
-  const payload = {
-    action: "save_nota",
-    id_alumno: inputElem.getAttribute("data-alumno"),
-    id_actividad: inputElem.getAttribute("data-actividad"),
+  const idAlumno = inputElem.getAttribute("data-alumno");
+  const idActividad = inputElem.getAttribute("data-actividad");
+  const key = `${idAlumno}_${idActividad}`;
+
+  window.pendingGradeChanges[key] = {
+    id_alumno: idAlumno,
+    id_actividad: idActividad,
     puntaje: parseFloat(valor),
   };
 
-  try {
-    const res = await fetch("/api/controllers/CalificacionController.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
+  inputElem.parentElement.classList.add("unsaved-change");
+  window.actualizarBotonGuardarCalif();
 
-    if (data.success) {
-      inputElem.style.borderBottom = "2px solid #10b981"; // Feedback visual verde de éxito
-      inputElem.style.color = "#10b981";
-      const toast = document.getElementById("toast-save");
-      if (toast) {
-        toast.style.opacity = "1";
-        toast.style.transform = "translateY(0)";
-        setTimeout(() => {
-          toast.style.opacity = "0";
-          toast.style.transform = "translateY(20px)";
-        }, 2000);
-      }
-
-      const idGrupo = new URLSearchParams(window.location.search).get("id");
-      const idPeriodo = document.getElementById("select-periodo").value;
-      cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria);
-    } else {
-      throw new Error(data.message);
-    }
-  } catch (e) {
-    console.error("Error al guardar:", e);
-    inputElem.style.borderBottom = "2px solid #ef4444"; // Feedback visual rojo de error
-    inputElem.style.color = "#ef4444";
-    mostrarAlerta(
-      "Error de conexión. La calificación no se guardó. Revisa tu conexión a internet e inténtalo de nuevo.",
+  const idGrupo = new URLSearchParams(window.location.search).get("id");
+  if (idGrupo) {
+    localStorage.setItem(
+      `evalia_backup_calif_${idGrupo}`,
+      JSON.stringify(window.pendingGradeChanges),
     );
   }
+
+  window.recalcularFilaCalificacion(idAlumno, minAprobatoria);
 };
 
 // --- LÓGICA DE PUNTOS EXTRAS ---
