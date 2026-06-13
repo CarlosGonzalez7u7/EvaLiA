@@ -577,10 +577,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         let prevTr = currentTr.previousElementSibling;
         if (prevTr)
           targetInput = prevTr.children[index]?.querySelector("input");
-      } else if (e.key === "ArrowDown") {
+      } else if (e.key === "ArrowDown" || e.key === "Enter") {
         let nextTr = currentTr.nextElementSibling;
         if (nextTr)
           targetInput = nextTr.children[index]?.querySelector("input");
+      } else if (e.key === "ArrowRight") {
+        let nextTd = currentTd.nextElementSibling;
+        while (nextTd && !nextTd.querySelector("input.grade-input")) {
+          nextTd = nextTd.nextElementSibling;
+        }
+        if (nextTd) targetInput = nextTd.querySelector("input.grade-input");
+      } else if (e.key === "ArrowLeft") {
+        let prevTd = currentTd.previousElementSibling;
+        while (prevTd && !prevTd.querySelector("input.grade-input")) {
+          prevTd = prevTd.previousElementSibling;
+        }
+        if (prevTd) targetInput = prevTd.querySelector("input.grade-input");
       }
 
       if (targetInput) {
@@ -817,8 +829,8 @@ async function cargarHojaDeCalculo(idGrupo, idPeriodo, minAprobatoria) {
               calif && calif.puntaje !== null ? calif.puntaje : "";
             let titleTxt = `👤 ${alumno.nombre.replace(/"/g, "&quot;")}&#10;📝 ${a.nombre_actividad.replace(/"/g, "&quot;")}`;
 
-            tbody += `<td style="${bgStyle}" class="${unsavedClass}">
-                        <input type="number" class="grade-input ${failClass}" style="border-bottom: 2px solid ${rubrica.color || "#8b5cf6"}; ${bgStyle}" data-alumno="${alumno.id_alumno}" data-actividad="${a.id_actividad}" data-original="${originalVal}" value="${puntaje}" min="0" max="10" step="0.1" onblur="guardarCalificacion(this, ${minAprobatoria})" title="${titleTxt}">
+            tbody += `<td style="${bgStyle}" class="${unsavedClass} td-grade">
+                        <input type="number" class="grade-input ${failClass}" style="border-bottom: 3px solid ${rubrica.color || "#8b5cf6"}; color: inherit;" data-alumno="${alumno.id_alumno}" data-actividad="${a.id_actividad}" data-original="${originalVal}" value="${puntaje}" min="0" max="10" step="0.1" onblur="guardarCalificacion(this, ${minAprobatoria})" title="${titleTxt}">
                     </td>`;
           });
           if (actsEvaluadas > 0) {
@@ -1006,10 +1018,10 @@ window.recalcularFilaCalificacion = function (idAlumno, minAprobatoria) {
           input.parentElement.style.backgroundColor = isFailing
             ? "rgba(239, 68, 68, 0.15)"
             : "";
-          input.style.backgroundColor = isFailing
-            ? "rgba(239, 68, 68, 0.15)"
-            : "";
-          input.style.color = isFailing ? "#ef4444" : "";
+          input.parentElement.style.color = isFailing ? "#ef4444" : "";
+
+          input.style.backgroundColor = "transparent";
+          input.style.color = "inherit";
         }
       });
       if (actsEvaluadas > 0) {
